@@ -1,0 +1,25 @@
+name: Deploy Game to Itch.io
+
+on:
+  push:
+    branches:
+      - main # Or 'master', depending on your default branch name
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+        
+      - name: Zip the Game Files
+        run: zip -r game.zip index.html style.css game.js
+        
+      - name: Deploy with Butler
+        uses: manleydev/butler-publish-itchio-action@master
+        env:
+          BUTLER_CREDENTIALS: ${{ secrets.BUTLER_API_KEY }}
+          CHANNEL: html
+          ITCH_GAME: game
+          ITCH_USER: slavastar
+          PACKAGE: game.zip
