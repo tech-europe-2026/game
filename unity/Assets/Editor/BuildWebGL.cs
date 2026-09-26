@@ -8,7 +8,7 @@ public static class BuildWebGL
 {
     const string ScenePath = "Assets/Scenes/Main.unity";
 
-    [MenuItem("Ball States/Build WebGL")]
+    [MenuItem("Skyroll/Build WebGL")]
     public static void Build()
     {
         AssetDatabase.ImportAsset("Assets/Resources/Sprites", ImportAssetOptions.ForceUpdate | ImportAssetOptions.ImportRecursive);
@@ -27,7 +27,7 @@ public static class BuildWebGL
         AlwaysInclude("Sprites/Default");
 
         PlayerSettings.companyName = "TechEurope2026";
-        PlayerSettings.productName = "Ball States";
+        PlayerSettings.productName = "Skyroll";
         PlayerSettings.defaultWebScreenWidth = 1280;
         PlayerSettings.defaultWebScreenHeight = 720;
         PlayerSettings.runInBackground = true;

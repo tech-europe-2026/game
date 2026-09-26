@@ -17,7 +17,7 @@ public static class Levels
     {
         new Level { name = "FIRST FLIGHT", unlock = "jump,crouch,dash", build = FirstFlight, top = C(120, 170, 245), mid = C(186, 214, 255), bottom = C(255, 222, 214) },
         new Level { name = "UPSIDE", unlock = "jump,reverse,climb", build = Upside, top = C(124, 106, 226), mid = C(198, 180, 255), bottom = C(255, 206, 226) },
-        new Level { name = "HEAVY WEATHER", unlock = "jump,grow,parry", build = HeavyWeather, top = C(78, 170, 204), mid = C(172, 230, 236), bottom = C(238, 250, 244) },
+        new Level { name = "HEAVY WEATHER", unlock = "jump,grow", build = HeavyWeather, top = C(78, 170, 204), mid = C(172, 230, 236), bottom = C(238, 250, 244) },
         new Level { name = "PHASE SHIFT", unlock = "jump,dash,teleport,camo", build = PhaseShift, top = C(246, 134, 128), mid = C(255, 196, 170), bottom = C(255, 236, 204) },
     };
 
@@ -29,7 +29,8 @@ public static class Levels
         b.Orbs(5, 1.3f, 8, 1.3f, 3);
         b.Orb(10.5f, 2.6f);
         b.Plat(16, 0, 8);
-        b.Ramp(20, 0, 28, -3);
+        b.Ice(20, 0, 28, -3, 1);
+        b.Label(24, 2.5f, "ice · you just slide");
         b.Plat(31, -3, 6);
 
         b.Label(40, -.3f, "grind the rails");
@@ -97,12 +98,17 @@ public static class Levels
         b.Plat(78.5f, 10, 9);
         b.Check(80, 11.2f);
 
-        b.Plat(84, 15, 2, 10);
-        b.Orbs(82.3f, 12.5f, 82.3f, 17.5f, 3);
-        b.Plat(92, 19.65f, 14);
-        b.Shards(91, 20, 3);
-        b.Orb(91, 22);
-        b.Goal(97, 21.5f);
+        b.Label(92, 13.5f, "jump rail to rail · don't drop");
+        b.Rail(true, V(83.3f, 10.35f), V(87, 9.2f), V(90.5f, 9.8f));
+        b.Orbs(86, 10.4f, 89, 10.6f, 2);
+        b.Rail(true, V(94, 8.6f), V(97.5f, 7.3f), V(100.5f, 8.1f));
+        b.Orb(97.5f, 8.5f);
+        b.Rail(true, V(104, 7.2f), V(107.5f, 5.6f), V(112.5f, 6.35f));
+        b.Orbs(106, 6.9f, 110, 6.7f, 2);
+        b.Ice(112.8f, 6, 118, 6, 1);
+        b.Plat(121, 6, 6);
+        b.Plat(124.4f, 7.8f, .7f, 4f);
+        b.Goal(121.5f, 8);
     }
 
     static void HeavyWeather(LevelBuilder b)
@@ -121,19 +127,16 @@ public static class Levels
 
         b.Plat(46.5f, -5, 27);
         b.Plat(47, .5f, 20, 1);
-        b.Label(42, -1.4f, "Q to parry · send it back|PARRY · send it back");
+        b.Label(44, -1.4f, "grow heavy to shove the crates");
         b.Orb(40, -3.8f);
-        var crystal = b.Crystal(47, -4.15f);
-        var door = b.Door(50, -2.3f, .8f, 4.7f);
-        crystal.linked = door;
-        b.Turret(55, -4.1f, Vector2.left, 1.6f);
-        b.Orb(53, -3.8f);
+        b.Box(46, -3.8f);
+        b.Box(51, -3.8f);
+        b.Orbs(48, -3.8f, 54, -3.8f, 3);
         b.Pad(58.5f, -4.45f, 0, 24);
         b.Plat(64, 3, 8);
         b.Check(62, 4.5f);
 
         b.Plat(76, 3, 16);
-        b.Turret(88, 4.2f, Vector2.left, 1.3f);
         b.Turret(76, 9.5f, Vector2.down, 1.5f, .7f);
         b.Orbs(70, 4.5f, 80, 4.5f, 4);
         b.Label(92, 6.5f, "ice · no steering, just slide");
@@ -182,7 +185,9 @@ public static class Levels
         b.Plat(95, 14, 12);
         b.Shards(95, 13.4f, 2, 180);
         b.Orbs(90, 12.4f, 100, 12.4f, 3);
-        b.Plat(106, 8, 6);
-        b.Goal(107, 10);
+        b.Ice(103, 7.9f, 106.5f, 7.9f, 1);
+        b.Plat(109, 8, 5);
+        b.Plat(111.8f, 9.8f, .7f, 4f);
+        b.Goal(109, 10);
     }
 }

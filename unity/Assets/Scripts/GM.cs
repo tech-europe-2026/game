@@ -380,7 +380,7 @@ public class GM : MonoBehaviour
     void DrawTitle(float W, float H, float u, Color ink)
     {
         Box(new Rect(0, 0, W, H), new Color(1, 1, 1, .35f));
-        Text(new Rect(0, H * .16f, W, 100 * u), "BALL STATES", hero, ink, (int)(88 * u));
+        Text(new Rect(0, H * .16f, W, 100 * u), "SKYROLL", hero, ink, (int)(88 * u));
         Text(new Rect(0, H * .16f + 92 * u, W, 36 * u), "one ball  ·  fifteen states  ·  a sky full of physics", body, new Color(ink.r, ink.g, ink.b, .65f), (int)(22 * u));
 
         int n = AllStates.Length;
@@ -431,7 +431,7 @@ public class GM : MonoBehaviour
         Box(new Rect(0, 0, W, H), new Color(1, 1, 1, .6f));
         Icon(new Rect(W / 2 - 90 * u, H * .3f, 180 * u, 180 * u), "reverse");
         Text(new Rect(0, H * .3f + 200 * u, W, 60 * u), "ROTATE YOUR PHONE", hero, ink, (int)(44 * u));
-        Text(new Rect(0, H * .3f + 260 * u, W, 40 * u), "Ball States plays in landscape", body, new Color(ink.r, ink.g, ink.b, .65f), (int)(28 * u));
+        Text(new Rect(0, H * .3f + 260 * u, W, 40 * u), "Skyroll plays in landscape", body, new Color(ink.r, ink.g, ink.b, .65f), (int)(28 * u));
     }
 
     static void DrawArrow(Vector2 c, float r, int dir, bool down, float u, Color ink)
