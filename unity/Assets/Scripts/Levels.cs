@@ -17,7 +17,7 @@ public static class Levels
     public static readonly Level[] All =
     {
         new Level { name = "FIRST FLIGHT", unlock = "jump,crouch,dash", build = FirstFlight, top = C(120, 170, 245), mid = C(186, 214, 255), bottom = C(255, 222, 214) },
-        new Level { name = "UPSIDE", unlock = "jump,reverse,dash", build = Upside, top = C(124, 106, 226), mid = C(198, 180, 255), bottom = C(255, 206, 226) },
+        new Level { name = "UPSIDE", unlock = "jump,reverse,crouch", build = Upside, top = C(124, 106, 226), mid = C(198, 180, 255), bottom = C(255, 206, 226) },
         new Level { name = "HEAVY WEATHER", unlock = "jump,grow,dash", build = HeavyWeather, top = C(78, 170, 204), mid = C(172, 230, 236), bottom = C(238, 250, 244) },
         new Level { name = "PULSE", unlock = "jump,dash,crouch", build = PhaseShift, top = C(246, 134, 128), mid = C(255, 196, 170), bottom = C(255, 236, 204) },
         new Level { name = "DUEL", unlock = "jump,dash,grow", boss = true, build = Duel, top = C(64, 60, 120), mid = C(170, 120, 190), bottom = C(255, 170, 160) },
@@ -113,11 +113,14 @@ public static class Levels
         b.Label(28, 3.5f, "flip back to land");
         b.Plat(32, 1, 10);
 
-        b.Plat(38, 5, 2, 10);
-        b.Pad(35.3f, 1.55f, 0, 24);
-        b.Label(33, 5, "bounce up · roll right");
-        b.Orbs(35.3f, 4f, 35.3f, 9f, 3);
-        b.Plat(46.5f, 9.65f, 15);
+        b.Pad(34.5f, 1.55f, 0, 16);
+        b.Plat(37.5f, 3.8f, 2.6f);
+        b.Pad(37.5f, 4.35f, 0, 16);
+        b.Plat(40.5f, 6.6f, 2.6f);
+        b.Pad(40.5f, 7.15f, 0, 16);
+        b.Label(33, 6, "bounce up the steps");
+        b.Orbs(36, 5.5f, 42.5f, 11, 3);
+        b.Plat(49, 9.65f, 10);
         b.Orbs(42, 11, 46, 11, 3);
 
         b.Label(58, 12.2f, "flip · roll · flip");
@@ -139,7 +142,10 @@ public static class Levels
         b.Plat(121, 6, 6);
         b.Check(121, 7.4f);
 
-        b.Plat(129, 6, 6);
+        b.Plat(128, 6, 8);
+        b.Plat(129, 9, 5, 3.7f);
+        b.Label(124, 8.5f, "hold S to squeeze|hold CROUCH to squeeze");
+        b.Orbs(127.5f, 6.8f, 130.5f, 6.8f, 3);
         b.Label(137, 9, "flip over the gap");
         b.Plat(137, 11, 12);
         b.Orbs(135, 10, 141, 10, 3);
