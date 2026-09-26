@@ -17,7 +17,7 @@ public static class Levels
     public static readonly Level[] All =
     {
         new Level { name = "FIRST FLIGHT", unlock = "jump,crouch,dash", build = FirstFlight, top = C(120, 170, 245), mid = C(186, 214, 255), bottom = C(255, 222, 214) },
-        new Level { name = "UPSIDE", unlock = "jump,reverse,climb", build = Upside, top = C(124, 106, 226), mid = C(198, 180, 255), bottom = C(255, 206, 226) },
+        new Level { name = "UPSIDE", unlock = "jump,reverse,dash", build = Upside, top = C(124, 106, 226), mid = C(198, 180, 255), bottom = C(255, 206, 226) },
         new Level { name = "HEAVY WEATHER", unlock = "jump,grow,dash", build = HeavyWeather, top = C(78, 170, 204), mid = C(172, 230, 236), bottom = C(238, 250, 244) },
         new Level { name = "PULSE", unlock = "jump,dash,crouch", build = PhaseShift, top = C(246, 134, 128), mid = C(255, 196, 170), bottom = C(255, 236, 204) },
         new Level { name = "DUEL", unlock = "jump,dash,grow", boss = true, build = Duel, top = C(64, 60, 120), mid = C(170, 120, 190), bottom = C(255, 170, 160) },
@@ -114,8 +114,9 @@ public static class Levels
         b.Plat(32, 1, 10);
 
         b.Plat(38, 5, 2, 10);
-        b.Label(33, 5, "hold C to climb|hold CLIMB against a wall");
-        b.Orbs(36.3f, 3.5f, 36.3f, 8.5f, 3);
+        b.Pad(35.3f, 1.55f, 0, 24);
+        b.Label(33, 5, "bounce up · roll right");
+        b.Orbs(35.3f, 4f, 35.3f, 9f, 3);
         b.Plat(46.5f, 9.65f, 15);
         b.Orbs(42, 11, 46, 11, 3);
 
@@ -145,7 +146,8 @@ public static class Levels
         b.Plat(148, 6, 8);
         b.Gate(148, 6.35f, 9.5f, 0, true);
         b.Plat(154, 9, 1.2f, 8);
-        b.Label(150, 11, "climb over");
+        b.Pad(150.8f, 6.55f, 0, 22);
+        b.Label(150, 11, "bounce over");
         b.Plat(159, 12.65f, 9);
         b.Orb(159, 14);
         b.Rail(true, V(163.3f, 13.35f), V(168, 12), V(173, 12.8f));
