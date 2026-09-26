@@ -23,12 +23,33 @@ public static class Levels
         new Level { name = "DUEL", unlock = "jump,dash,grow", boss = true, build = Duel, top = C(64, 60, 120), mid = C(170, 120, 190), bottom = C(255, 170, 160) },
     };
 
-    static void RailRun(LevelBuilder b, float x, float py)
+    static void RailRun(LevelBuilder b, float x, float py, int style = 0)
     {
         float y = py + .7f;
-        b.Rail(true, V(x, y), V(x + 3.7f, y - 1.15f), V(x + 7.2f, y - .55f));
-        b.Rail(true, V(x + 10.7f, y - 1.75f), V(x + 14.2f, y - 3.05f), V(x + 17.2f, y - 2.25f));
-        b.Rail(true, V(x + 20.7f, y - 3.15f), V(x + 24.2f, y - 4.75f), V(x + 29.2f, y - 4f));
+        Vector2 P(float dx, float dy) => V(x + dx, y + dy);
+        switch (style)
+        {
+            case 1:
+                b.Rail(true, P(0, 0), P(1.6f, -2.3f), P(4.5f, -2f), P(7.2f, -.55f));
+                b.Rail(true, P(10.7f, -1.75f), P(12.2f, -3.9f), P(15.2f, -3.6f), P(17.2f, -2.25f));
+                b.Rail(true, P(20.7f, -3.15f), P(22.4f, -5.6f), P(26.5f, -5.2f), P(29.2f, -4f));
+                break;
+            case 2:
+                b.Rail(true, P(0, 0), P(2.2f, -1.5f), P(3.7f, -.7f), P(5.2f, -1.4f), P(7.2f, -.55f));
+                b.Rail(true, P(10.7f, -1.75f), P(12.5f, -3.2f), P(14f, -2.5f), P(15.5f, -3.3f), P(17.2f, -2.25f));
+                b.Rail(true, P(20.7f, -3.15f), P(22.7f, -4.6f), P(24.5f, -3.9f), P(26.6f, -4.9f), P(29.2f, -4f));
+                break;
+            case 3:
+                b.Rail(true, P(0, 0), P(3f, -.6f), P(5.5f, -1.9f), P(7.2f, -.55f));
+                b.Rail(true, P(10.7f, -1.75f), P(12f, -2.1f), P(13.2f, -4.2f), P(15.8f, -3.9f), P(17.2f, -2.25f));
+                b.Rail(true, P(20.7f, -3.15f), P(23f, -3.7f), P(24.5f, -5.9f), P(27.3f, -5.4f), P(29.2f, -4f));
+                break;
+            default:
+                b.Rail(true, P(0, 0), P(3.7f, -1.15f), P(7.2f, -.55f));
+                b.Rail(true, P(10.7f, -1.75f), P(14.2f, -3.05f), P(17.2f, -2.25f));
+                b.Rail(true, P(20.7f, -3.15f), P(24.2f, -4.75f), P(29.2f, -4f));
+                break;
+        }
         b.Orbs(x + 3, y - .6f, x + 22, y - 3.6f, 5);
         b.Plat(x + 33.2f, py - 3.6f, 8);
         b.Plat(x + 37.4f, py - 1.8f, .7f, 4f);
@@ -49,7 +70,7 @@ public static class Levels
         b.Check(31, -1.6f);
 
         b.Label(40, -.3f, "grind the rails");
-        b.Rail(true, V(34.2f, -2.63f), V(40, -3.6f), V(46, -2.6f), V(51.8f, .3f));
+        b.Rail(true, V(34.2f, -2.63f), V(37.5f, -3.8f), V(40.5f, -3.1f), V(43.5f, -4f), V(47.5f, -2.9f), V(51.8f, .3f));
         b.Orbs(38, -2.4f, 46, -1.7f, 4);
 
         b.Plat(56, 0, 8);
@@ -163,7 +184,7 @@ public static class Levels
         b.Rail(true, V(163.3f, 13.35f), V(168, 12), V(173, 12.8f));
         b.Orbs(166, 12.8f, 170, 12.8f, 2);
         b.Plat(177, 12.5f, 7);
-        RailRun(b, 180.8f, 12.5f);
+        RailRun(b, 180.8f, 12.5f, 1);
     }
 
     static void HeavyWeather(LevelBuilder b)
@@ -218,7 +239,7 @@ public static class Levels
         b.Gate(186, -2.65f, 1, .5f, true);
         b.Orb(183, -1.6f);
         b.Plat(193, -3, 8);
-        RailRun(b, 197.3f, -3f);
+        RailRun(b, 197.3f, -3f, 2);
     }
 
     static void PhaseShift(LevelBuilder b)
@@ -241,7 +262,7 @@ public static class Levels
         b.Orbs(44, 3, 44, 7, 3);
         b.Plat(50, 6.5f, 6);
 
-        b.Rail(true, V(53.3f, 6.83f), V(58, 5), V(64, 5.5f), V(69.8f, 8.3f));
+        b.Rail(true, V(53.3f, 6.83f), V(56, 5.2f), V(59, 6), V(62, 4.8f), V(66, 5.6f), V(69.8f, 8.3f));
         b.Gate(61, 5.8f, 9.5f, -.7f);
         b.Orbs(56, 6.2f, 66, 6.8f, 4);
         b.Label(58, 10.5f, "time the rail");
@@ -269,7 +290,7 @@ public static class Levels
         b.Orbs(135, 10.4f, 139, 10.4f, 2);
         b.Plat(146, 10.3f, 8);
         b.Check(145, 11.7f);
-        RailRun(b, 150.3f, 10.3f);
+        RailRun(b, 150.3f, 10.3f, 3);
     }
 
     static void Duel(LevelBuilder b)
