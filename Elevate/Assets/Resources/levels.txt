@@ -27,7 +27,7 @@ map:
 end
 
 level: Stairs
-hint: Numbers are heights. Climb one level at a time, drop down as far as you like.
+hint: Dots show height. Climb one level at a time, drop down as far as you like.
 par: 8
 map:
 #########
