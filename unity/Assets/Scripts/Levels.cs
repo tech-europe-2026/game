@@ -255,10 +255,10 @@ public static class Levels
         b.Plat(-10.4f, .6f, .8f, 10);
         b.Plat(10.4f, .6f, .8f, 10);
         b.Plat(0, 6, 21.6f, .6f);
-        b.Plat(-5.5f, 0, 4);
-        b.Plat(5.5f, 0, 4);
-        b.Plat(0, 2.8f, 4);
-        b.Label(0, -1.2f, "ram the red ball · dash hits hardest");
+        b.Plat(-5.5f, -1.7f, 4);
+        b.Plat(5.5f, -1.7f, 4);
+        b.Plat(0, .6f, 4);
+        b.Label(0, 3.2f, "ram the red ball · dash hits hardest");
         b.Rival(6, -2.5f, new Vector2(-10, -3.65f), new Vector2(10, 5.5f));
     }
 }

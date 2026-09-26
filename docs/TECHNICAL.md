@@ -145,7 +145,7 @@ Levels 1–4 are roughly 30–45% longer than in the previous version, and each 
 
 **Arena.** The arena is a closed room of 22 × 11 units: floor, two walls, a ceiling and three floating platforms. `CameraFollow.fixedView` locks the camera to the centre of the arena and sizes it to fit the aspect ratio, so the whole fight stays on one screen.
 
-**Lives.** Both balls have 3 hearts. The rival's hearts are shown in a RED pill at the top centre of the screen.
+**Lives.** Both balls have 4 hearts. The rival's hearts are shown in a RED pill at the top centre of the screen.
 
 **Ram resolution** (`Boss.OnCollisionEnter2D`). Using each ball's velocity from before the collision (`LastVel`):
 
@@ -169,7 +169,7 @@ Whoever is moving into the other ball harder wins the exchange. A dash (speed of
 | Grow | "grow" form | 3 s with a larger radius and 3× mass: slower, but its rams hit harder |
 | Blink | "teleport" form | Teleports to the far side of the arena, then shoots |
 
-**Difficulty tuning (medium).** The rival is slower than the player, every attack is telegraphed, it has 1.4 s of invulnerability after a hit and pauses 1.2 s to think afterwards, and bullets are slow and can be dodged. It gets more aggressive as it loses lives: its think time shrinks and it fires 3 shots on its last life. If the player loses all 3 hearts, "RED WINS" is shown and the duel restarts. Winning shows CHAMPION and then the results screen.
+**Difficulty tuning (medium).** The rival is slower than the player, every attack is telegraphed, it has 1.4 s of invulnerability after a hit and pauses 1.2 s to think afterwards, and bullets are slow and can be dodged. It gets more aggressive as it loses lives: its think time shrinks and it fires 3 shots on its last life. If the player loses all 4 hearts, "RED WINS" is shown and the duel restarts. Winning shows CHAMPION and then the results screen.
 
 ---
 

@@ -4,7 +4,7 @@ using UnityEngine;
 public class Boss : MonoBehaviour
 {
     public static Boss I;
-    public const int MaxHearts = 3;
+    public const int MaxHearts = 4;
     const float G = 3f, R = .55f, RBig = .9f;
 
     public int hearts = MaxHearts;

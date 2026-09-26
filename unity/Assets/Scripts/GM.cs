@@ -470,37 +470,24 @@ public class GM : MonoBehaviour
 
     void DrawTitle(float W, float H, float u, Color ink)
     {
-        Box(new Rect(0, 0, W, H), new Color(1, 1, 1, .6f));
-        Text(new Rect(0, H * .08f, W, 100 * u), "SKYROLL", hero, ink, (int)(88 * u));
-        Text(new Rect(0, H * .08f + 92 * u, W, 36 * u), "one ball  ·  fifteen states  ·  a sky full of physics", body, new Color(ink.r, ink.g, ink.b, .65f), (int)(22 * u));
-
-        int n = AllStates.Length;
-        float s = Mathf.Min(70 * u, (W - 80 * u) / n), total = s * n;
-        int hi = (int)(uiT * 1.5f) % n;
-        for (int i = 0; i < n; i++)
-        {
-            float bob = Mathf.Sin(uiT * 3f + i * .5f) * 4 * u;
-            float sc = i == hi ? 1.25f : 1f;
-            var r = new Rect((W - total) / 2 + i * s + s * (1 - sc) / 2, H * .36f - s / 2 + bob - (sc - 1) * s / 2, s * sc * .9f, s * sc * .9f);
-            Icon(r, AllStates[i], i == hi ? 1f : .75f);
-        }
-        Text(new Rect(0, H * .36f + s * .7f, W, 30 * u), AllStates[hi].ToUpper(), h1, ink, (int)(18 * u));
-
-        Text(new Rect(0, H * .6f - 40 * u, W, 30 * u), Controls.Touch ? "CHOOSE A LEVEL" : "CHOOSE A LEVEL   ·   press 1-5 or click", body, new Color(ink.r, ink.g, ink.b, .6f), (int)(16 * u));
+        Box(new Rect(0, 0, W, H), new Color(1, 1, 1, .72f));
+        Text(new Rect(0, H * .12f, W, 100 * u), "SKYROLL", hero, ink, (int)(92 * u));
+        Text(new Rect(0, H * .12f + 96 * u, W, 30 * u), "roll  ·  jump  ·  fly", body, new Color(ink.r, ink.g, ink.b, .5f), (int)(20 * u));
+        float bob = Mathf.Sin(uiT * 2.5f) * 6 * u;
+        Icon(new Rect(W / 2 - 45 * u, H * .36f + bob, 90 * u, 90 * u), "idle");
         var mp = MouseGui;
         for (int i = 0; i < Levels.All.Length; i++)
         {
             var d = Levels.All[i];
             var cr = CardRect(i);
             bool on = i == sel || (!Controls.Touch && cr.Contains(mp));
-            if (on) cr = new Rect(cr.x - 4 * u, cr.y - 6 * u, cr.width + 8 * u, cr.height + 8 * u);
-            Pill(new Rect(cr.x, cr.y, cr.width, cr.height), new Color(1, 1, 1, on ? .92f : .68f));
-            Pill(new Rect(cr.x + cr.width * .3f, cr.y + 10 * u, cr.width * .4f, 8 * u), d.top);
-            Text(new Rect(cr.x, cr.y + 20 * u, cr.width, 44 * u), (i + 1).ToString("00"), hero, d.boss ? (Color)Gfx.Coral : ink, (int)(34 * u));
-            Text(new Rect(cr.x, cr.y + 64 * u, cr.width, 26 * u), d.name, h1, ink, (int)(15 * u));
-            Text(new Rect(cr.x, cr.y + 88 * u, cr.width, 22 * u), d.boss ? "boss" : d.unlock.Replace(",", " · "), body, new Color(ink.r, ink.g, ink.b, .55f), (int)(11 * u));
+            if (on) cr = new Rect(cr.x - 3 * u, cr.y - 5 * u, cr.width + 6 * u, cr.height + 6 * u);
+            Pill(cr, on ? ink : new Color(1, 1, 1, .9f));
+            var tc = on ? Color.white : ink;
+            Text(new Rect(cr.x, cr.y + 26 * u, cr.width, 40 * u), (i + 1).ToString(), hero, tc, (int)(32 * u));
+            Text(new Rect(cr.x, cr.y + 68 * u, cr.width, 26 * u), d.name, h1, new Color(tc.r, tc.g, tc.b, .85f), (int)(13 * u));
         }
-        Text(new Rect(0, H * .6f + 136 * u, W, 30 * u), Controls.Touch ? "left thumb rolls   ·   right thumb jumps & switches states" : "A / D roll   ·   SPACE jump   ·   R restart   ·   M music   ·   L levels", body, new Color(ink.r, ink.g, ink.b, .6f), (int)(17 * u));
+        Text(new Rect(0, H * .6f + 140 * u, W, 30 * u), Controls.Touch ? "tap a level" : "click a level  ·  1-5", body, new Color(ink.r, ink.g, ink.b, .45f), (int)(16 * u));
     }
 
     void DrawMusic(float u, Color ink)
@@ -536,11 +523,18 @@ public class GM : MonoBehaviour
 
     void DrawRotate(float W, float H, Color ink)
     {
-        float u = Mathf.Min(W, H) / 720f;
-        Box(new Rect(0, 0, W, H), new Color(1, 1, 1, .6f));
-        Icon(new Rect(W / 2 - 90 * u, H * .3f, 180 * u, 180 * u), "reverse");
-        Text(new Rect(0, H * .3f + 200 * u, W, 60 * u), "ROTATE YOUR PHONE", hero, ink, (int)(44 * u));
-        Text(new Rect(0, H * .3f + 260 * u, W, 40 * u), "Skyroll plays in landscape", body, new Color(ink.r, ink.g, ink.b, .65f), (int)(28 * u));
+        float u = Mathf.Min(W, H) / 400f;
+        Box(new Rect(0, 0, W, H), new Color(1, 1, 1, .8f));
+        var c = new Vector2(W / 2, H * .38f);
+        float t = Mathf.Repeat(uiT, 2.4f), ang = Mathf.SmoothStep(0, -90, Mathf.Clamp01((t - .5f) / .8f));
+        var old = GUI.matrix;
+        GUIUtility.RotateAroundPivot(ang, c);
+        Pill(new Rect(c.x - 40 * u, c.y - 70 * u, 80 * u, 140 * u), ink);
+        Pill(new Rect(c.x - 34 * u, c.y - 62 * u, 68 * u, 124 * u), new Color(.75f, .85f, 1f));
+        GUI.matrix = old;
+        Icon(new Rect(c.x - 18 * u, c.y - 18 * u, 36 * u, 36 * u), "idle");
+        Text(new Rect(0, H * .62f, W, 50 * u), "TURN SIDEWAYS", hero, ink, (int)(30 * u));
+        Text(new Rect(0, H * .62f + 44 * u, W, 30 * u), "Skyroll plays in landscape", body, new Color(ink.r, ink.g, ink.b, .55f), (int)(16 * u));
     }
 
     static void DrawArrow(Vector2 c, float r, int dir, bool down, float u, Color ink)
