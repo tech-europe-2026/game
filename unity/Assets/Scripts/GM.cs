@@ -7,7 +7,7 @@ public class GM : MonoBehaviour
     enum Mode { Title, Playing, LevelDone, Won }
 
     public static GM I;
-    static readonly HashSet<string> unlocked = new HashSet<string>();
+    static readonly HashSet<string> unlocked = new HashSet<string>(), seen = new HashSet<string>();
     static readonly List<(Vector2 p, string text)> signs = new List<(Vector2, string)>();
 
     public int orbs;
@@ -45,7 +45,7 @@ public class GM : MonoBehaviour
     };
 
     static readonly string[] AllStates =
-        { "idle", "spin", "bounce", "teleport", "grow", "crouch", "stun", "heal", "dash", "climb", "camouflage", "reverse", "parry", "evolve" };
+        { "idle", "spin", "bounce", "teleport", "grow", "crouch", "stun", "heal", "dash", "freeze", "climb", "camouflage", "reverse", "parry", "evolve" };
 
     public static bool Has(string id) => unlocked.Contains(id);
     public static void AddSign(Vector2 p, string text) => signs.Add((p, text));
@@ -90,14 +90,18 @@ public class GM : MonoBehaviour
         checkpoint = level.start;
         ball = Ball.Create(level.start);
         camFollow.Follow(ball, level.min, level.max);
+        camFollow.SetSky(def.bottom, def.mid, def.top);
         orbs = 0;
         deaths = 0;
         levelTime = 0;
         var fresh = new List<string>();
+        unlocked.Clear();
         foreach (var a in def.unlock.Split(','))
         {
             string id = a.Trim();
-            if (id.Length > 0 && unlocked.Add(id)) fresh.Add(id);
+            if (id.Length == 0) continue;
+            unlocked.Add(id);
+            if (seen.Add(id)) fresh.Add(id);
         }
         newStates = string.Join(",", fresh);
         bannerT = 0;
@@ -128,6 +132,7 @@ public class GM : MonoBehaviour
                     if (y < level.min.y - 9f || y > level.max.y + 9f) ball.Die();
                 }
                 if (Input.GetKeyDown(KeyCode.R) || Controls.Pressed("restart")) LoadLevel(levelIndex);
+                if (Input.GetKeyDown(KeyCode.F9)) SkipAhead();
                 if (Input.GetKeyDown(KeyCode.N)) StartCoroutine(Advance(0f));
                 break;
             case Mode.Won:
@@ -261,6 +266,19 @@ public class GM : MonoBehaviour
         return Abilities[0];
     }
 
+    void SkipAhead()
+    {
+        float bx = ball.rb.position.x, best = float.MaxValue;
+        Vector2 target = Vector2.zero;
+        foreach (var t in level.root.GetComponentsInChildren<Tile>())
+        {
+            if (t.kind != TileKind.Check && t.kind != TileKind.Goal) continue;
+            float x = t.transform.position.x;
+            if (x > bx + 1f && x < best) { best = x; target = t.transform.position; }
+        }
+        if (best < float.MaxValue) ball.Respawn(target + Vector2.left * 1.5f + Vector2.up);
+    }
+
     float Cooldown(string id)
     {
         switch (id)
@@ -269,7 +287,7 @@ public class GM : MonoBehaviour
             case "teleport": return Mathf.Clamp01(ball.teleCd / Ball.TeleCd);
             case "parry": return Mathf.Clamp01(ball.parryCd / Ball.ParryCd);
             case "camo": return Mathf.Clamp01(ball.camoCd / Ball.CamoCd);
-            case "reverse": return Mathf.Clamp01(ball.flipCd / Ball.FlipCd);
+            case "reverse": return ball.flipReady ? Mathf.Clamp01(ball.flipCd / Ball.FlipCd) : 1f;
             case "climb": return 1f - Mathf.Clamp01(ball.climbStamina / Ball.ClimbMax);
             default: return 0f;
         }
@@ -363,7 +381,7 @@ public class GM : MonoBehaviour
     {
         Box(new Rect(0, 0, W, H), new Color(1, 1, 1, .35f));
         Text(new Rect(0, H * .16f, W, 100 * u), "BALL STATES", hero, ink, (int)(88 * u));
-        Text(new Rect(0, H * .16f + 92 * u, W, 36 * u), "one ball  ·  fourteen states  ·  a sky full of physics", body, new Color(ink.r, ink.g, ink.b, .65f), (int)(22 * u));
+        Text(new Rect(0, H * .16f + 92 * u, W, 36 * u), "one ball  ·  fifteen states  ·  a sky full of physics", body, new Color(ink.r, ink.g, ink.b, .65f), (int)(22 * u));
 
         int n = AllStates.Length;
         float s = Mathf.Min(70 * u, (W - 80 * u) / n), total = s * n;

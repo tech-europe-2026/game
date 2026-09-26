@@ -21,6 +21,9 @@ public class Ball : MonoBehaviour
     public float climbStamina = ClimbMax;
     public int facing = 1;
     public float gravDir = 1f; // 1 = gravity down, -1 = gravity up
+    public bool flipReady = true;
+    public float iceT;
+    Vector2 iceTan = Vector2.right;
 
     float targetRadius = RNormal, visRadius = RNormal;
     bool grounded;
@@ -97,7 +100,7 @@ public class Ball : MonoBehaviour
         jumpBuffer -= dt;
         if (camoT > 0) camoT -= dt;
 
-        if (!controlLocked && stunT <= 0)
+        if (!controlLocked && stunT <= 0 && iceT <= 0)
         {
             if (Controls.Pressed("jump")) jumpBuffer = .12f;
             if (Controls.Released("jump")
@@ -120,7 +123,7 @@ public class Ball : MonoBehaviour
 
     Vector2 InputDir()
     {
-        if (controlLocked || stunT > 0) return Vector2.zero;
+        if (controlLocked || stunT > 0 || iceT > 0) return Vector2.zero;
         return Controls.Move;
     }
 
@@ -136,6 +139,8 @@ public class Ball : MonoBehaviour
         coyote = grounded ? .1f : coyote - fdt;
         if (grounded && !climbing) climbStamina = Mathf.MoveTowards(climbStamina, ClimbMax, fdt * 2f);
         onRail = railT > 0;
+        iceT -= fdt;
+        if (grounded || climbing) flipReady = true;
 
         Vector2 inp = InputDir();
         if (inp.x != 0) facing = inp.x > 0 ? 1 : -1;
@@ -146,6 +151,13 @@ public class Ball : MonoBehaviour
         {
             dashT -= fdt;
             if (dashT <= 0) rb.gravityScale = G * gravDir;
+        }
+        else if (iceT > 0)
+        {
+            float along = Vector2.Dot(rb.velocity, iceTan);
+            rb.velocity += iceTan * (Mathf.Max(along, 9f) - along);
+            rb.angularVelocity = 0;
+            if (Random.value < .3f) Fx.Burst(rb.position - Up * r, new Color(.8f, .95f, 1f), 1, 2f, .1f, 0f, .3f);
         }
         else if (!climbing)
         {
@@ -352,6 +364,8 @@ public class Ball : MonoBehaviour
 
     void Flip()
     {
+        if (!flipReady) { Fx.Burst(rb.position, Color.gray, 5, 2f); return; }
+        flipReady = false;
         gravDir = -gravDir;
         flipCd = FlipCd;
         if (dashT <= 0 && !climbing) rb.gravityScale = G * gravDir;
@@ -405,6 +419,8 @@ public class Ball : MonoBehaviour
         hearts = MaxHearts;
         grown = crouching = climbing = false;
         gravDir = 1f;
+        flipReady = true;
+        iceT = 0;
         rb.mass = 1f;
         rb.gravityScale = G;
         col.sharedMaterial = normalMat;
@@ -484,6 +500,9 @@ public class Ball : MonoBehaviour
                         return;
                     }
                     break;
+                case TileKind.Ice:
+                    IceContact(tile, normal);
+                    break;
                 case TileKind.Rail:
                     if (railT <= 0)
                     {
@@ -521,7 +540,23 @@ public class Ball : MonoBehaviour
             if (Mathf.Abs(s) > 1f) rb.AddForce(tangent * Mathf.Sign(s) * 9f * rb.mass);
             if (Random.value < .35f) Fx.Burst(cp.point, Gfx.Gold, 1, 3f, .1f, 8f, .25f);
         }
+        else if (tile.kind == TileKind.Ice) IceContact(tile, c.GetContact(0).normal);
         else if (tile.kind == TileKind.Spinner && !Parrying) Hurt(c.GetContact(0).point);
+    }
+
+    void IceContact(Tile tile, Vector2 normal)
+    {
+        if (Vector2.Dot(normal, Up) < .5f) return;
+        Vector2 t = new Vector2(normal.y, -normal.x);
+        if (t.x * tile.dir < 0) t = -t;
+        iceTan = t;
+        if (iceT <= 0)
+        {
+            Sfx.Play("land", .5f);
+            Fx.Burst(rb.position, new Color(.85f, .96f, 1f), 12, 4f, .14f, 0f, .4f);
+            if (crouching && RoomFor(RNormal)) { crouching = false; SetRadius(RNormal); }
+        }
+        iceT = .15f;
     }
 
     void OnTriggerEnter2D(Collider2D other) => HandleTrigger(other);
@@ -573,6 +608,7 @@ public class Ball : MonoBehaviour
     {
         if (evolving) return "evolve";
         if (stunT > 0 || (hurtInvT > .6f && !dead)) return "stun";
+        if (iceT > 0) return "freeze";
         if (Parrying) return "parry";
         if (Camo) return "camouflage";
         if (flashT > 0) return flashState;
@@ -607,7 +643,7 @@ public class Ball : MonoBehaviour
         squashT.localScale = new Vector3(s.x * d, s.y * d, 1);
         transform.rotation = Quaternion.identity;
 
-        bool rolls = st != "evolve" && st != "stun" && st != "parry" && st != "crouch";
+        bool rolls = st != "evolve" && st != "stun" && st != "parry" && st != "crouch" && st != "freeze";
         if (rolls && !dead)
         {
             spinAngle -= v.x * gravDir / Mathf.Max(.3f, visRadius) * Mathf.Rad2Deg * dt;
@@ -624,6 +660,7 @@ public class Ball : MonoBehaviour
         switch (st)
         {
             case "dash": case "spin": gc = new Color(1f, .8f, .3f, .45f); break;
+            case "freeze": gc = new Color(.6f, .9f, 1f, .5f); break;
             case "heal": gc = new Color(.2f, 1f, .6f, .5f); break;
             case "stun": gc = new Color(1f, .3f, .35f, .45f); break;
             case "reverse": gc = new Color(.6f, .5f, 1f, .4f); break;

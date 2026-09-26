@@ -9,12 +9,18 @@ public class CameraFollow : MonoBehaviour
     Vector3 pos;
     Vector2 look;
     Transform sky;
-    SpriteRenderer skyTint;
+    SpriteRenderer skyTint, skySr;
     Transform[] deco;
     float[] depth;
     Vector2[] decoBase;
     float tint;
     const float BaseSize = 7f, WrapW = 70f, WrapH = 44f;
+
+    public void SetSky(Color bottom, Color mid, Color top)
+    {
+        skySr.sprite = Gfx.VerticalGradient(bottom, mid, top);
+        cam.backgroundColor = mid;
+    }
 
     void Awake()
     {
@@ -28,7 +34,7 @@ public class CameraFollow : MonoBehaviour
         sky = skyGo.transform;
         sky.SetParent(transform, false);
         sky.localPosition = new Vector3(0, 0, 20);
-        var sr = skyGo.AddComponent<SpriteRenderer>();
+        var sr = skySr = skyGo.AddComponent<SpriteRenderer>();
         sr.sprite = Gfx.VerticalGradient(Gfx.SkyBottom, Gfx.SkyMid, Gfx.SkyTop);
         sr.sortingOrder = -100;
         skyTint = Gfx.Quad(sky, Vector2.zero, Vector2.one, new Color(.55f, .45f, 1f, 0f), -99);

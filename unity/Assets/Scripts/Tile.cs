@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public enum TileKind { Solid, Rail, Shard, Spinner, Gate, Orb, Check, Goal, Pad, Glass, Crystal, Door }
+public enum TileKind { Solid, Rail, Shard, Spinner, Gate, Orb, Check, Goal, Pad, Glass, Crystal, Door, Ice }
 
 public class Tile : MonoBehaviour
 {
@@ -8,6 +8,7 @@ public class Tile : MonoBehaviour
     public bool used;
     public SpriteRenderer art;
     public Tile linked;
+    public int dir = 1;
     Vector3 basePos;
     float phase;
 

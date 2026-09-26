@@ -9,7 +9,7 @@ public class LevelBuilder
     public Vector2 min = new Vector2(float.MaxValue, float.MaxValue), max = new Vector2(float.MinValue, float.MinValue);
     public int orbs;
 
-    static PhysicsMaterial2D platMat, railMat, padMat, boxMat;
+    static PhysicsMaterial2D platMat, railMat, padMat, boxMat, iceMat;
 
     static PhysicsMaterial2D Mat(ref PhysicsMaterial2D m, float friction, float bounce)
     {
@@ -73,6 +73,40 @@ public class LevelBuilder
     {
         var d = new Vector2(x1 - x0, y1 - y0);
         return Plat((x0 + x1) / 2, (y0 + y1) / 2, d.magnitude + h * .5f, h, Mathf.Atan2(d.y, d.x) * Mathf.Rad2Deg);
+    }
+
+    // Frictionless ice slab from (x0,y0) to (x1,y1); the ball slides in `dir` without steering.
+    public GameObject Ice(float x0, float y0, float x1, float y1, int dir = 1, float h = .6f)
+    {
+        var d = new Vector2(x1 - x0, y1 - y0);
+        float ang = Mathf.Atan2(d.y, d.x) * Mathf.Rad2Deg, w = d.magnitude + h * .5f;
+        var go = Go("ice", new Vector2((x0 + x1) / 2, (y0 + y1) / 2), ang);
+        Gfx.Slab(go.transform, new Vector2(0, -.12f), new Vector2(w, h), new Color32(140, 200, 235, 255), 1);
+        Gfx.Slab(go.transform, Vector2.zero, new Vector2(w, h), new Color32(214, 242, 255, 255), 2);
+        Gfx.Slab(go.transform, new Vector2(0, h * .22f), new Vector2(w - .4f, h * .16f), new Color(1, 1, 1, .85f), 3);
+        var c = go.AddComponent<BoxCollider2D>();
+        c.edgeRadius = .1f;
+        c.size = new Vector2(w - .2f, h - .2f);
+        c.sharedMaterial = Mat(ref iceMat, 0f, 0f);
+        AddTile(go, TileKind.Ice).dir = dir;
+        Grow(new Vector2(x0, y0), h);
+        Grow(new Vector2(x1, y1), h);
+        return go;
+    }
+
+    // Roller-coaster: a grind rail with support struts.
+    public GameObject Coaster(params Vector2[] pts)
+    {
+        var go = Rail(true, pts);
+        float last = float.MinValue;
+        foreach (var p in go.GetComponent<EdgeCollider2D>().points)
+        {
+            if (p.x - last < 1.6f) continue;
+            last = p.x;
+            const float len = 4f;
+            Gfx.Quad(go.transform, new Vector2(p.x, p.y - len / 2 - .12f), new Vector2(.09f, len), new Color(1, 1, 1, .5f), 2);
+        }
+        return go;
     }
 
     // Grind rail through control points (Catmull-Rom smoothed). One-way from above unless solid.

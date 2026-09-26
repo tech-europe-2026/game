@@ -6,17 +6,19 @@ public static class Levels
     public struct Level
     {
         public string name, unlock;
+        public Color top, mid, bottom;
         public Action<LevelBuilder> build;
     }
 
     static Vector2 V(float x, float y) => new Vector2(x, y);
+    static Color C(byte r, byte g, byte b) => new Color32(r, g, b, 255);
 
     public static readonly Level[] All =
     {
-        new Level { name = "FIRST FLIGHT", unlock = "jump,crouch,dash", build = FirstFlight },
-        new Level { name = "UPSIDE", unlock = "reverse,climb", build = Upside },
-        new Level { name = "HEAVY WEATHER", unlock = "grow,parry", build = HeavyWeather },
-        new Level { name = "PHASE SHIFT", unlock = "teleport,camo", build = PhaseShift },
+        new Level { name = "FIRST FLIGHT", unlock = "jump,crouch,dash", build = FirstFlight, top = C(120, 170, 245), mid = C(186, 214, 255), bottom = C(255, 222, 214) },
+        new Level { name = "UPSIDE", unlock = "jump,reverse,climb", build = Upside, top = C(124, 106, 226), mid = C(198, 180, 255), bottom = C(255, 206, 226) },
+        new Level { name = "HEAVY WEATHER", unlock = "jump,grow,parry", build = HeavyWeather, top = C(78, 170, 204), mid = C(172, 230, 236), bottom = C(238, 250, 244) },
+        new Level { name = "PHASE SHIFT", unlock = "jump,dash,teleport,camo", build = PhaseShift, top = C(246, 134, 128), mid = C(255, 196, 170), bottom = C(255, 236, 204) },
     };
 
     static void FirstFlight(LevelBuilder b)
@@ -56,10 +58,15 @@ public static class Levels
         b.Plat(100.5f, 4, 6);
         b.Shards(100.5f, 4.35f, 3);
         b.Orb(100.5f, 6.4f);
-        b.Rail(true, V(103.8f, 4.35f), V(108, 2.8f), V(114.8f, 3.3f));
-        b.Orbs(106, 3.8f, 110, 3.8f, 3);
-        b.Plat(118, 3, 6);
-        b.Goal(119.5f, 5);
+        b.Label(110, 7, "ride the coaster");
+        b.Coaster(V(103.8f, 4.35f), V(108, 1.5f), V(112, -2.5f), V(116, -1), V(120, 2.5f), V(124, .5f),
+            V(128, -2), V(132, -.5f), V(136, 3), V(139.8f, 4.35f));
+        b.Orbs(111, -1.4f, 113, -1.9f, 2);
+        b.Orb(120, 3.6f);
+        b.Orbs(127, -.9f, 129, -.9f, 2);
+        b.Plat(145, 4, 10);
+        b.Plat(150.2f, 5.8f, .7f, 4f);
+        b.Goal(142, 6);
     }
 
     static void Upside(LevelBuilder b)
@@ -126,11 +133,18 @@ public static class Levels
         b.Check(62, 4.5f);
 
         b.Plat(76, 3, 16);
-        b.Turret(83, 3.9f, Vector2.left, 1.3f);
+        b.Turret(88, 4.2f, Vector2.left, 1.3f);
         b.Turret(76, 9.5f, Vector2.down, 1.5f, .7f);
         b.Orbs(70, 4.5f, 80, 4.5f, 4);
-        b.Plat(89, 3, 4);
-        b.Goal(89, 5.3f);
+        b.Label(92, 6.5f, "ice · no steering, just slide");
+        b.Ice(84.3f, 3, 97, -2, 1);
+        b.Ice(97, -2, 104, -2, 1);
+        b.Orbs(99, -1.1f, 103, -1.1f, 3);
+        b.Coaster(V(105.5f, -2.6f), V(110, -6), V(115, -3), V(119, 0), V(123, -2.5f), V(127, -4), V(131, -1), V(134.8f, .35f));
+        b.Orb(119, 1.1f);
+        b.Plat(140, 0, 10);
+        b.Plat(145.2f, 1.8f, .7f, 4f);
+        b.Goal(138.5f, 1.8f);
     }
 
     static void PhaseShift(LevelBuilder b)
