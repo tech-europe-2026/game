@@ -334,12 +334,14 @@ public class LevelBuilder
     }
 
     // Vertical laser gate: camouflage passes through.
-    public void Gate(float x, float y0, float y1)
+    public void Gate(float x, float y0, float y1, float shift = 0f)
     {
         float h = y1 - y0;
         var go = Go("gate", new Vector2(x, (y0 + y1) / 2));
-        Gfx.Quad(go.transform, Vector2.zero, new Vector2(1.2f, h + .6f), new Color(1, .4f, .45f, .25f), 5, Gfx.Glow);
+        var glow = Gfx.Quad(go.transform, Vector2.zero, new Vector2(1.2f, h + .6f), new Color(1, .4f, .45f, .25f), 5, Gfx.Glow);
         var t = AddTile(go, TileKind.Gate);
+        t.glow = glow;
+        t.gateShift = shift;
         t.art = Gfx.Quad(go.transform, Vector2.zero, new Vector2(.14f, h), Gfx.Coral, 6);
         Gfx.Slab(go.transform, new Vector2(0, h / 2), new Vector2(.5f, .3f), Gfx.Ink, 7);
         Gfx.Slab(go.transform, new Vector2(0, -h / 2), new Vector2(.5f, .3f), Gfx.Ink, 7);

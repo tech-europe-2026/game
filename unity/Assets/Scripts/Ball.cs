@@ -583,10 +583,7 @@ public class Ball : MonoBehaviour
                 else Hurt(other.transform.position);
                 break;
             case TileKind.Gate:
-                if (!Camo)
-                {
-                    Hurt(new Vector2(other.transform.position.x, rb.position.y));
-                }
+                if (t.GateLive) Hurt(new Vector2(other.transform.position.x, rb.position.y));
                 break;
             case TileKind.Orb:
                 t.used = true;

@@ -9,6 +9,10 @@ public class Tile : MonoBehaviour
     public SpriteRenderer art;
     public Tile linked;
     public int dir = 1;
+    public SpriteRenderer glow;
+    public float gateOn = 1.4f, gateOff = 1.3f, gateShift;
+    float GateClock => Mathf.Repeat(Time.time + gateShift, gateOn + gateOff);
+    public bool GateLive => GateClock < gateOn;
     Vector3 basePos;
     float phase;
 
@@ -38,9 +42,12 @@ public class Tile : MonoBehaviour
             case TileKind.Gate:
                 if (art != null)
                 {
-                    var c = art.color;
-                    c.a = .7f + Mathf.Sin(t * 24f) * .2f;
-                    art.color = c;
+                    float clk = GateClock, a;
+                    if (clk < gateOn) a = .7f + Mathf.Sin(t * 24f) * .2f;
+                    else if (clk > gateOn + gateOff - .4f) a = Mathf.Sin(t * 40f) > 0 ? .45f : .1f;
+                    else a = .08f;
+                    var c = art.color; c.a = a; art.color = c;
+                    if (glow != null) { var g = glow.color; g.a = clk < gateOn ? .25f : .03f; glow.color = g; }
                 }
                 break;
             case TileKind.Crystal:

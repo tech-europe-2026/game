@@ -18,7 +18,7 @@ public static class Levels
         new Level { name = "FIRST FLIGHT", unlock = "jump,crouch,dash", build = FirstFlight, top = C(120, 170, 245), mid = C(186, 214, 255), bottom = C(255, 222, 214) },
         new Level { name = "UPSIDE", unlock = "jump,reverse,climb", build = Upside, top = C(124, 106, 226), mid = C(198, 180, 255), bottom = C(255, 206, 226) },
         new Level { name = "HEAVY WEATHER", unlock = "jump,grow", build = HeavyWeather, top = C(78, 170, 204), mid = C(172, 230, 236), bottom = C(238, 250, 244) },
-        new Level { name = "PHASE SHIFT", unlock = "jump,dash,teleport,camo", build = PhaseShift, top = C(246, 134, 128), mid = C(255, 196, 170), bottom = C(255, 236, 204) },
+        new Level { name = "PULSE", unlock = "jump,dash", build = PhaseShift, top = C(246, 134, 128), mid = C(255, 196, 170), bottom = C(255, 236, 204) },
     };
 
     static void FirstFlight(LevelBuilder b)
@@ -156,32 +156,29 @@ public static class Levels
     {
         b.Start(0, 1);
         b.Plat(4, 0, 12);
-        b.Label(4, 3, "T to blink through walls|BLINK through walls");
-        b.Plat(12, 4, 1.2f, 12);
+        b.Label(6, 3, "red lasers pulse · wait for the gap");
         b.Plat(22, 0, 20);
         b.Orb(15.5f, 1.4f);
 
         b.Plat(26, 5, 10, 1.2f);
         b.Gate(24, .35f, 4.4f);
-        b.Gate(28, .35f, 4.4f);
-        b.Label(21, 7, "V to camouflage through lasers|CAMO through lasers");
+        b.Gate(28, .35f, 4.4f, -.5f);
         b.Orbs(23, 1.3f, 29, 1.3f, 3);
 
-        b.Gate(33.5f, -3, 7);
-        b.Label(33.5f, 8, "or blink past them");
+        b.Gate(33.5f, -3, 7, -1f);
         b.Plat(38, 0, 6);
         b.Mover(44, 1, 3, 0, 5, 4);
         b.Orbs(44, 3, 44, 7, 3);
         b.Plat(50, 6.5f, 6);
 
         b.Rail(true, V(53.3f, 6.83f), V(58, 5), V(64, 5.5f), V(69.8f, 8.3f));
-        b.Gate(61, 5.8f, 9.5f);
+        b.Gate(61, 5.8f, 9.5f, -.7f);
         b.Orbs(56, 6.2f, 66, 6.8f, 4);
-        b.Label(58, 10.5f, "mix your states");
-        b.Plat(73, 8, 6);
+        b.Label(58, 10.5f, "time the rail");
+        b.Plat(75, 8, 10);
         b.Check(73, 9.4f);
 
-        b.Plat(79, 12, 1.2f, 10);
+        b.Gate(79, 8.35f, 12, -1.2f);
         b.Plat(84, 8, 8);
         b.Orb(82, 9.4f);
         b.Plat(95, 14, 12);
