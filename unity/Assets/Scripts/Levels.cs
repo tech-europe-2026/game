@@ -6,6 +6,7 @@ public static class Levels
     public struct Level
     {
         public string name, unlock;
+        public bool boss;
         public Color top, mid, bottom;
         public Action<LevelBuilder> build;
     }
@@ -19,6 +20,7 @@ public static class Levels
         new Level { name = "UPSIDE", unlock = "jump,reverse,climb", build = Upside, top = C(124, 106, 226), mid = C(198, 180, 255), bottom = C(255, 206, 226) },
         new Level { name = "HEAVY WEATHER", unlock = "jump,grow", build = HeavyWeather, top = C(78, 170, 204), mid = C(172, 230, 236), bottom = C(238, 250, 244) },
         new Level { name = "PULSE", unlock = "jump,dash", build = PhaseShift, top = C(246, 134, 128), mid = C(255, 196, 170), bottom = C(255, 236, 204) },
+        new Level { name = "DUEL", unlock = "jump,dash", boss = true, build = Duel, top = C(64, 60, 120), mid = C(170, 120, 190), bottom = C(255, 170, 160) },
     };
 
     static void FirstFlight(LevelBuilder b)
@@ -66,8 +68,24 @@ public static class Levels
         b.Orb(120, 3.6f);
         b.Orbs(127, -.9f, 129, -.9f, 2);
         b.Plat(145, 4, 10);
-        b.Plat(150.2f, 5.8f, .7f, 4f);
-        b.Goal(142, 6);
+        b.Check(146, 5.4f);
+
+        b.Label(155, 9, "blue lasers only push you back");
+        b.Plat(153.75f, 4, 7.5f);
+        b.Gate(155, 4.35f, 7.5f, 0, true);
+        b.Tube(V(157.4f, 5.13f), V(160, 5.1f), V(163, 2.7f), V(166, 3.3f), V(168.6f, 4.63f));
+        b.Orbs(162, 3.3f, 165, 3.4f, 2);
+        b.Plat(172, 3.5f, 7);
+        b.Ice(175.3f, 3.5f, 180, 2, 1);
+        b.Plat(184, 2, 8);
+        b.Orb(186, 3.4f);
+        b.Plat(191.5f, 3, 5);
+        b.Orbs(190.5f, 4.5f, 192.5f, 4.5f, 2);
+        b.Plat(198.5f, 2.5f, 5);
+        b.Gate(198.5f, 2.85f, 6, -.8f, true);
+        b.Plat(205, 2.5f, 8);
+        b.Plat(209.2f, 4.3f, .7f, 4f);
+        b.Goal(206, 4.5f);
     }
 
     static void Upside(LevelBuilder b)
@@ -87,7 +105,7 @@ public static class Levels
         b.Plat(38, 5, 2, 10);
         b.Label(33, 5, "hold C to climb|hold CLIMB against a wall");
         b.Orbs(36.3f, 3.5f, 36.3f, 8.5f, 3);
-        b.Plat(47, 9.65f, 14);
+        b.Plat(46.5f, 9.65f, 15);
         b.Orbs(42, 11, 46, 11, 3);
 
         b.Label(58, 12.2f, "flip · roll · flip");
@@ -107,8 +125,23 @@ public static class Levels
         b.Orbs(106, 6.9f, 110, 6.7f, 2);
         b.Ice(112.8f, 6, 118, 6, 1);
         b.Plat(121, 6, 6);
-        b.Plat(124.4f, 7.8f, .7f, 4f);
-        b.Goal(121.5f, 8);
+        b.Check(121, 7.4f);
+
+        b.Plat(129, 6, 6);
+        b.Label(137, 9, "flip over the gap");
+        b.Plat(137, 11, 12);
+        b.Orbs(135, 10, 141, 10, 3);
+        b.Plat(148, 6, 8);
+        b.Gate(148, 6.35f, 9.5f, 0, true);
+        b.Plat(154, 9, 1.2f, 8);
+        b.Label(150, 11, "climb over");
+        b.Plat(159, 12.65f, 9);
+        b.Orb(159, 14);
+        b.Rail(true, V(163.3f, 13.35f), V(168, 12), V(173, 12.8f));
+        b.Orbs(166, 12.8f, 170, 12.8f, 2);
+        b.Plat(177, 12.5f, 7);
+        b.Plat(180.7f, 14.3f, .7f, 4f);
+        b.Goal(177.5f, 14.5f);
     }
 
     static void HeavyWeather(LevelBuilder b)
@@ -148,8 +181,21 @@ public static class Levels
         b.Coaster(V(105.5f, -2.6f), V(110, -6), V(115, -3), V(119, 0), V(123, -2.5f), V(127, -4), V(131, -1), V(134.8f, .35f));
         b.Orb(119, 1.1f);
         b.Plat(140, 0, 10);
-        b.Plat(145.2f, 1.8f, .7f, 4f);
-        b.Goal(138.5f, 1.8f);
+        b.Check(140, 1.4f);
+
+        b.Plat(150, 0, 10);
+        b.Box(149, .95f);
+        b.Box(152, .95f);
+        b.Tube(V(154.6f, 1.13f), V(158, 1.1f), V(161, -1.5f), V(164, -1.5f), V(167.4f, .13f));
+        b.Orbs(160, -1.2f, 164, -1.2f, 3);
+        b.Plat(171, -1, 8);
+        b.Ice(175, -1, 181, -3, 1);
+        b.Plat(185, -3, 8);
+        b.Gate(186, -2.65f, 1, .5f, true);
+        b.Orb(183, -1.6f);
+        b.Plat(193, -3, 8);
+        b.Plat(197.2f, -1.2f, .7f, 4f);
+        b.Goal(194, -1);
     }
 
     static void PhaseShift(LevelBuilder b)
@@ -187,7 +233,32 @@ public static class Levels
         b.Orbs(91, 6.7f, 99, 7.7f, 3);
         b.Ice(103, 7.9f, 106.5f, 7.9f, 1);
         b.Plat(109, 8, 5);
-        b.Plat(111.8f, 9.8f, .7f, 4f);
-        b.Goal(109, 10);
+        b.Check(109, 9.4f);
+
+        b.Plat(115.25f, 8, 7.5f);
+        b.Gate(116, 8.35f, 11, -.3f);
+        b.Plat(122.5f, 9.3f, 5);
+        b.Orb(122, 10.7f);
+        b.Plat(129, 10.8f, 6);
+        b.Gate(128, 11.15f, 14.3f, 0, true);
+        b.Rail(true, V(132.3f, 11.5f), V(137, 9.8f), V(142, 10.6f));
+        b.Orbs(135, 10.4f, 139, 10.4f, 2);
+        b.Plat(146, 10.3f, 8);
+        b.Plat(150.2f, 12.1f, .7f, 4f);
+        b.Goal(147, 12.3f);
+    }
+
+    static void Duel(LevelBuilder b)
+    {
+        b.Start(-7, -2.5f);
+        b.Plat(0, -4, 20);
+        b.Plat(-10.4f, .6f, .8f, 10);
+        b.Plat(10.4f, .6f, .8f, 10);
+        b.Plat(0, 6, 21.6f, .6f);
+        b.Plat(-5.5f, 0, 4);
+        b.Plat(5.5f, 0, 4);
+        b.Plat(0, 2.8f, 4);
+        b.Label(0, -1.2f, "ram the red ball · dash hits hardest");
+        b.Rival(6, -2.5f, new Vector2(-10, -3.65f), new Vector2(10, 5.5f));
     }
 }

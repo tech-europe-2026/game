@@ -27,7 +27,7 @@ public class Ball : MonoBehaviour
 
     float targetRadius = RNormal, visRadius = RNormal;
     bool grounded;
-    float coyote, jumpBuffer, railT;
+    float coyote, jumpBuffer, railT, pushT;
     Vector2 squash = Vector2.one;
     Vector2 lastVel, climbNormal;
     string flashState = "bounce";
@@ -38,6 +38,7 @@ public class Ball : MonoBehaviour
     ContactFilter2D solidFilter;
 
     public float Radius => col.radius;
+    public Vector2 LastVel => lastVel;
     public bool Parrying => parryT > 0;
     public bool Camo => camoT > 0;
     Vector2 Up => new Vector2(0, gravDir);
@@ -97,7 +98,7 @@ public class Ball : MonoBehaviour
         float dt = Time.deltaTime;
         dashCd -= dt; teleCd -= dt; parryCd -= dt; camoCd -= dt; flipCd -= dt;
         stunT -= dt; flashT -= dt; healT -= dt; hurtInvT -= dt; parryT -= dt; railT -= dt;
-        jumpBuffer -= dt;
+        jumpBuffer -= dt; pushT -= dt;
         if (camoT > 0) camoT -= dt;
 
         if (!controlLocked && stunT <= 0 && iceT <= 0)
@@ -398,6 +399,20 @@ public class Ball : MonoBehaviour
         if (hearts <= 0) Die();
     }
 
+    void Push(float gateX)
+    {
+        if (pushT > 0) return;
+        pushT = .35f;
+        float dir = Mathf.Sign(rb.position.x - gateX);
+        if (Mathf.Abs(rb.position.x - gateX) < .05f) dir = -facing;
+        rb.velocity = new Vector2(dir * 9f, 0) + Up * 5f;
+        stunT = .2f;
+        squash = new Vector2(.7f, 1.3f);
+        Sfx.Play("deflect", .6f);
+        Fx.Burst(rb.position, Gfx.Cyan, 12, 6f, .14f, 0f, .4f);
+        Fx.AddShake(.15f);
+    }
+
     public void Die()
     {
         if (dead || evolving) return;
@@ -583,7 +598,9 @@ public class Ball : MonoBehaviour
                 else Hurt(other.transform.position);
                 break;
             case TileKind.Gate:
-                if (t.GateLive) Hurt(new Vector2(other.transform.position.x, rb.position.y));
+                if (!t.GateLive) break;
+                if (t.push) Push(other.transform.position.x);
+                else Hurt(new Vector2(other.transform.position.x, rb.position.y));
                 break;
             case TileKind.Orb:
                 t.used = true;

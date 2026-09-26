@@ -13,6 +13,8 @@ public class GM : MonoBehaviour
     public int orbs;
     public Vector2 checkpoint;
     public Transform LevelRoot => level != null ? level.root : null;
+    public Ball Player => ball;
+    public bool Fighting => mode == Mode.Playing && Levels.All[levelIndex].boss;
 
     Mode mode = Mode.Title;
     int levelIndex;
@@ -23,7 +25,9 @@ public class GM : MonoBehaviour
     float levelTime, totalTime;
     int deaths, totalDeaths, totalOrbs, totalOrbsMax;
     string newStates;
-    float bannerT, uiT;
+    float bannerT, uiT, menuT;
+    int sel;
+    string doneTitle = "EVOLVED", doneSub;
 
     public struct Ability
     {
@@ -65,6 +69,7 @@ public class GM : MonoBehaviour
         gameObject.AddComponent<Controls>();
         gameObject.AddComponent<Fx>();
         Sfx.Init(gameObject);
+        Music.Init(gameObject);
         cam = Camera.main;
         if (cam == null)
         {
@@ -89,7 +94,9 @@ public class GM : MonoBehaviour
         def.build(level);
         checkpoint = level.start;
         ball = Ball.Create(level.start);
-        camFollow.Follow(ball, level.min, level.max);
+        camFollow.fixedView = Levels.All[idx].boss;
+        if (def.boss) camFollow.Follow(ball, new Vector2(-11, -4.7f), new Vector2(11, 6.3f));
+        else camFollow.Follow(ball, level.min, level.max);
         camFollow.SetSky(def.bottom, def.mid, def.top);
         orbs = 0;
         deaths = 0;
@@ -105,24 +112,63 @@ public class GM : MonoBehaviour
         }
         newStates = string.Join(",", fresh);
         bannerT = 0;
+        Music.Play(idx);
     }
+
+    void StartLevel(int idx)
+    {
+        unlocked.Clear();
+        totalTime = 0; totalDeaths = 0; totalOrbs = 0; totalOrbsMax = 0;
+        LoadLevel(idx);
+        mode = Mode.Playing;
+        ball.controlLocked = false;
+        bannerT = 0;
+        Sfx.Play("heal");
+    }
+
+    void ToMenu()
+    {
+        LoadLevel(0);
+        mode = Mode.Title;
+        ball.controlLocked = true;
+        menuT = 0;
+    }
+
+    static Vector2 MouseGui => new Vector2(Input.mousePosition.x, Screen.height - Input.mousePosition.y);
+
+    Rect CardRect(int i)
+    {
+        float W = Screen.width, H = Screen.height, u = H / 720f;
+        int n = Levels.All.Length;
+        float cw = Mathf.Min(200 * u, (W - 60 * u) / n - 14 * u), gap = 14 * u, total = n * cw + (n - 1) * gap;
+        return new Rect((W - total) / 2 + i * (cw + gap), H * .6f, cw, 118 * u);
+    }
+
+    Rect MusicRect { get { float u = Screen.height / 720f; return new Rect(Screen.width - 160 * u, 98 * u, 76 * u, 40 * u); } }
+    Rect MenuRect { get { float u = Screen.height / 720f; return new Rect(Screen.width - 244 * u, 98 * u, 76 * u, 40 * u); } }
 
     void Update()
     {
         uiT += Time.unscaledDeltaTime;
+        menuT += Time.unscaledDeltaTime;
+        Music.Tick(Time.unscaledDeltaTime);
+        bool click = Input.GetMouseButtonDown(0) && !Controls.Portrait;
+        if (Input.GetKeyDown(KeyCode.M) || (click && MusicRect.Contains(MouseGui))) { Music.On = !Music.On; click = false; }
         Controls.I.Layout(unlocked);
         Controls.I.gameplay = mode == Mode.Playing && !Controls.Portrait;
         bannerT += Time.unscaledDeltaTime;
         switch (mode)
         {
             case Mode.Title:
-                if ((Input.anyKeyDown || Input.GetMouseButtonDown(0)) && !Controls.Portrait)
+                if (Controls.Portrait || menuT < .3f) break;
+                for (int i = 0; i < Levels.All.Length; i++)
                 {
-                    mode = Mode.Playing;
-                    ball.controlLocked = false;
-                    bannerT = 0;
-                    Sfx.Play("heal");
+                    if (Input.GetKeyDown(KeyCode.Alpha1 + i) || Input.GetKeyDown(KeyCode.Keypad1 + i)) { StartLevel(i); return; }
+                    if (click && CardRect(i).Contains(MouseGui)) { StartLevel(i); return; }
                 }
+                if (Input.GetKeyDown(KeyCode.RightArrow) || Input.GetKeyDown(KeyCode.D)) sel = (sel + 1) % Levels.All.Length;
+                if (Input.GetKeyDown(KeyCode.LeftArrow) || Input.GetKeyDown(KeyCode.A)) sel = (sel + Levels.All.Length - 1) % Levels.All.Length;
+                if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.Space)) StartLevel(sel);
                 break;
             case Mode.Playing:
                 levelTime += Time.deltaTime;
@@ -131,18 +177,13 @@ public class GM : MonoBehaviour
                     float y = ball.rb.position.y;
                     if (y < level.min.y - 9f || y > level.max.y + 9f) ball.Die();
                 }
+                if (Input.GetKeyDown(KeyCode.Escape) || Input.GetKeyDown(KeyCode.L) || (click && MenuRect.Contains(MouseGui))) { ToMenu(); break; }
                 if (Input.GetKeyDown(KeyCode.R) || Controls.Pressed("restart")) LoadLevel(levelIndex);
                 if (Input.GetKeyDown(KeyCode.F9)) SkipAhead();
                 if (Input.GetKeyDown(KeyCode.N)) StartCoroutine(Advance(0f));
                 break;
             case Mode.Won:
-                if (Input.GetKeyDown(KeyCode.R) || Input.GetKeyDown(KeyCode.Return) || Input.GetMouseButtonDown(0))
-                {
-                    unlocked.Clear();
-                    totalTime = 0; totalDeaths = 0; totalOrbs = 0; totalOrbsMax = 0;
-                    LoadLevel(0);
-                    mode = Mode.Playing;
-                }
+                if (menuT > 1f && (Input.GetKeyDown(KeyCode.R) || Input.GetKeyDown(KeyCode.Return) || click)) ToMenu();
                 break;
         }
     }
@@ -150,7 +191,44 @@ public class GM : MonoBehaviour
     public void OnBallDied()
     {
         deaths++;
-        StartCoroutine(RespawnCo());
+        if (Levels.All[levelIndex].boss) StartCoroutine(DuelLostCo());
+        else StartCoroutine(RespawnCo());
+    }
+
+    IEnumerator DuelLostCo()
+    {
+        mode = Mode.LevelDone;
+        doneTitle = "RED WINS";
+        doneSub = "try again · dash into it from the side";
+        yield return new WaitForSeconds(2.2f);
+        doneTitle = "EVOLVED";
+        doneSub = null;
+        LoadLevel(levelIndex);
+        mode = Mode.Playing;
+    }
+
+    public void OnBossDefeated(Vector2 p)
+    {
+        if (mode != Mode.Playing) return;
+        StartCoroutine(BossWonCo());
+    }
+
+    IEnumerator BossWonCo()
+    {
+        mode = Mode.LevelDone;
+        ball.controlLocked = true;
+        doneTitle = "CHAMPION";
+        doneSub = "the red ball is beaten";
+        Sfx.Play("evolve");
+        yield return new WaitForSeconds(2.4f);
+        doneTitle = "EVOLVED";
+        doneSub = null;
+        totalTime += levelTime;
+        totalDeaths += deaths;
+        totalOrbs += orbs;
+        totalOrbsMax += level.orbs;
+        mode = Mode.Won;
+        menuT = 0;
     }
 
     IEnumerator RespawnCo()
@@ -209,6 +287,7 @@ public class GM : MonoBehaviour
         {
             mode = Mode.Won;
             ball.controlLocked = true;
+            menuT = 0;
         }
     }
 
@@ -312,8 +391,11 @@ public class GM : MonoBehaviour
         }
 
         if (Controls.Portrait) { DrawRotate(W, H, ink); return; }
-        if (mode == Mode.Title) { DrawTitle(W, H, u, ink); return; }
+        if (mode == Mode.Title) { DrawTitle(W, H, u, ink); DrawMusic(u, ink); return; }
         if (mode == Mode.Won) { DrawWon(W, H, u, ink); return; }
+        DrawMusic(u, ink);
+        Pill(MenuRect, new Color(1, 1, 1, .6f));
+        Text(MenuRect, "MENU", h1, ink, (int)(14 * u));
 
         // top-left: level + hearts + orbs
         var def = Levels.All[levelIndex];
@@ -331,6 +413,15 @@ public class GM : MonoBehaviour
         // top-right: time
         Text(new Rect(W - 260 * u, 22 * u, 236 * u, 30 * u), def.name, h1, ink, (int)(20 * u));
         Text(new Rect(W - 260 * u, 50 * u, 236 * u, 24 * u), levelTime.ToString("0.0") + "s   ·   " + deaths + " falls", body, new Color(ink.r, ink.g, ink.b, .6f), (int)(16 * u));
+
+        if (def.boss && Boss.I != null)
+        {
+            var br = new Rect(W / 2 - 110 * u, 22 * u, 220 * u, 56 * u);
+            Pill(br, new Color(1, 1, 1, .7f));
+            Text(new Rect(br.x + 14 * u, br.y, 70 * u, br.height), "RED", h1, Gfx.Coral, (int)(22 * u));
+            for (int i = 0; i < Boss.MaxHearts; i++)
+                Pill(new Rect(br.x + (100 + i * 32) * u, br.y + 18 * u, 20 * u, 20 * u), i < Boss.I.hearts ? (Color)Gfx.Coral : new Color(ink.r, ink.g, ink.b, .15f));
+        }
 
         if (Controls.Touch) DrawTouch(u, ink);
 
@@ -372,16 +463,16 @@ public class GM : MonoBehaviour
 
         if (mode == Mode.LevelDone)
         {
-            Text(new Rect(0, H * .3f, W, 80 * u), "EVOLVED", hero, Color.white, (int)(64 * u));
-            Text(new Rect(0, H * .3f + 70 * u, W, 40 * u), orbs + " / " + level.orbs + " orbs   ·   " + levelTime.ToString("0.0") + "s", body, Color.white, (int)(22 * u));
+            Text(new Rect(0, H * .3f, W, 80 * u), doneTitle, hero, Color.white, (int)(64 * u));
+            Text(new Rect(0, H * .3f + 70 * u, W, 40 * u), doneSub ?? orbs + " / " + level.orbs + " orbs   ·   " + levelTime.ToString("0.0") + "s", body, Color.white, (int)(22 * u));
         }
     }
 
     void DrawTitle(float W, float H, float u, Color ink)
     {
-        Box(new Rect(0, 0, W, H), new Color(1, 1, 1, .35f));
-        Text(new Rect(0, H * .16f, W, 100 * u), "SKYROLL", hero, ink, (int)(88 * u));
-        Text(new Rect(0, H * .16f + 92 * u, W, 36 * u), "one ball  ·  fifteen states  ·  a sky full of physics", body, new Color(ink.r, ink.g, ink.b, .65f), (int)(22 * u));
+        Box(new Rect(0, 0, W, H), new Color(1, 1, 1, .6f));
+        Text(new Rect(0, H * .08f, W, 100 * u), "SKYROLL", hero, ink, (int)(88 * u));
+        Text(new Rect(0, H * .08f + 92 * u, W, 36 * u), "one ball  ·  fifteen states  ·  a sky full of physics", body, new Color(ink.r, ink.g, ink.b, .65f), (int)(22 * u));
 
         int n = AllStates.Length;
         float s = Mathf.Min(70 * u, (W - 80 * u) / n), total = s * n;
@@ -390,15 +481,33 @@ public class GM : MonoBehaviour
         {
             float bob = Mathf.Sin(uiT * 3f + i * .5f) * 4 * u;
             float sc = i == hi ? 1.25f : 1f;
-            var r = new Rect((W - total) / 2 + i * s + s * (1 - sc) / 2, H * .5f - s / 2 + bob - (sc - 1) * s / 2, s * sc * .9f, s * sc * .9f);
+            var r = new Rect((W - total) / 2 + i * s + s * (1 - sc) / 2, H * .36f - s / 2 + bob - (sc - 1) * s / 2, s * sc * .9f, s * sc * .9f);
             Icon(r, AllStates[i], i == hi ? 1f : .75f);
         }
-        Text(new Rect(0, H * .5f + s * .75f, W, 30 * u), AllStates[hi].ToUpper(), h1, ink, (int)(18 * u));
+        Text(new Rect(0, H * .36f + s * .7f, W, 30 * u), AllStates[hi].ToUpper(), h1, ink, (int)(18 * u));
 
-        float p = .6f + Mathf.Sin(uiT * 4f) * .4f;
-        Pill(new Rect(W / 2 - 170 * u, H * .72f, 340 * u, 58 * u), new Color(ink.r, ink.g, ink.b, .9f));
-        Text(new Rect(W / 2 - 170 * u, H * .72f, 340 * u, 58 * u), Controls.Touch ? "TAP TO START" : "PRESS ANY KEY", h1, new Color(1, 1, 1, p), (int)(22 * u));
-        Text(new Rect(0, H * .72f + 70 * u, W, 30 * u), Controls.Touch ? "left thumb rolls   ·   right thumb jumps & switches states" : "A / D roll   ·   SPACE jump   ·   R restart", body, new Color(ink.r, ink.g, ink.b, .6f), (int)(17 * u));
+        Text(new Rect(0, H * .6f - 40 * u, W, 30 * u), Controls.Touch ? "CHOOSE A LEVEL" : "CHOOSE A LEVEL   ·   press 1-5 or click", body, new Color(ink.r, ink.g, ink.b, .6f), (int)(16 * u));
+        var mp = MouseGui;
+        for (int i = 0; i < Levels.All.Length; i++)
+        {
+            var d = Levels.All[i];
+            var cr = CardRect(i);
+            bool on = i == sel || (!Controls.Touch && cr.Contains(mp));
+            if (on) cr = new Rect(cr.x - 4 * u, cr.y - 6 * u, cr.width + 8 * u, cr.height + 8 * u);
+            Pill(new Rect(cr.x, cr.y, cr.width, cr.height), new Color(1, 1, 1, on ? .92f : .68f));
+            Pill(new Rect(cr.x + cr.width * .3f, cr.y + 10 * u, cr.width * .4f, 8 * u), d.top);
+            Text(new Rect(cr.x, cr.y + 20 * u, cr.width, 44 * u), (i + 1).ToString("00"), hero, d.boss ? (Color)Gfx.Coral : ink, (int)(34 * u));
+            Text(new Rect(cr.x, cr.y + 64 * u, cr.width, 26 * u), d.name, h1, ink, (int)(15 * u));
+            Text(new Rect(cr.x, cr.y + 88 * u, cr.width, 22 * u), d.boss ? "boss" : d.unlock.Replace(",", " · "), body, new Color(ink.r, ink.g, ink.b, .55f), (int)(11 * u));
+        }
+        Text(new Rect(0, H * .6f + 136 * u, W, 30 * u), Controls.Touch ? "left thumb rolls   ·   right thumb jumps & switches states" : "A / D roll   ·   SPACE jump   ·   R restart   ·   M music   ·   L levels", body, new Color(ink.r, ink.g, ink.b, .6f), (int)(17 * u));
+    }
+
+    void DrawMusic(float u, Color ink)
+    {
+        var r = MusicRect;
+        Pill(r, new Color(1, 1, 1, Music.On ? .75f : .45f));
+        Text(r, Music.On ? "MUSIC" : "MUTED", h1, new Color(ink.r, ink.g, ink.b, Music.On ? 1f : .5f), (int)(14 * u));
     }
 
     void DrawWon(float W, float H, float u, Color ink)
@@ -412,7 +521,7 @@ public class GM : MonoBehaviour
             totalOrbs + " / " + totalOrbsMax + " orbs   ·   " + totalDeaths + " falls   ·   " + totalTime.ToString("0.0") + "s",
             body, new Color(ink.r, ink.g, ink.b, .7f), (int)(22 * u));
         Text(new Rect(0, H * .12f + 290 * u, W, 120 * u), rank, hero, Gfx.Gold, (int)(110 * u));
-        Text(new Rect(0, H * .88f, W, 30 * u), Controls.Touch ? "tap to fly again" : "press ENTER to fly again", body, new Color(ink.r, ink.g, ink.b, .6f), (int)(18 * u));
+        Text(new Rect(0, H * .88f, W, 30 * u), Controls.Touch ? "tap for the level menu" : "press ENTER for the level menu", body, new Color(ink.r, ink.g, ink.b, .6f), (int)(18 * u));
     }
 
     static string TouchHint(string id)

@@ -14,6 +14,7 @@ public class CameraFollow : MonoBehaviour
     float[] depth;
     Vector2[] decoBase;
     float tint;
+    public bool fixedView;
     const float BaseSize = 7f, WrapW = 70f, WrapH = 44f;
 
     public void SetSky(Color bottom, Color mid, Color top)
@@ -105,8 +106,13 @@ public class CameraFollow : MonoBehaviour
             Vector2 v = targetRb.velocity;
             look = Vector2.Lerp(look, new Vector2(Mathf.Clamp(v.x * .3f, -3.5f, 3.5f), Mathf.Clamp(v.y * .12f, -2f, 2f)), 1f - Mathf.Exp(-dt * 2.5f));
             Vector3 goal = Clamp(targetRb.position + look + Vector2.up * ball.gravDir * 1.8f);
-            pos = Vector3.Lerp(pos, goal, 1f - Mathf.Exp(-dt * 5f));
             float size = BaseSize + (ball.grown ? 1f : 0f) + Mathf.Clamp01((v.magnitude - 11f) / 10f) * 1.3f;
+            if (fixedView)
+            {
+                goal = new Vector3((min.x + max.x) / 2, (min.y + max.y) / 2 + .6f, -10);
+                size = Mathf.Max((max.y - min.y) / 2 + 1.4f, ((max.x - min.x) / 2 + .8f) / cam.aspect);
+            }
+            pos = Vector3.Lerp(pos, goal, 1f - Mathf.Exp(-dt * 5f));
             cam.orthographicSize = Mathf.Lerp(cam.orthographicSize, size, 1f - Mathf.Exp(-dt * 2.5f));
             tint = Mathf.Lerp(tint, ball.gravDir < 0 ? .22f : 0f, 1f - Mathf.Exp(-dt * 4f));
         }

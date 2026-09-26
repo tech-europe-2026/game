@@ -333,16 +333,18 @@ public class LevelBuilder
         go.AddComponent<PadPower>().power = power;
     }
 
-    // Vertical laser gate: camouflage passes through.
-    public void Gate(float x, float y0, float y1, float shift = 0f)
+    // Vertical pulsing laser gate: red costs a heart, blue (push) only knocks the ball back.
+    public void Gate(float x, float y0, float y1, float shift = 0f, bool push = false)
     {
         float h = y1 - y0;
         var go = Go("gate", new Vector2(x, (y0 + y1) / 2));
-        var glow = Gfx.Quad(go.transform, Vector2.zero, new Vector2(1.2f, h + .6f), new Color(1, .4f, .45f, .25f), 5, Gfx.Glow);
+        Color col = push ? Gfx.Cyan : Gfx.Coral;
+        var glow = Gfx.Quad(go.transform, Vector2.zero, new Vector2(1.2f, h + .6f), new Color(col.r, col.g, col.b, .25f), 5, Gfx.Glow);
         var t = AddTile(go, TileKind.Gate);
+        t.push = push;
         t.glow = glow;
         t.gateShift = shift;
-        t.art = Gfx.Quad(go.transform, Vector2.zero, new Vector2(.14f, h), Gfx.Coral, 6);
+        t.art = Gfx.Quad(go.transform, Vector2.zero, new Vector2(.14f, h), col, 6);
         Gfx.Slab(go.transform, new Vector2(0, h / 2), new Vector2(.5f, .3f), Gfx.Ink, 7);
         Gfx.Slab(go.transform, new Vector2(0, -h / 2), new Vector2(.5f, .3f), Gfx.Ink, 7);
         var c = go.AddComponent<BoxCollider2D>();
@@ -432,6 +434,14 @@ public class LevelBuilder
         hinge.connectedAnchor = new Vector2(x, y);
         hinge.useLimits = true;
         hinge.limits = new JointAngleLimits2D { min = -25, max = 25 };
+    }
+
+    public global::Boss Rival(float x, float y, Vector2 arenaMin, Vector2 arenaMax)
+    {
+        var b = global::Boss.Create(new Vector2(x, y), root);
+        b.arenaMin = arenaMin;
+        b.arenaMax = arenaMax;
+        return b;
     }
 
     public void Label(float x, float y, string text)
