@@ -1,0 +1,122 @@
+# Legend: . floor  # wall  x hole  G goal  P piece  1-3 platform height
+#         i ice  S switch  a/A lift (low/high, flipped by switch)
+#         c/C pulsing platform (0,1,2,1 each move)  T portal pair  > < ^ v arrows
+
+level: First Steps
+hint: Move with WASD / arrow keys, or tap a highlighted tile. Reach the green square.
+par: 12
+map:
+#########
+#P..#...#
+#.#.#.#.#
+#.#...#G#
+#########
+end
+
+level: Mind the Holes
+hint: Red tiles are holes. Step in and you bounce back to where you were.
+par: 19
+map:
+#########
+#P.x....#
+#x.x.xx.#
+#..x..x.#
+#.x..x.G#
+#...x...#
+#########
+end
+
+level: Stairs
+hint: Dots show height. Climb one level at a time, drop down as far as you like.
+par: 8
+map:
+#########
+#P...2..#
+#....2..#
+#.1..2.G#
+#...122.#
+#########
+end
+
+level: Leap
+hint: Standing on a platform? Hold Shift (or press Space) + a direction to jump 2 tiles.
+par: 9
+map:
+#########
+#P..x...#
+#...x.#.#
+#..1x.#G#
+#...x...#
+#########
+end
+
+level: The Switch
+hint: The purple switch flips every purple lift: low ones rise, high ones sink.
+par: 14
+map:
+#######
+#P...S#
+#.#####
+#..A.G#
+#######
+end
+
+level: Pulse
+hint: Cyan tiles pulse 0-1-2-1 with every move you make. Ride them up.
+par: 9
+map:
+##########
+#P..c2x..#
+#....2x.G#
+#....2x..#
+##########
+end
+
+level: Thin Ice
+hint: Ice is slippery: you slide until something stops you.
+par: 5
+map:
+#########
+#P.iiii.#
+#.#iiii.#
+#.iiii#.#
+#.iii#iG#
+#.......#
+#########
+end
+
+level: Portals
+hint: Portals send you to their twin. Arrows push you along.
+par: 9
+map:
+##########
+#P.#..>>G#
+#..#..####
+#.T#.....#
+#..#...T.#
+##########
+end
+
+level: Twins
+hint: You control both pieces at once. Walls can hold one back while the other moves.
+par: 8
+map:
+#########
+#P......#
+#.####.G#
+#P...#..#
+#..#...G#
+#########
+end
+
+level: Summit
+hint: Everything you've learned. Take your time.
+par: 15
+map:
+###########
+#P...#....#
+#.##.#.1c.#
+#S.#.A.ixx#
+#..#.#.xGx#
+###########
+end
