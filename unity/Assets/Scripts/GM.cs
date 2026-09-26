@@ -8,33 +8,47 @@ public class GM : MonoBehaviour
 
     public static GM I;
     static readonly HashSet<string> unlocked = new HashSet<string>();
+    static readonly List<(Vector2 p, string text)> signs = new List<(Vector2, string)>();
 
-    public int coins;
+    public int orbs;
     public Vector2 checkpoint;
+    public Transform LevelRoot => level != null ? level.root : null;
 
     Mode mode = Mode.Title;
     int levelIndex;
     Ball ball;
     CameraFollow camFollow;
-    LevelBuilder.Result level;
+    Camera cam;
+    LevelBuilder level;
     float levelTime, totalTime;
-    int deaths, totalDeaths, totalCoins, totalCoinsMax;
-    string toast;
-    float toastT;
-    float titleT;
+    int deaths, totalDeaths, totalOrbs, totalOrbsMax;
+    string newStates;
+    float bannerT, uiT;
 
-    static readonly (string id, string sprite, string key, string label)[] Abilities =
+    public struct Ability
     {
-        ("jump", "bounce", "SPACE", "BOUNCE"),
-        ("crouch", "crouch", "S", "CROUCH"),
-        ("dash", "spin", "SHIFT", "SPIN"),
-        ("grow", "grow", "G", "GROW"),
-        ("teleport", "teleport", "T", "BLINK"),
-        ("freeze", "freeze", "F", "FREEZE"),
-        ("invis", "invisibility", "V", "VANISH"),
+        public string id, sprite, key, label;
+        public Ability(string id, string sprite, string key, string label) { this.id = id; this.sprite = sprite; this.key = key; this.label = label; }
+    }
+
+    public static readonly Ability[] Abilities =
+    {
+        new Ability("jump", "bounce", "SPACE", "JUMP"),
+        new Ability("crouch", "crouch", "S", "CROUCH"),
+        new Ability("dash", "dash", "SHIFT", "DASH"),
+        new Ability("reverse", "reverse", "E", "REVERSE"),
+        new Ability("climb", "climb", "HOLD C", "CLIMB"),
+        new Ability("grow", "grow", "G", "GROW"),
+        new Ability("parry", "parry", "Q", "PARRY"),
+        new Ability("teleport", "teleport", "T", "BLINK"),
+        new Ability("camo", "camouflage", "V", "CAMO"),
     };
 
+    static readonly string[] AllStates =
+        { "idle", "spin", "bounce", "teleport", "grow", "crouch", "stun", "heal", "dash", "climb", "camouflage", "reverse", "parry", "evolve" };
+
     public static bool Has(string id) => unlocked.Contains(id);
+    public static void AddSign(Vector2 p, string text) => signs.Add((p, text));
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     static void Boot()
@@ -50,7 +64,7 @@ public class GM : MonoBehaviour
         Physics2D.gravity = new Vector2(0, -9.81f);
         gameObject.AddComponent<Fx>();
         Sfx.Init(gameObject);
-        var cam = Camera.main;
+        cam = Camera.main;
         if (cam == null)
         {
             var cgo = new GameObject("Main Camera") { tag = "MainCamera" };
@@ -66,31 +80,32 @@ public class GM : MonoBehaviour
     void LoadLevel(int idx)
     {
         levelIndex = idx;
-        if (level.root != null) Destroy(level.root.gameObject);
+        if (level != null) Destroy(level.root.gameObject);
         if (ball != null) Destroy(ball.gameObject);
+        signs.Clear();
         var def = Levels.All[idx];
-        level = LevelBuilder.Build(def.map);
+        level = new LevelBuilder();
+        def.build(level);
         checkpoint = level.start;
         ball = Ball.Create(level.start);
-        camFollow.Follow(ball.rb, level.min, level.max);
-        coins = 0;
+        camFollow.Follow(ball, level.min, level.max);
+        orbs = 0;
         deaths = 0;
         levelTime = 0;
+        var fresh = new List<string>();
         foreach (var a in def.unlock.Split(','))
-            unlocked.Add(a.Trim());
-        ShowToast(def.name + "\n" + def.hint);
-    }
-
-    void ShowToast(string s)
-    {
-        toast = s;
-        toastT = 5f;
+        {
+            string id = a.Trim();
+            if (id.Length > 0 && unlocked.Add(id)) fresh.Add(id);
+        }
+        newStates = string.Join(",", fresh);
+        bannerT = 0;
     }
 
     void Update()
     {
-        titleT += Time.unscaledDeltaTime;
-        toastT -= Time.unscaledDeltaTime;
+        uiT += Time.unscaledDeltaTime;
+        bannerT += Time.unscaledDeltaTime;
         switch (mode)
         {
             case Mode.Title:
@@ -98,27 +113,31 @@ public class GM : MonoBehaviour
                 {
                     mode = Mode.Playing;
                     ball.controlLocked = false;
+                    bannerT = 0;
                     Sfx.Play("heal");
-                    ShowToast(Levels.All[levelIndex].name + "\n" + Levels.All[levelIndex].hint);
                 }
                 break;
             case Mode.Playing:
                 levelTime += Time.deltaTime;
-                if (!ball.dead && ball.rb.position.y < level.min.y - 6f) ball.Die();
+                if (!ball.dead)
+                {
+                    float y = ball.rb.position.y;
+                    if (y < level.min.y - 9f || y > level.max.y + 9f) ball.Die();
+                }
                 if (Input.GetKeyDown(KeyCode.R)) LoadLevel(levelIndex);
+                if (Input.GetKeyDown(KeyCode.N)) StartCoroutine(Advance(0f));
                 break;
             case Mode.Won:
-                if (Input.GetKeyDown(KeyCode.R) || Input.GetKeyDown(KeyCode.Return))
+                if (Input.GetKeyDown(KeyCode.R) || Input.GetKeyDown(KeyCode.Return) || Input.GetMouseButtonDown(0))
                 {
                     unlocked.Clear();
-                    totalTime = 0; totalDeaths = 0; totalCoins = 0; totalCoinsMax = 0;
+                    totalTime = 0; totalDeaths = 0; totalOrbs = 0; totalOrbsMax = 0;
                     LoadLevel(0);
                     mode = Mode.Playing;
                 }
                 break;
         }
     }
-
 
     public void OnBallDied()
     {
@@ -128,39 +147,50 @@ public class GM : MonoBehaviour
 
     IEnumerator RespawnCo()
     {
-        yield return new WaitForSeconds(.9f);
-        ball.Respawn(checkpoint + Vector2.up * .3f);
+        yield return new WaitForSeconds(.8f);
+        if (ball != null && ball.dead) ball.Respawn(checkpoint + Vector2.up * .3f);
     }
 
-    public void OnPortal(Vector2 p)
+    public void OnGoal(Vector2 p)
     {
         if (mode != Mode.Playing) return;
-        StartCoroutine(PortalCo(p));
+        StartCoroutine(GoalCo(p));
     }
 
-    IEnumerator PortalCo(Vector2 p)
+    IEnumerator GoalCo(Vector2 p)
     {
         mode = Mode.LevelDone;
         ball.controlLocked = true;
-        ball.rb.simulated = false;
-        Sfx.Play("win");
-        Fx.Ring(p, Gfx.Pink, 3f);
-        Fx.Burst(p, Gfx.Gold, 40, 12f, .25f, 0f, 1f);
-        Fx.Burst(p, Gfx.Pink, 40, 9f, .2f, 0f, 1f);
+        ball.Evolve();
+        Sfx.Play("evolve");
         Vector3 start = ball.transform.position;
-        for (float t = 0; t < .8f; t += Time.deltaTime)
+        for (float t = 0; t < .6f; t += Time.deltaTime)
         {
-            float k = t / .8f;
-            ball.transform.position = Vector3.Lerp(start, p, k * k);
-            ball.transform.localScale = Vector3.one * (1 - k);
+            float k = t / .6f;
+            ball.transform.position = Vector3.Lerp(start, p, 1 - (1 - k) * (1 - k));
             yield return null;
         }
-        ball.transform.localScale = Vector3.zero;
+        Fx.Ring(p, Gfx.Gold, 3f);
+        Fx.Ring(p, Color.white, 4.5f);
+        Fx.Burst(p, Gfx.Gold, 40, 12f, .2f, 0f, 1f);
+        Fx.Burst(p, Color.white, 30, 9f, .16f, 0f, 1f);
+        Fx.AddShake(.4f);
+        for (float t = 0; t < .9f; t += Time.deltaTime)
+        {
+            ball.transform.localScale = Vector3.one * (1f + Mathf.Sin(t / .9f * Mathf.PI) * .5f);
+            yield return null;
+        }
         totalTime += levelTime;
         totalDeaths += deaths;
-        totalCoins += coins;
-        totalCoinsMax += level.coins;
-        yield return new WaitForSeconds(2.2f);
+        totalOrbs += orbs;
+        totalOrbsMax += level.orbs;
+        yield return Advance(1.4f);
+    }
+
+    IEnumerator Advance(float wait)
+    {
+        mode = Mode.LevelDone;
+        yield return new WaitForSeconds(wait);
         if (levelIndex + 1 < Levels.All.Length)
         {
             LoadLevel(levelIndex + 1);
@@ -170,148 +200,192 @@ public class GM : MonoBehaviour
         else
         {
             mode = Mode.Won;
+            ball.controlLocked = true;
         }
     }
 
     // ---------- HUD ----------
-    GUIStyle big, mid, small, center;
+    GUIStyle hero, h1, h2, body, keycap;
+    static Texture2D white;
 
     void Styles()
     {
-        if (big != null) return;
-        big = new GUIStyle(GUI.skin.label) { fontSize = 72, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter };
-        mid = new GUIStyle(GUI.skin.label) { fontSize = 30, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter };
-        small = new GUIStyle(GUI.skin.label) { fontSize = 18, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter };
-        center = new GUIStyle(GUI.skin.label) { fontSize = 24, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleLeft };
+        if (hero != null) return;
+        white = Texture2D.whiteTexture;
+        hero = new GUIStyle(GUI.skin.label) { fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter };
+        h1 = new GUIStyle(hero);
+        h2 = new GUIStyle(hero) { fontStyle = FontStyle.Normal };
+        body = new GUIStyle(hero) { fontStyle = FontStyle.Normal };
+        keycap = new GUIStyle(hero);
     }
 
-    static void Shadowed(Rect r, string s, GUIStyle st, Color c)
+    static void Text(Rect r, string s, GUIStyle st, Color c, int size)
     {
-        var old = GUI.color;
-        GUI.color = new Color(0, 0, 0, c.a * .8f);
-        GUI.Label(new Rect(r.x + 3, r.y + 3, r.width, r.height), s, st);
-        GUI.color = c;
+        st.fontSize = Mathf.Max(8, size);
+        st.normal.textColor = c;
         GUI.Label(r, s, st);
-        GUI.color = old;
     }
 
     static void Box(Rect r, Color c)
     {
         var old = GUI.color;
         GUI.color = c;
-        GUI.DrawTexture(r, Texture2D.whiteTexture);
+        GUI.DrawTexture(r, white);
         GUI.color = old;
     }
 
-    static void SpriteIcon(Rect r, Sprite s, Color tint)
+    static void Pill(Rect r, Color c)
     {
+        var old = GUI.color;
+        GUI.color = c;
+        GUI.DrawTexture(r, white, ScaleMode.StretchToFill, true, 0, c, 0, r.height / 2);
+        GUI.color = old;
+    }
+
+    static void Icon(Rect r, string state, float alpha = 1f)
+    {
+        var s = Gfx.Ball(state);
         if (s == null) return;
         var old = GUI.color;
-        GUI.color = tint;
-        var tr = s.textureRect;
-        var tex = s.texture;
-        var uv = new Rect(tr.x / tex.width, tr.y / tex.height, tr.width / tex.width, tr.height / tex.height);
-        float aspect = tr.width / tr.height;
-        Rect dst = aspect > 1 ? new Rect(r.x, r.y + (r.height - r.width / aspect) / 2, r.width, r.width / aspect)
-                              : new Rect(r.x + (r.width - r.height * aspect) / 2, r.y, r.height * aspect, r.height);
-        GUI.DrawTextureWithTexCoords(dst, tex, uv);
+        GUI.color = new Color(1, 1, 1, alpha);
+        GUI.DrawTexture(r, s.texture, ScaleMode.ScaleToFit);
         GUI.color = old;
+    }
+
+    Ability Find(string id)
+    {
+        foreach (var a in Abilities) if (a.id == id) return a;
+        return Abilities[0];
+    }
+
+    float Cooldown(string id)
+    {
+        switch (id)
+        {
+            case "dash": return Mathf.Clamp01(ball.dashCd / Ball.DashCd);
+            case "teleport": return Mathf.Clamp01(ball.teleCd / Ball.TeleCd);
+            case "parry": return Mathf.Clamp01(ball.parryCd / Ball.ParryCd);
+            case "camo": return Mathf.Clamp01(ball.camoCd / Ball.CamoCd);
+            case "reverse": return Mathf.Clamp01(ball.flipCd / Ball.FlipCd);
+            case "climb": return 1f - Mathf.Clamp01(ball.climbStamina / Ball.ClimbMax);
+            default: return 0f;
+        }
     }
 
     void OnGUI()
     {
         Styles();
-        float scale = Screen.height / 720f;
-        GUI.matrix = Matrix4x4.Scale(new Vector3(scale, scale, 1));
-        float W = Screen.width / scale, H = 720f;
+        float W = Screen.width, H = Screen.height, u = H / 720f;
+        var ink = (Color)Gfx.Ink;
 
-        if (mode == Mode.Title)
+        if (mode != Mode.Title && cam != null)
         {
-            Box(new Rect(0, 0, W, H), new Color(0.04f, 0.05f, 0.15f, .75f));
-            float bob = Mathf.Sin(titleT * 3f) * 10f;
-            Shadowed(new Rect(0, 120 + bob, W, 100), "BALL STATES", big, Gfx.Gold);
-            Shadowed(new Rect(0, 210, W, 40), "one ball. ten states. pure physics.", small, new Color(.8f, .85f, 1f));
-            string[] cyc = { "idle", "spin", "bounce", "teleport", "grow", "crouch", "stun", "heal", "invisibility", "freeze" };
-            string st = cyc[(int)(titleT * 1.5f) % cyc.Length];
-            SpriteIcon(new Rect(W / 2 - 90, 270, 180, 180), Gfx.Ball(st), Color.white);
-            Shadowed(new Rect(0, 455, W, 30), st.ToUpper(), small, Gfx.Pink);
-            if (Mathf.Repeat(titleT, 1f) < .7f)
-                Shadowed(new Rect(0, 530, W, 50), "CLICK / PRESS ANY KEY", mid, Color.white);
-            Shadowed(new Rect(0, 620, W, 30), "A/D roll  -  SPACE jump  -  R restart level", small, new Color(.6f, .65f, .8f));
-            return;
+            foreach (var (p, text) in signs)
+            {
+                Vector3 sp = cam.WorldToScreenPoint(p);
+                if (sp.x < -200 || sp.x > W + 200) continue;
+                Text(new Rect(sp.x - 300 * u, H - sp.y - 20 * u, 600 * u, 40 * u), text, body, new Color(ink.r, ink.g, ink.b, .75f), (int)(20 * u));
+            }
         }
 
-        // hearts
+        if (mode == Mode.Title) { DrawTitle(W, H, u, ink); return; }
+        if (mode == Mode.Won) { DrawWon(W, H, u, ink); return; }
+
+        // top-left: level + hearts + orbs
+        var def = Levels.All[levelIndex];
+        Pill(new Rect(24 * u, 22 * u, 330 * u, 56 * u), new Color(1, 1, 1, .7f));
+        Text(new Rect(44 * u, 24 * u, 60 * u, 52 * u), (levelIndex + 1).ToString("00"), h1, ink, (int)(26 * u));
+        Box(new Rect(100 * u, 36 * u, 2 * u, 28 * u), new Color(ink.r, ink.g, ink.b, .25f));
         for (int i = 0; i < Ball.MaxHearts; i++)
         {
-            bool full = ball != null && i < ball.hearts;
-            var old = GUI.color;
-            GUI.color = full ? Gfx.Spike : new Color(1, 1, 1, .2f);
-            GUI.DrawTexture(new Rect(24 + i * 44, 22, 36, 36), Gfx.Circle.texture);
-            GUI.color = old;
+            bool full = i < ball.hearts;
+            Pill(new Rect((118 + i * 26) * u, 41 * u, 18 * u, 18 * u), full ? (Color)Gfx.Coral : new Color(ink.r, ink.g, ink.b, .15f));
         }
-        Shadowed(new Rect(170, 18, 400, 44), "COINS " + coins + "/" + level.coins, center, Gfx.Gold);
-        Shadowed(new Rect(W - 420, 18, 400, 44), Levels.All[levelIndex].name + "   " + levelTime.ToString("0.0") + "s", new GUIStyle(center) { alignment = TextAnchor.MiddleRight }, Color.white);
-        Shadowed(new Rect(W - 420, 52, 400, 30), "LEVEL " + (levelIndex + 1) + "/" + Levels.All.Length + "   deaths " + deaths, new GUIStyle(small) { alignment = TextAnchor.MiddleRight }, new Color(.7f, .75f, .9f));
+        Pill(new Rect(208 * u, 41 * u, 18 * u, 18 * u), Gfx.Gold);
+        Text(new Rect(232 * u, 24 * u, 110 * u, 52 * u), orbs + " / " + level.orbs, h2, ink, (int)(22 * u));
 
-        // ability bar
-        var list = new List<int>();
-        for (int i = 0; i < Abilities.Length; i++) if (Has(Abilities[i].id)) list.Add(i);
-        float size = 78, gap = 12;
-        float total = list.Count * size + (list.Count - 1) * gap;
-        float x0 = W / 2 - total / 2, y0 = H - size - 40;
-        foreach (int i in list)
+        // top-right: time
+        Text(new Rect(W - 260 * u, 22 * u, 236 * u, 30 * u), def.name, h1, ink, (int)(20 * u));
+        Text(new Rect(W - 260 * u, 50 * u, 236 * u, 24 * u), levelTime.ToString("0.0") + "s   ·   " + deaths + " falls", body, new Color(ink.r, ink.g, ink.b, .6f), (int)(16 * u));
+
+        // bottom: unlocked states
+        var list = new List<Ability>();
+        foreach (var a in Abilities) if (Has(a.id)) list.Add(a);
+        float cw = 84 * u, gap = 10 * u, total = list.Count * cw + (list.Count - 1) * gap;
+        float x0 = (W - total) / 2, y0 = H - 118 * u;
+        for (int i = 0; i < list.Count; i++)
         {
-            var a = Abilities[i];
-            float cd = 0, cdMax = 1;
-            bool active = false;
-            if (ball != null)
+            var a = list[i];
+            var r = new Rect(x0 + i * (cw + gap), y0, cw, 100 * u);
+            Pill(new Rect(r.x, r.y, r.width, r.height), new Color(1, 1, 1, .65f));
+            float cd = Cooldown(a.id);
+            Icon(new Rect(r.x + 20 * u, r.y + 10 * u, 44 * u, 44 * u), a.sprite, cd > 0 ? .4f : 1f);
+            if (cd > 0) Box(new Rect(r.x + 18 * u, r.y + 58 * u, (cw - 36 * u) * (1 - cd), 3 * u), Gfx.Gold);
+            Text(new Rect(r.x, r.y + 60 * u, cw, 18 * u), a.label, h1, ink, (int)(12 * u));
+            Text(new Rect(r.x, r.y + 77 * u, cw, 18 * u), a.key, body, new Color(ink.r, ink.g, ink.b, .55f), (int)(11 * u));
+        }
+
+        // new-state banner
+        if (!string.IsNullOrEmpty(newStates) && bannerT < 5.5f)
+        {
+            float a = Mathf.Clamp01(bannerT * 3f) * Mathf.Clamp01((5.5f - bannerT) * 2f);
+            var ids = newStates.Split(',');
+            float bw = 250 * u * ids.Length + 40 * u, bh = 150 * u;
+            var br = new Rect((W - bw) / 2, 110 * u - (1 - a) * 20 * u, bw, bh);
+            Pill(br, new Color(1, 1, 1, .82f * a));
+            Text(new Rect(br.x, br.y + 8 * u, bw, 26 * u), "NEW STATE" + (ids.Length > 1 ? "S" : ""), body, new Color(ink.r, ink.g, ink.b, .55f * a), (int)(14 * u));
+            for (int i = 0; i < ids.Length; i++)
             {
-                switch (a.id)
-                {
-                    case "dash": cd = ball.dashCd; cdMax = Ball.DashCd; active = ball.dashCd > Ball.DashCd - .3f; break;
-                    case "teleport": cd = ball.teleCd; cdMax = Ball.TeleCd; active = ball.teleCd > Ball.TeleCd - .3f; break;
-                    case "freeze": cd = ball.freezeCd; cdMax = Ball.FreezeCd; active = ball.frozenT > 0; break;
-                    case "invis": cd = ball.invisCd; cdMax = Ball.InvisCd; active = ball.invisT > 0; break;
-                    case "grow": active = ball.grown; break;
-                    case "crouch": active = ball.crouching; break;
-                }
+                var ab = Find(ids[i]);
+                float cx = br.x + 20 * u + i * 250 * u;
+                Icon(new Rect(cx + 14 * u, br.y + 40 * u, 84 * u, 84 * u), ab.sprite, a);
+                Text(new Rect(cx + 104 * u, br.y + 50 * u, 140 * u, 34 * u), ab.label, h1, new Color(ink.r, ink.g, ink.b, a), (int)(24 * u));
+                Text(new Rect(cx + 104 * u, br.y + 86 * u, 140 * u, 26 * u), ab.key, body, new Color(ink.r, ink.g, ink.b, .6f * a), (int)(16 * u));
             }
-            var r = new Rect(x0, y0, size, size);
-            Box(new Rect(r.x - 3, r.y - 3, r.width + 6, r.height + 6), active ? Gfx.Gold : new Color(.16f, .68f, 1f, .6f));
-            Box(r, new Color(.05f, .07f, .18f, .92f));
-            SpriteIcon(new Rect(r.x + 8, r.y + 6, size - 16, size - 16), Gfx.Ball(a.sprite), Color.white);
-            if (cd > 0)
-                Box(new Rect(r.x, r.y + r.height * (1 - cd / cdMax), r.width, r.height * (cd / cdMax)), new Color(0, 0, 0, .65f));
-            Shadowed(new Rect(r.x - 10, r.y + size + 2, size + 20, 22), a.key, small, Color.white);
-            Shadowed(new Rect(r.x - 10, r.y - 26, size + 20, 22), a.label, new GUIStyle(small) { fontSize = 14 }, new Color(.7f, .8f, 1f));
-            x0 += size + gap;
-        }
-
-        if (toastT > 0 && mode == Mode.Playing)
-        {
-            float a = Mathf.Clamp01(toastT);
-            var lines = toast.Split('\n');
-            Box(new Rect(W / 2 - 440, 100, 880, 100), new Color(.05f, .07f, .18f, .8f * a));
-            Shadowed(new Rect(0, 108, W, 50), lines[0], mid, new Color(Gfx.Gold.r, Gfx.Gold.g, Gfx.Gold.b, a));
-            if (lines.Length > 1) Shadowed(new Rect(0, 155, W, 36), lines[1], small, new Color(1, 1, 1, a));
         }
 
         if (mode == Mode.LevelDone)
         {
-            Shadowed(new Rect(0, 250, W, 100), "LEVEL CLEAR!", big, Gfx.Gold);
-            Shadowed(new Rect(0, 350, W, 40), $"{levelTime:0.0}s    coins {coins}/{level.coins}    deaths {deaths}", mid, Color.white);
+            Text(new Rect(0, H * .3f, W, 80 * u), "EVOLVED", hero, Color.white, (int)(64 * u));
+            Text(new Rect(0, H * .3f + 70 * u, W, 40 * u), orbs + " / " + level.orbs + " orbs   ·   " + levelTime.ToString("0.0") + "s", body, Color.white, (int)(22 * u));
         }
-        if (mode == Mode.Won)
+    }
+
+    void DrawTitle(float W, float H, float u, Color ink)
+    {
+        Box(new Rect(0, 0, W, H), new Color(1, 1, 1, .35f));
+        Text(new Rect(0, H * .16f, W, 100 * u), "BALL STATES", hero, ink, (int)(88 * u));
+        Text(new Rect(0, H * .16f + 92 * u, W, 36 * u), "one ball  ·  fourteen states  ·  a sky full of physics", body, new Color(ink.r, ink.g, ink.b, .65f), (int)(22 * u));
+
+        int n = AllStates.Length;
+        float s = Mathf.Min(70 * u, (W - 80 * u) / n), total = s * n;
+        int hi = (int)(uiT * 1.5f) % n;
+        for (int i = 0; i < n; i++)
         {
-            Box(new Rect(0, 0, W, H), new Color(0.04f, 0.05f, 0.15f, .8f));
-            Shadowed(new Rect(0, 130, W, 100), "YOU WIN!", big, Gfx.Gold);
-            SpriteIcon(new Rect(W / 2 - 80, 240, 160, 160), Gfx.Ball("heal"), Color.white);
-            float coinPct = totalCoinsMax > 0 ? totalCoins / (float)totalCoinsMax : 0;
-            string rank = coinPct > .9f && totalDeaths == 0 ? "S" : coinPct > .7f && totalDeaths < 4 ? "A" : coinPct > .4f ? "B" : "C";
-            Shadowed(new Rect(0, 420, W, 40), $"time {totalTime:0.0}s    coins {totalCoins}/{totalCoinsMax}    deaths {totalDeaths}", mid, Color.white);
-            Shadowed(new Rect(0, 470, W, 90), "RANK " + rank, big, Gfx.Pink);
-            Shadowed(new Rect(0, 590, W, 40), "press R to play again", small, new Color(.7f, .75f, .9f));
+            float bob = Mathf.Sin(uiT * 3f + i * .5f) * 4 * u;
+            float sc = i == hi ? 1.25f : 1f;
+            var r = new Rect((W - total) / 2 + i * s + s * (1 - sc) / 2, H * .5f - s / 2 + bob - (sc - 1) * s / 2, s * sc * .9f, s * sc * .9f);
+            Icon(r, AllStates[i], i == hi ? 1f : .75f);
         }
+        Text(new Rect(0, H * .5f + s * .75f, W, 30 * u), AllStates[hi].ToUpper(), h1, ink, (int)(18 * u));
+
+        float p = .6f + Mathf.Sin(uiT * 4f) * .4f;
+        Pill(new Rect(W / 2 - 170 * u, H * .72f, 340 * u, 58 * u), new Color(ink.r, ink.g, ink.b, .9f));
+        Text(new Rect(W / 2 - 170 * u, H * .72f, 340 * u, 58 * u), "PRESS ANY KEY", h1, new Color(1, 1, 1, p), (int)(22 * u));
+        Text(new Rect(0, H * .72f + 70 * u, W, 30 * u), "A / D roll   ·   SPACE jump   ·   R restart", body, new Color(ink.r, ink.g, ink.b, .6f), (int)(17 * u));
+    }
+
+    void DrawWon(float W, float H, float u, Color ink)
+    {
+        Box(new Rect(0, 0, W, H), new Color(1, 1, 1, .55f));
+        float orbPct = totalOrbsMax > 0 ? totalOrbs / (float)totalOrbsMax : 1f;
+        string rank = orbPct >= .95f && totalDeaths <= 2 ? "S" : orbPct >= .75f && totalDeaths <= 6 ? "A" : orbPct >= .5f ? "B" : "C";
+        Icon(new Rect(W / 2 - 80 * u, H * .12f, 160 * u, 160 * u), "evolve");
+        Text(new Rect(0, H * .12f + 170 * u, W, 80 * u), "FULLY EVOLVED", hero, ink, (int)(60 * u));
+        Text(new Rect(0, H * .12f + 245 * u, W, 36 * u),
+            totalOrbs + " / " + totalOrbsMax + " orbs   ·   " + totalDeaths + " falls   ·   " + totalTime.ToString("0.0") + "s",
+            body, new Color(ink.r, ink.g, ink.b, .7f), (int)(22 * u));
+        Text(new Rect(0, H * .12f + 290 * u, W, 120 * u), rank, hero, Gfx.Gold, (int)(110 * u));
+        Text(new Rect(0, H * .88f, W, 30 * u), "press ENTER to fly again", body, new Color(ink.r, ink.g, ink.b, .6f), (int)(18 * u));
     }
 }

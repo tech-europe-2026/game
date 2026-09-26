@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, user-scalable=no">
+    <title>{{{ PRODUCT_NAME }}}</title>
+    <style>
+      html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden;
+        background: linear-gradient(#78aaf5, #bad6ff 55%, #ffded6); font-family: -apple-system, Segoe UI, Helvetica, Arial, sans-serif; }
+      #unity-canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; outline: none; }
+      #loading { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+        color: #1e284e; letter-spacing: .2em; font-weight: 700; }
+      #bar { width: 240px; height: 6px; border-radius: 3px; background: rgba(255,255,255,.6); margin-top: 18px; overflow: hidden; }
+      #fill { width: 0; height: 100%; background: #ecbe54; transition: width .2s; }
+    </style>
+  </head>
+  <body>
+    <canvas id="unity-canvas" tabindex="-1"></canvas>
+    <div id="loading">BALL STATES<div id="bar"><div id="fill"></div></div></div>
+    <script src="Build/{{{ LOADER_FILENAME }}}"></script>
+    <script>
+      var canvas = document.querySelector("#unity-canvas");
+      createUnityInstance(canvas, {
+        dataUrl: "Build/{{{ DATA_FILENAME }}}",
+        frameworkUrl: "Build/{{{ FRAMEWORK_FILENAME }}}",
+        codeUrl: "Build/{{{ CODE_FILENAME }}}",
+        streamingAssetsUrl: "StreamingAssets",
+        companyName: {{{ JSON.stringify(COMPANY_NAME) }}},
+        productName: {{{ JSON.stringify(PRODUCT_NAME) }}},
+        productVersion: {{{ JSON.stringify(PRODUCT_VERSION) }}},
+      }, function (p) { document.querySelector("#fill").style.width = (p * 100) + "%"; })
+      .then(function () { document.querySelector("#loading").remove(); canvas.focus(); });
+      window.addEventListener("click", function () { canvas.focus(); });
+    </script>
+  </body>
+</html>

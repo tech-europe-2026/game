@@ -1,18 +1,19 @@
 using UnityEngine;
 
-public enum TileKind { Solid, Spike, Lava, Laser, Coin, Heal, Portal, Cracked, Pad, Crate }
+public enum TileKind { Solid, Rail, Shard, Spinner, Gate, Orb, Check, Goal, Pad, Glass, Crystal, Door }
 
 public class Tile : MonoBehaviour
 {
     public TileKind kind;
     public bool used;
     public SpriteRenderer art;
+    public Tile linked;
     Vector3 basePos;
     float phase;
 
     void Start()
     {
-        basePos = transform.position;
+        basePos = transform.localPosition;
         phase = Random.value * 10f;
     }
 
@@ -21,29 +22,28 @@ public class Tile : MonoBehaviour
         float t = Time.time + phase;
         switch (kind)
         {
-            case TileKind.Coin:
-                transform.position = basePos + Vector3.up * Mathf.Sin(t * 3f) * .12f;
-                transform.localScale = new Vector3(Mathf.Abs(Mathf.Cos(t * 2.5f)) * .5f + .1f, .6f, 1);
+            case TileKind.Orb:
+                transform.localPosition = basePos + Vector3.up * Mathf.Sin(t * 2.4f) * .12f;
+                transform.localScale = Vector3.one * (1f + Mathf.Sin(t * 5f) * .06f);
                 break;
-            case TileKind.Heal:
-                transform.position = basePos + Vector3.up * Mathf.Sin(t * 2f) * .1f;
-                transform.localScale = Vector3.one * (.8f + Mathf.Sin(t * 4f) * .06f);
+            case TileKind.Check:
+                transform.localPosition = basePos + Vector3.up * Mathf.Sin(t * 1.6f) * .1f;
+                if (art != null) art.transform.Rotate(0, 0, 60f * Time.deltaTime);
                 break;
-            case TileKind.Portal:
-                transform.Rotate(0, 0, 90f * Time.deltaTime);
-                transform.localScale = Vector3.one * (2.2f + Mathf.Sin(t * 3f) * .15f);
+            case TileKind.Goal:
+                if (art != null) art.transform.Rotate(0, 0, -50f * Time.deltaTime);
+                transform.localScale = Vector3.one * (1f + Mathf.Sin(t * 2.5f) * .04f);
                 break;
-            case TileKind.Laser:
+            case TileKind.Gate:
                 if (art != null)
                 {
                     var c = art.color;
-                    c.a = .65f + Mathf.Sin(t * 30f) * .25f;
+                    c.a = .7f + Mathf.Sin(t * 24f) * .2f;
                     art.color = c;
                 }
                 break;
-            case TileKind.Lava:
-                if (art != null)
-                    art.color = Color.Lerp(Gfx.Lava, Gfx.Spike, (Mathf.Sin(t * 2f + basePos.x) + 1) * .5f);
+            case TileKind.Crystal:
+                if (art != null) art.transform.localRotation = Quaternion.Euler(0, 0, 45f + Mathf.Sin(t * 2f) * 8f);
                 break;
         }
     }
@@ -53,27 +53,54 @@ public class Tile : MonoBehaviour
         if (used) return;
         used = true;
         Vector2 p = transform.position;
-        for (int i = 0; i < 4; i++)
+        Color c = kind == TileKind.Crystal ? Gfx.Lilac : Gfx.Glass;
+        for (int i = 0; i < 6; i++)
         {
-            var go = new GameObject("debris");
-            go.transform.position = p + new Vector2((i % 2) - .5f, (i / 2) - .5f) * .5f;
-            go.transform.localScale = Vector3.one * .45f;
+            var go = new GameObject("shard");
+            go.transform.position = p + Random.insideUnitCircle * .6f;
+            go.transform.localScale = Vector3.one * Random.Range(.2f, .45f);
+            go.transform.rotation = Quaternion.Euler(0, 0, Random.Range(0, 360f));
             var sr = go.AddComponent<SpriteRenderer>();
-            sr.sprite = Gfx.Square;
-            sr.color = Gfx.Cracked;
-            sr.sortingOrder = 5;
+            sr.sprite = Gfx.Tri;
+            sr.color = new Color(c.r, c.g, c.b, .9f);
+            sr.sortingOrder = 6;
             var rb = go.AddComponent<Rigidbody2D>();
-            rb.gravityScale = 3f;
-            rb.velocity = hitVel * .5f + Random.insideUnitCircle * 5f;
-            rb.angularVelocity = Random.Range(-600f, 600f);
-            go.AddComponent<BoxCollider2D>();
+            rb.gravityScale = 2.5f;
+            rb.velocity = hitVel * .4f + Random.insideUnitCircle * 6f;
+            rb.angularVelocity = Random.Range(-700f, 700f);
             go.layer = 2;
-            Destroy(go, 2.5f);
+            Destroy(go, 2f);
         }
-        Fx.Burst(p, Gfx.Cracked, 18, 9f, .22f);
-        Fx.AddShake(.35f);
-        Fx.HitStop(.06f);
+        Fx.Burst(p, c, 20, 9f, .2f, 6f, .6f);
+        Fx.Ring(p, Color.white, 1.6f);
+        Fx.AddShake(.3f);
+        Fx.HitStop(.05f);
         Sfx.Play("smash");
+        if (linked != null) linked.Open();
+        Destroy(gameObject);
+    }
+
+    public void Open()
+    {
+        if (used) return;
+        used = true;
+        foreach (var col in GetComponents<Collider2D>()) col.enabled = false;
+        Sfx.Play("heal", .6f);
+        Fx.Burst(transform.position, Gfx.Lilac, 24, 6f, .2f, 0f, .7f);
+        StartCoroutine(Fade());
+    }
+
+    System.Collections.IEnumerator Fade()
+    {
+        var srs = GetComponentsInChildren<SpriteRenderer>();
+        Vector3 s = transform.localScale;
+        for (float t = 0; t < .5f; t += Time.deltaTime)
+        {
+            float k = t / .5f;
+            transform.localScale = new Vector3(s.x * (1 - k), s.y, 1);
+            foreach (var sr in srs) { var c = sr.color; c.a = 1 - k; sr.color = c; }
+            yield return null;
+        }
         Destroy(gameObject);
     }
 }

@@ -24,6 +24,13 @@ public static class Sfx
         Add("heal", .4f, t => Sq(t, t < .13f ? 523 : t < .26f ? 659 : 784) * Env(t, .4f) * .6f);
         Add("hurt", .3f, t => (Sq(t, Mathf.Lerp(300, 80, t / .3f)) * .6f + Noise() * .4f) * Env(t, .3f));
         Add("smash", .35f, t => Noise() * Env(t, .35f));
+        Add("parry", .12f, t => Mathf.Sin(t * 2 * Mathf.PI * Mathf.Lerp(1400, 900, t / .12f)) * Env(t, .12f) * .5f);
+        Add("deflect", .22f, t => (Mathf.Sin(t * 2 * Mathf.PI * 1760) * .6f + Noise() * .3f) * Env(t, .22f));
+        Add("flip", .3f, t => Mathf.Sin(t * 2 * Mathf.PI * Mathf.Lerp(300, 1200, Mathf.Sin(t / .3f * Mathf.PI))) * Env(t, .3f) * .6f);
+        Add("rail", .12f, t => (Noise() * .4f + Mathf.Sin(t * 2 * Mathf.PI * 2400) * .3f) * Env(t, .12f));
+        Add("climb", .1f, t => Sq(t, 600) * Env(t, .1f) * .5f);
+        Add("evolve", 1.4f, t => (Mathf.Sin(t * 2 * Mathf.PI * (t < .35f ? 523 : t < .7f ? 659 : t < 1.05f ? 784 : 1047)) * .6f
+            + Mathf.Sin(t * 2 * Mathf.PI * 1568) * .15f) * Env(t, 1.4f));
         Add("win", 1f, t => Sq(t, t < .15f ? 523 : t < .3f ? 659 : t < .45f ? 784 : 1047) * Env(t, 1f) * .6f);
     }
 

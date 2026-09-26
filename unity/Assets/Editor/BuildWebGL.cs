@@ -19,7 +19,7 @@ public static class BuildWebGL
         var c = cam.AddComponent<Camera>();
         c.orthographic = true;
         c.clearFlags = CameraClearFlags.SolidColor;
-        c.backgroundColor = new Color32(11, 14, 38, 255);
+        c.backgroundColor = new Color32(186, 214, 255, 255);
         cam.AddComponent<AudioListener>();
         cam.transform.position = new Vector3(0, 0, -10);
         EditorSceneManager.SaveScene(scene, ScenePath);
@@ -34,7 +34,7 @@ public static class BuildWebGL
         PlayerSettings.WebGL.compressionFormat = WebGLCompressionFormat.Disabled;
         PlayerSettings.WebGL.decompressionFallback = false;
         PlayerSettings.WebGL.dataCaching = false;
-        PlayerSettings.WebGL.template = "APPLICATION:Minimal";
+        PlayerSettings.WebGL.template = "PROJECT:Sky";
         PlayerSettings.SetManagedStrippingLevel(BuildTargetGroup.WebGL, ManagedStrippingLevel.Minimal);
 
         var opts = new BuildPlayerOptions

@@ -2,51 +2,56 @@ using UnityEngine;
 
 public class Ball : MonoBehaviour
 {
-    public const float RNormal = .6f, RCrouch = .36f, RGrow = 1.05f;
+    public const float RNormal = .5f, RCrouch = .32f, RGrow = .85f;
     public const int MaxHearts = 3;
-    public const float DashCd = 1.1f, TeleCd = 1.4f, FreezeCd = 4f, InvisCd = 6f;
-    public const float FreezeTime = 3f, InvisTime = 2.6f;
+    public const float DashCd = .9f, TeleCd = 1.2f, ParryCd = .8f, CamoCd = 5f, FlipCd = .35f;
+    public const float CamoTime = 2.6f, ParryTime = .38f, ClimbMax = 3f;
+    const float G = 3f;
 
     public Rigidbody2D rb;
     CircleCollider2D col;
     Transform squashT, spinT;
-    SpriteRenderer body, glow;
+    SpriteRenderer body, glow, shield;
     TrailRenderer trail;
 
     public int hearts = MaxHearts;
-    public bool grown, crouching, dead, controlLocked;
-    public float dashCd, teleCd, freezeCd, invisCd;
-    public float frozenT, invisT, stunT, dashT, flashT, healT, hurtInvT;
+    public bool grown, crouching, dead, controlLocked, climbing, onRail, evolving;
+    public float dashCd, teleCd, parryCd, camoCd, flipCd;
+    public float camoT, parryT, stunT, dashT, flashT, healT, hurtInvT;
+    public float climbStamina = ClimbMax;
     public int facing = 1;
+    public float gravDir = 1f; // 1 = gravity down, -1 = gravity up
 
     float targetRadius = RNormal, visRadius = RNormal;
     bool grounded;
-    float coyote, jumpBuffer;
+    float coyote, jumpBuffer, railT;
     Vector2 squash = Vector2.one;
-    Vector2 lastVel;
+    Vector2 lastVel, climbNormal;
     string flashState = "bounce";
     float spinAngle;
 
-    PhysicsMaterial2D normalMat, iceMat;
-    readonly Collider2D[] hits = new Collider2D[8];
+    PhysicsMaterial2D normalMat, gripMat;
+    readonly Collider2D[] hits = new Collider2D[10];
     ContactFilter2D solidFilter;
 
     public float Radius => col.radius;
+    public bool Parrying => parryT > 0;
+    public bool Camo => camoT > 0;
+    Vector2 Up => new Vector2(0, gravDir);
 
     public static Ball Create(Vector2 pos)
     {
         var go = new GameObject("Ball");
         go.transform.position = pos;
-        var b = go.AddComponent<Ball>();
-        return b;
+        return go.AddComponent<Ball>();
     }
 
     void Awake()
     {
-        normalMat = new PhysicsMaterial2D { friction = .8f, bounciness = .15f };
-        iceMat = new PhysicsMaterial2D { friction = 0f, bounciness = 0f };
+        normalMat = new PhysicsMaterial2D { friction = .8f, bounciness = .12f };
+        gripMat = new PhysicsMaterial2D { friction = 1f, bounciness = 0f };
         rb = gameObject.AddComponent<Rigidbody2D>();
-        rb.gravityScale = 3f;
+        rb.gravityScale = G;
         rb.mass = 1f;
         rb.angularDrag = .5f;
         rb.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
@@ -66,125 +71,191 @@ public class Ball : MonoBehaviour
         spinT.SetParent(squashT, false);
         body = sp.AddComponent<SpriteRenderer>();
         body.sortingOrder = 20;
-        glow = Gfx.Quad(squashT, Vector2.zero, Vector2.one * 3f, new Color(.2f, .6f, 1f, .25f), 19, Gfx.Glow);
+        glow = Gfx.Quad(squashT, Vector2.zero, Vector2.one * 2.6f, new Color(.3f, .5f, 1f, .2f), 19, Gfx.Glow);
+        shield = Gfx.Quad(squashT, Vector2.zero, Vector2.one * 1.5f, new Color(1, 1, 1, 0), 21, Gfx.Ring);
 
         trail = gameObject.AddComponent<TrailRenderer>();
         trail.material = Gfx.SpriteMat;
-        trail.time = .25f;
+        trail.time = .22f;
         trail.minVertexDistance = .05f;
         trail.widthCurve = new AnimationCurve(new Keyframe(0, 1), new Keyframe(1, 0));
-        trail.widthMultiplier = 1f;
         trail.sortingOrder = 18;
         var grad = new Gradient();
         grad.SetKeys(
-            new[] { new GradientColorKey(new Color(.16f, .68f, 1f), 0), new GradientColorKey(new Color(1f, .47f, .66f), 1) },
-            new[] { new GradientAlphaKey(.6f, 0), new GradientAlphaKey(0, 1) });
+            new[] { new GradientColorKey(Color.white, 0), new GradientColorKey(new Color(.55f, .7f, 1f), 1) },
+            new[] { new GradientAlphaKey(.7f, 0), new GradientAlphaKey(0, 1) });
         trail.colorGradient = grad;
     }
 
+    static bool Key(KeyCode a, KeyCode b = KeyCode.None) => Input.GetKey(a) || (b != KeyCode.None && Input.GetKey(b));
+    static bool Down(KeyCode a, KeyCode b = KeyCode.None) => Input.GetKeyDown(a) || (b != KeyCode.None && Input.GetKeyDown(b));
+
     void Update()
     {
-        if (dead) { UpdateVisual(); return; }
+        if (dead || evolving) { UpdateVisual(); return; }
         float dt = Time.deltaTime;
-        dashCd -= dt; teleCd -= dt; freezeCd -= dt; invisCd -= dt;
-        stunT -= dt; flashT -= dt; healT -= dt; hurtInvT -= dt;
+        dashCd -= dt; teleCd -= dt; parryCd -= dt; camoCd -= dt; flipCd -= dt;
+        stunT -= dt; flashT -= dt; healT -= dt; hurtInvT -= dt; parryT -= dt; railT -= dt;
         jumpBuffer -= dt;
-        if (invisT > 0) invisT -= dt;
-        if (frozenT > 0)
-        {
-            frozenT -= dt;
-            if (frozenT <= 0) Unfreeze();
-        }
+        if (camoT > 0) camoT -= dt;
 
         if (!controlLocked && stunT <= 0)
         {
-            if (Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.W) || Input.GetKeyDown(KeyCode.UpArrow))
-                jumpBuffer = .12f;
-            if ((Input.GetKeyUp(KeyCode.Space) || Input.GetKeyUp(KeyCode.W) || Input.GetKeyUp(KeyCode.UpArrow)) && rb.velocity.y > 3f && dashT <= 0)
+            if (Down(KeyCode.Space, KeyCode.W) || Input.GetKeyDown(KeyCode.UpArrow)) jumpBuffer = .12f;
+            if ((Input.GetKeyUp(KeyCode.Space) || Input.GetKeyUp(KeyCode.W) || Input.GetKeyUp(KeyCode.UpArrow))
+                && rb.velocity.y * gravDir < -3f && dashT <= 0 && !climbing)
                 rb.velocity = new Vector2(rb.velocity.x, rb.velocity.y * .55f);
 
-            bool wantCrouch = GM.Has("crouch") && (Input.GetKey(KeyCode.S) || Input.GetKey(KeyCode.DownArrow)) && !grown && frozenT <= 0;
-            if (wantCrouch && !crouching) { crouching = true; SetRadius(RCrouch); }
+            bool wantCrouch = GM.Has("crouch") && Key(KeyCode.S, KeyCode.DownArrow) && !grown && !climbing;
+            if (wantCrouch && !crouching) { crouching = true; SetRadius(RCrouch); Sfx.Play("shrink", .4f); }
             else if (!wantCrouch && crouching && RoomFor(RNormal)) { crouching = false; SetRadius(RNormal); }
 
-            if (GM.Has("dash") && (Input.GetKeyDown(KeyCode.LeftShift) || Input.GetKeyDown(KeyCode.RightShift) || Input.GetKeyDown(KeyCode.K)) && dashCd <= 0 && frozenT <= 0) Dash();
-            if (GM.Has("grow") && Input.GetKeyDown(KeyCode.G) && frozenT <= 0) ToggleGrow();
-            if (GM.Has("teleport") && Input.GetKeyDown(KeyCode.T) && teleCd <= 0) Teleport();
-            if (GM.Has("freeze") && Input.GetKeyDown(KeyCode.F) && freezeCd <= 0 && frozenT <= 0) Freeze();
-            if (GM.Has("invis") && Input.GetKeyDown(KeyCode.V) && invisCd <= 0) Vanish();
+            if (GM.Has("dash") && Down(KeyCode.LeftShift, KeyCode.RightShift) && dashCd <= 0) Dash();
+            if (GM.Has("grow") && Down(KeyCode.G)) ToggleGrow();
+            if (GM.Has("teleport") && Down(KeyCode.T) && teleCd <= 0) Teleport();
+            if (GM.Has("parry") && Down(KeyCode.Q, KeyCode.J) && parryCd <= 0) Parry();
+            if (GM.Has("camo") && Down(KeyCode.V) && camoCd <= 0) Camouflage();
+            if (GM.Has("reverse") && Down(KeyCode.E) && flipCd <= 0) Flip();
         }
         UpdateVisual();
     }
 
-    float InputX()
+    Vector2 InputDir()
     {
-        if (controlLocked || stunT > 0) return 0;
-        float x = 0;
-        if (Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.LeftArrow)) x -= 1;
-        if (Input.GetKey(KeyCode.D) || Input.GetKey(KeyCode.RightArrow)) x += 1;
-        return x;
+        if (controlLocked || stunT > 0) return Vector2.zero;
+        float x = 0, y = 0;
+        if (Key(KeyCode.A, KeyCode.LeftArrow)) x -= 1;
+        if (Key(KeyCode.D, KeyCode.RightArrow)) x += 1;
+        if (Key(KeyCode.W, KeyCode.UpArrow)) y += 1;
+        if (Key(KeyCode.S, KeyCode.DownArrow)) y -= 1;
+        return new Vector2(x, y);
     }
 
     void FixedUpdate()
     {
-        if (dead) return;
+        if (dead || evolving) return;
+        float fdt = Time.fixedDeltaTime;
         float r = col.radius;
-        int n = Physics2D.OverlapCircle(rb.position + Vector2.down * (r * .55f), r * .6f, solidFilter, hits);
+        int n = Physics2D.OverlapCircle(rb.position - Up * (r * .55f), r * .6f, solidFilter, hits);
         grounded = false;
         for (int i = 0; i < n; i++)
             if (hits[i] != col && hits[i].attachedRigidbody != rb) { grounded = true; break; }
-        coyote = grounded ? .1f : coyote - Time.fixedDeltaTime;
+        coyote = grounded ? .1f : coyote - fdt;
+        if (grounded && !climbing) climbStamina = Mathf.MoveTowards(climbStamina, ClimbMax, fdt * 2f);
+        onRail = railT > 0;
 
-        float x = InputX();
-        if (x != 0) facing = x > 0 ? 1 : -1;
+        Vector2 inp = InputDir();
+        if (inp.x != 0) facing = inp.x > 0 ? 1 : -1;
+
+        UpdateClimb(inp, fdt);
 
         if (dashT > 0)
         {
-            dashT -= Time.fixedDeltaTime;
-            if (dashT <= 0) rb.gravityScale = 3f;
+            dashT -= fdt;
+            if (dashT <= 0) rb.gravityScale = G * gravDir;
         }
-        else
+        else if (!climbing)
         {
-            float maxSpeed = grown ? 7f : crouching ? 6f : 9.5f;
-            float accel = grounded ? 38f : 22f;
-            if (frozenT > 0) accel *= .35f;
+            float maxSpeed = grown ? 7.5f : crouching ? 7f : 10f;
+            if (onRail) maxSpeed = 16f;
+            float accel = grounded ? 40f : 24f;
             float vx = rb.velocity.x;
-            if (x != 0 && (Mathf.Abs(vx) < maxSpeed || Mathf.Sign(vx) != x))
-                rb.AddForce(new Vector2(x * accel * rb.mass, 0));
-            else if (x == 0 && grounded && frozenT <= 0)
-                rb.velocity = new Vector2(Mathf.MoveTowards(vx, 0, 14f * Time.fixedDeltaTime), rb.velocity.y);
-            if (frozenT <= 0)
-                rb.AddTorque(-x * 6f * rb.mass * r);
+            if (inp.x != 0 && (Mathf.Abs(vx) < maxSpeed || Mathf.Sign(vx) != inp.x))
+                rb.AddForce(new Vector2(inp.x * accel * rb.mass, 0));
+            else if (inp.x == 0 && grounded && !onRail)
+                rb.velocity = new Vector2(Mathf.MoveTowards(vx, 0, 14f * fdt), rb.velocity.y);
+            rb.AddTorque(-inp.x * gravDir * 5f * rb.mass * r);
         }
 
-        if (jumpBuffer > 0 && coyote > 0 && frozenT <= 0) Jump();
+        if (jumpBuffer > 0 && (coyote > 0 || climbing)) Jump();
         lastVel = rb.velocity;
+    }
+
+    void UpdateClimb(Vector2 inp, float fdt)
+    {
+        bool want = GM.Has("climb") && Key(KeyCode.C, KeyCode.L) && !controlLocked && stunT <= 0 && climbStamina > 0 && dashT <= 0;
+        Vector2 normal = Vector2.zero;
+        if (want)
+        {
+            float best = float.MaxValue;
+            int n = Physics2D.OverlapCircle(rb.position, col.radius + .2f, solidFilter, hits);
+            for (int i = 0; i < n; i++)
+            {
+                var h = hits[i];
+                if (h == col || h.attachedRigidbody == rb) continue;
+                var hrb = h.attachedRigidbody;
+                if (hrb != null && hrb.bodyType == RigidbodyType2D.Dynamic) continue;
+                Vector2 cp = h.ClosestPoint(rb.position);
+                float d = Vector2.Distance(cp, rb.position);
+                if (d < best && d > 1e-4f) { best = d; normal = (rb.position - cp) / d; }
+            }
+        }
+        if (normal == Vector2.zero)
+        {
+            if (climbing)
+            {
+                climbing = false;
+                rb.gravityScale = G * gravDir;
+                col.sharedMaterial = normalMat;
+            }
+            return;
+        }
+        if (!climbing)
+        {
+            climbing = true;
+            rb.gravityScale = 0f;
+            col.sharedMaterial = gripMat;
+            Sfx.Play("climb", .6f);
+            Fx.Ring(rb.position, Gfx.Gold, 1f);
+        }
+        climbNormal = normal;
+        climbStamina -= fdt;
+        Vector2 tangent = new Vector2(-normal.y, normal.x);
+        float along = Vector2.Dot(inp, tangent);
+        if (Mathf.Abs(along) < .1f && inp != Vector2.zero)
+            along = Mathf.Sign(Vector2.Dot(inp, tangent) + 1e-3f) * inp.magnitude * .7f;
+        Vector2 target = tangent * along * 6.5f - normal * 1.5f;
+        rb.velocity = Vector2.Lerp(rb.velocity, target, 1f - Mathf.Exp(-fdt * 12f));
+        rb.angularVelocity = -Vector2.Dot(rb.velocity, tangent) / col.radius * Mathf.Rad2Deg * Mathf.Sign(normal.y + normal.x * .01f);
+        if (climbStamina <= 0) Fx.Burst(rb.position, Color.white, 6, 3f);
     }
 
     void Jump()
     {
-        float v = grown ? 10f : crouching ? 10.5f : 12.5f;
-        rb.velocity = new Vector2(rb.velocity.x, v);
+        float v = grown ? 10.5f : crouching ? 11f : 12.8f;
+        if (climbing)
+        {
+            Vector2 dir = (climbNormal + Up * .6f).normalized;
+            rb.velocity = dir * 12f;
+            climbing = false;
+            rb.gravityScale = G * gravDir;
+            col.sharedMaterial = normalMat;
+            climbStamina -= .4f;
+        }
+        else rb.velocity = new Vector2(rb.velocity.x, v * gravDir);
         jumpBuffer = 0;
         coyote = 0;
-        squash = new Vector2(.7f, 1.35f);
-        Sfx.Play("jump", .6f);
-        Fx.Burst(rb.position + Vector2.down * col.radius, new Color(.8f, .85f, 1f), 6, 3f, .15f, 2f, .3f);
+        squash = new Vector2(.75f, 1.3f);
+        Sfx.Play("jump", .5f);
+        Fx.Burst(rb.position - Up * col.radius, Color.white, 6, 3f, .15f, 0f, .3f);
     }
 
     void Dash()
     {
-        dashT = .22f;
+        Vector2 d = InputDir();
+        if (d == Vector2.zero) d = new Vector2(facing, 0);
+        d.Normalize();
+        dashT = .2f;
         dashCd = DashCd;
         rb.gravityScale = 0f;
-        rb.velocity = new Vector2(facing * 19f, 0f);
-        flashState = "spin";
-        flashT = .35f;
-        squash = new Vector2(1.4f, .75f);
+        rb.velocity = d * 20f;
+        if (climbing) { climbing = false; col.sharedMaterial = normalMat; }
+        Flash("dash", .35f);
+        squash = new Vector2(1.35f, .78f);
         Sfx.Play("dash");
-        Fx.Ring(rb.position, Gfx.Gold, 1.6f);
-        Fx.Burst(rb.position, Gfx.Gold, 12, 6f, .2f, 0f, .4f);
-        Fx.AddShake(.15f);
+        Fx.Ring(rb.position, Gfx.Gold, 1.4f);
+        Fx.Burst(rb.position, Gfx.Gold, 14, 6f, .14f, 0f, .45f);
+        Fx.AddShake(.12f);
     }
 
     void ToggleGrow()
@@ -194,10 +265,10 @@ public class Ball : MonoBehaviour
             if (!RoomFor(RGrow)) { Fx.Burst(rb.position, Color.gray, 5, 2f); return; }
             grown = true;
             crouching = false;
-            rb.mass = 5f;
+            rb.mass = 4f;
             SetRadius(RGrow);
             Sfx.Play("grow");
-            Fx.Ring(rb.position, Gfx.Gold, 2.2f);
+            Fx.Ring(rb.position, Gfx.Gold, 2f);
             Fx.AddShake(.2f);
         }
         else
@@ -206,7 +277,7 @@ public class Ball : MonoBehaviour
             rb.mass = 1f;
             SetRadius(RNormal);
             Sfx.Play("shrink");
-            Fx.Ring(rb.position, Gfx.GroundTop, 1.2f);
+            Fx.Ring(rb.position, Color.white, 1.2f);
         }
     }
 
@@ -214,12 +285,12 @@ public class Ball : MonoBehaviour
     {
         float dr = radius - col.radius;
         if (dr <= 0) return true;
-        Vector2 probe = rb.position + Vector2.up * (dr + .02f);
+        Vector2 probe = rb.position + Up * (dr + .02f);
         int n = Physics2D.OverlapCircle(probe, radius * .95f, solidFilter, hits);
         for (int i = 0; i < n; i++)
         {
             var hrb = hits[i].attachedRigidbody;
-            if (hits[i] != col && (hrb == null || hrb.bodyType == RigidbodyType2D.Static)) return false;
+            if (hits[i] != col && (hrb == null || hrb.bodyType != RigidbodyType2D.Dynamic)) return false;
         }
         rb.position = probe;
         return true;
@@ -233,88 +304,104 @@ public class Ball : MonoBehaviour
 
     void Teleport()
     {
-        Vector2 dir = new Vector2(InputX(), 0);
-        if (Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.UpArrow)) dir.y = 1;
+        Vector2 dir = InputDir();
         if (dir == Vector2.zero) dir = new Vector2(facing, 0);
         dir.Normalize();
-        const float range = 5f;
+        const float range = 4.5f;
         for (float d = range; d >= 1f; d -= .25f)
         {
             Vector2 target = rb.position + dir * d;
-            if (Physics2D.OverlapCircle(target, col.radius * .9f, solidFilter, hits) == 0)
-            {
-                Fx.Burst(rb.position, new Color32(29, 43, 83, 255), 16, 5f, .2f, 0f, .5f);
-                Fx.Ring(rb.position, Gfx.GroundTop, 1.2f);
-                rb.position = target;
-                transform.position = target;
-                trail.Clear();
-                Fx.Ring(target, Gfx.Pink, 1.8f);
-                Fx.Burst(target, Gfx.Pink, 16, 6f, .2f, 0f, .5f);
-                flashState = "teleport";
-                flashT = .35f;
-                teleCd = TeleCd;
-                Sfx.Play("teleport");
-                return;
-            }
+            bool blocked = false;
+            int n = Physics2D.OverlapCircle(target, col.radius * .95f, solidFilter, hits);
+            for (int i = 0; i < n; i++) if (hits[i] != col) { blocked = true; break; }
+            if (blocked) continue;
+            Fx.Burst(rb.position, Gfx.Cyan, 18, 5f, .16f, 0f, .5f);
+            Fx.Ring(rb.position, Gfx.Cyan, 1.1f);
+            rb.position = target;
+            transform.position = target;
+            trail.Clear();
+            Fx.Ring(target, Color.white, 1.6f);
+            Fx.Burst(target, Gfx.Cyan, 18, 6f, .16f, 0f, .5f);
+            Flash("teleport", .4f);
+            teleCd = TeleCd;
+            Sfx.Play("teleport");
+            return;
         }
         Fx.Burst(rb.position, Color.gray, 5, 2f);
     }
 
-    void Freeze()
+    void Parry()
     {
-        frozenT = FreezeTime;
-        freezeCd = FreezeCd;
-        col.sharedMaterial = iceMat;
-        rb.freezeRotation = true;
-        rb.angularVelocity = 0;
-        Sfx.Play("freeze");
-        Fx.Burst(rb.position, Gfx.Ice, 20, 6f, .18f, 4f, .5f);
-        Fx.Ring(rb.position, Gfx.Ice, 1.8f);
+        parryT = ParryTime;
+        parryCd = ParryCd;
+        Sfx.Play("parry", .7f);
+        Fx.Ring(rb.position, Color.white, 1.3f);
     }
 
-    void Unfreeze()
+    public void OnParry(Vector2 at)
     {
-        frozenT = 0;
-        col.sharedMaterial = normalMat;
-        rb.freezeRotation = false;
-        Fx.Burst(rb.position, Gfx.Ice, 14, 5f, .15f, 10f, .5f);
+        parryT = Mathf.Max(parryT, .15f);
+        Flash("parry", .4f);
+        Sfx.Play("deflect");
+        Fx.Ring(at, Gfx.Gold, 1.4f);
+        Fx.Burst(at, Color.white, 14, 7f, .14f, 0f, .35f);
+        Fx.HitStop(.06f);
+        Fx.AddShake(.2f);
     }
 
-    void Vanish()
+    void Camouflage()
     {
-        invisT = InvisTime;
-        invisCd = InvisCd;
+        camoT = CamoTime;
+        camoCd = CamoCd;
         Sfx.Play("invis");
-        Fx.Burst(rb.position, new Color(.8f, .8f, 1f, .6f), 16, 4f, .2f, 0f, .6f);
+        Fx.Burst(rb.position, new Color(1, 1, 1, .7f), 16, 4f, .18f, 0f, .6f);
+    }
+
+    void Flip()
+    {
+        gravDir = -gravDir;
+        flipCd = FlipCd;
+        if (dashT <= 0 && !climbing) rb.gravityScale = G * gravDir;
+        Flash("reverse", .5f);
+        Sfx.Play("flip");
+        Fx.Ring(rb.position, Gfx.Lilac, 1.8f);
+        Fx.Burst(rb.position, Gfx.Lilac, 14, 5f, .16f, 0f, .5f);
+        squash = new Vector2(1.25f, .8f);
+    }
+
+    void Flash(string state, float t)
+    {
+        flashState = state;
+        flashT = t;
     }
 
     public void Hurt(Vector2 from)
     {
-        if (dead || hurtInvT > 0) return;
+        if (dead || evolving || hurtInvT > 0) return;
         hearts--;
-        hurtInvT = 1.2f;
-        stunT = .45f;
+        hurtInvT = 1.1f;
+        stunT = .4f;
         Vector2 away = (rb.position - from).normalized;
-        rb.velocity = new Vector2(away.x * 7f + (away.x == 0 ? -facing * 5 : 0), 11f);
-        Fx.AddShake(.5f);
+        if (away == Vector2.zero) away = new Vector2(-facing, 0);
+        rb.velocity = away * 8f + Up * 6f;
+        Fx.AddShake(.45f);
         Fx.HitStop(.08f);
-        Fx.Burst(rb.position, Gfx.Spike, 16, 8f);
+        Fx.Burst(rb.position, Gfx.Coral, 16, 8f, .16f);
         Sfx.Play("hurt");
         if (hearts <= 0) Die();
     }
 
     public void Die()
     {
-        if (dead) return;
+        if (dead || evolving) return;
         dead = true;
-        body.enabled = false;
-        glow.enabled = false;
+        body.enabled = glow.enabled = shield.enabled = false;
         rb.simulated = false;
         trail.emitting = false;
-        Fx.Burst(rb.position, new Color32(29, 43, 83, 255), 30, 12f, .25f);
-        Fx.Burst(rb.position, Gfx.Gold, 20, 10f, .2f);
-        Fx.AddShake(.8f);
-        Fx.HitStop(.12f);
+        Fx.Burst(rb.position, Gfx.Ink, 26, 11f, .2f);
+        Fx.Burst(rb.position, Gfx.Gold, 18, 9f, .16f);
+        Fx.AddShake(.7f);
+        Fx.HitStop(.1f);
         Sfx.Play("hurt");
         GM.I.OnBallDied();
     }
@@ -323,126 +410,185 @@ public class Ball : MonoBehaviour
     {
         dead = false;
         hearts = MaxHearts;
-        grown = crouching = false;
+        grown = crouching = climbing = false;
+        gravDir = 1f;
         rb.mass = 1f;
-        rb.gravityScale = 3f;
+        rb.gravityScale = G;
+        col.sharedMaterial = normalMat;
         SetRadius(RNormal);
         visRadius = RNormal;
-        Unfreeze();
-        invisT = dashT = stunT = 0;
+        camoT = dashT = stunT = parryT = 0;
+        climbStamina = ClimbMax;
         hurtInvT = 1f;
         rb.simulated = true;
         rb.position = p;
         transform.position = p;
         rb.velocity = Vector2.zero;
         rb.angularVelocity = 0;
-        body.enabled = glow.enabled = true;
+        body.enabled = glow.enabled = shield.enabled = true;
         trail.Clear();
         trail.emitting = true;
-        flashState = "heal";
-        flashT = .6f;
-        Fx.Ring(p, Gfx.Green, 2f);
+        Flash("heal", .6f);
+        Fx.Ring(p, Gfx.Mint, 2f);
     }
 
     public void Heal()
     {
         hearts = MaxHearts;
-        healT = .8f;
+        healT = .9f;
         Sfx.Play("heal");
-        Fx.Burst(rb.position, Gfx.Green, 18, 5f, .2f, -4f, .8f);
+        Fx.Burst(rb.position, Gfx.Mint, 18, 5f, .16f, -4f, .8f);
+        Fx.Ring(rb.position, Gfx.Mint, 1.8f);
+    }
+
+    public void Evolve()
+    {
+        evolving = true;
+        rb.simulated = false;
+        trail.emitting = false;
+    }
+
+    void Bounce(Vector2 normal, float speed)
+    {
+        rb.velocity = normal * speed;
+        squash = new Vector2(1.3f, .75f);
+        Fx.AddShake(.15f);
     }
 
     void OnCollisionEnter2D(Collision2D c)
     {
-        if (dead) return;
+        if (dead || evolving) return;
         float impact = c.relativeVelocity.magnitude;
+        Vector2 normal = c.GetContact(0).normal;
         var tile = c.collider.GetComponent<Tile>();
         if (tile != null)
         {
-            if (tile.kind == TileKind.Lava && frozenT <= 0) { Die(); return; }
-            if (tile.kind == TileKind.Cracked && (dashT > 0 || (grown && impact > 5f)))
+            switch (tile.kind)
             {
-                tile.Break(lastVel);
-                rb.velocity = lastVel * (grown ? .8f : .9f);
-                return;
-            }
-            if (tile.kind == TileKind.Pad && c.GetContact(0).normal.y > .5f)
-            {
-                rb.velocity = new Vector2(rb.velocity.x, grown ? 17f : 20f);
-                squash = new Vector2(.6f, 1.5f);
-                flashState = "bounce";
-                flashT = .3f;
-                Sfx.Play("bounce");
-                Fx.Burst(tile.transform.position, Gfx.Green, 14, 7f, .18f);
-                Fx.Ring(tile.transform.position, Gfx.Green, 1.5f);
-                return;
+                case TileKind.Spinner:
+                    if (Parrying) { OnParry(c.GetContact(0).point); Bounce(normal, 15f); }
+                    else Hurt(c.GetContact(0).point);
+                    return;
+                case TileKind.Glass:
+                    if (dashT > 0 || (grown && impact > 6f))
+                    {
+                        tile.Break(lastVel);
+                        rb.velocity = lastVel * .85f;
+                        return;
+                    }
+                    break;
+                case TileKind.Pad:
+                    if (Vector2.Dot(normal, tile.transform.up) > .5f)
+                    {
+                        float power = tile.GetComponent<PadPower>().power * (grown ? .85f : 1f);
+                        Vector2 up = tile.transform.up;
+                        rb.velocity = up * power + Vector2.Dot(rb.velocity, new Vector2(up.y, -up.x)) * new Vector2(up.y, -up.x) * .6f;
+                        squash = new Vector2(.65f, 1.45f);
+                        Flash("bounce", .35f);
+                        Sfx.Play("bounce");
+                        Fx.Burst(tile.transform.position, Gfx.Mint, 14, 7f, .16f);
+                        Fx.Ring(tile.transform.position, Gfx.Mint, 1.4f);
+                        return;
+                    }
+                    break;
+                case TileKind.Rail:
+                    if (railT <= 0)
+                    {
+                        Sfx.Play("rail", .5f);
+                        Fx.Burst(c.GetContact(0).point, Gfx.Gold, 10, 4f, .12f, 6f, .3f);
+                    }
+                    railT = .15f;
+                    break;
             }
         }
         if (impact > 7f)
         {
             float k = Mathf.InverseLerp(7f, 22f, impact);
-            Fx.AddShake(Mathf.Lerp(.08f, .4f, k) * (grown ? 2f : 1f));
+            Fx.AddShake(Mathf.Lerp(.06f, .35f, k) * (grown ? 2f : 1f));
             Vector2 cp = c.GetContact(0).point;
-            Fx.Burst(cp, new Color(.8f, .85f, 1f), 6 + (int)(k * 10), 3f + k * 5f, .15f, 6f, .35f);
-            if (impact > 11f) { flashState = "bounce"; flashT = .18f; }
-            squash = new Vector2(1f + k * .5f, 1f - k * .4f);
-            Sfx.Play("land", .5f + k * .5f);
+            Fx.Burst(cp, Color.white, 6 + (int)(k * 10), 3f + k * 5f, .14f, 6f, .35f);
+            if (impact > 11f) Flash("bounce", .2f);
+            squash = new Vector2(1f + k * .45f, 1f - k * .35f);
+            Sfx.Play("land", .4f + k * .5f);
             if (grown && impact > 9f) Fx.HitStop(.04f);
         }
     }
 
     void OnCollisionStay2D(Collision2D c)
     {
-        if (dead || frozenT > 0) return;
+        if (dead) return;
         var tile = c.collider.GetComponent<Tile>();
-        if (tile != null && tile.kind == TileKind.Lava) Die();
+        if (tile == null) return;
+        if (tile.kind == TileKind.Rail)
+        {
+            railT = .15f;
+            var cp = c.GetContact(0);
+            Vector2 tangent = new Vector2(-cp.normal.y, cp.normal.x);
+            float s = Vector2.Dot(rb.velocity, tangent);
+            if (Mathf.Abs(s) > 1f) rb.AddForce(tangent * Mathf.Sign(s) * 9f * rb.mass);
+            if (Random.value < .35f) Fx.Burst(cp.point, Gfx.Gold, 1, 3f, .1f, 8f, .25f);
+        }
+        else if (tile.kind == TileKind.Spinner && !Parrying) Hurt(c.GetContact(0).point);
     }
 
     void OnTriggerEnter2D(Collider2D other) => HandleTrigger(other);
     void OnTriggerStay2D(Collider2D other)
     {
         var t = other.GetComponent<Tile>();
-        if (t != null && (t.kind == TileKind.Spike || t.kind == TileKind.Laser)) HandleTrigger(other);
+        if (t != null && (t.kind == TileKind.Shard || t.kind == TileKind.Gate)) HandleTrigger(other);
     }
 
     void HandleTrigger(Collider2D other)
     {
-        if (dead) return;
+        if (dead || evolving) return;
         var t = other.GetComponent<Tile>();
         if (t == null || t.used) return;
         switch (t.kind)
         {
-            case TileKind.Spike: Hurt(other.transform.position + Vector3.down); break;
-            case TileKind.Laser: if (invisT <= 0) Die(); break;
-            case TileKind.Coin:
+            case TileKind.Shard:
+                if (Parrying) { OnParry(rb.position); Bounce(((Vector2)(rb.position - (Vector2)other.transform.position)).normalized, 13f); }
+                else Hurt(other.transform.position);
+                break;
+            case TileKind.Gate:
+                if (!Camo)
+                {
+                    Hurt(new Vector2(other.transform.position.x, rb.position.y));
+                }
+                break;
+            case TileKind.Orb:
                 t.used = true;
-                GM.I.coins++;
-                Sfx.Play("coin", .7f);
-                Fx.Burst(t.transform.position, Gfx.Gold, 10, 5f, .15f, 0f, .4f);
+                GM.I.orbs++;
+                Sfx.Play("coin", .6f);
+                Fx.Burst(t.transform.position, Gfx.Gold, 10, 5f, .13f, 0f, .4f);
+                Fx.Ring(t.transform.position, Gfx.Gold, .8f);
                 Destroy(t.gameObject);
                 break;
-            case TileKind.Heal:
+            case TileKind.Check:
                 t.used = true;
                 Heal();
                 GM.I.checkpoint = t.transform.position;
                 Destroy(t.gameObject);
                 break;
-            case TileKind.Portal:
+            case TileKind.Goal:
                 t.used = true;
-                GM.I.OnPortal(t.transform.position);
+                GM.I.OnGoal(t.transform.position);
                 break;
         }
     }
 
     string State()
     {
-        if (frozenT > 0) return "freeze";
-        if (invisT > 0) return "invisibility";
+        if (evolving) return "evolve";
         if (stunT > 0 || (hurtInvT > .6f && !dead)) return "stun";
+        if (Parrying) return "parry";
+        if (Camo) return "camouflage";
         if (flashT > 0) return flashState;
+        if (climbing) return "climb";
         if (healT > 0) return "heal";
+        if (onRail && rb.velocity.magnitude > 6f) return "spin";
         if (grown) return "grow";
         if (crouching) return "crouch";
+        if (gravDir < 0) return "reverse";
         return "idle";
     }
 
@@ -455,50 +601,49 @@ public class Ball : MonoBehaviour
 
         squash = Vector2.Lerp(squash, Vector2.one, 1f - Mathf.Exp(-dt * 12f));
         Vector2 v = rb.velocity;
-        float stretch = Mathf.Clamp01((v.magnitude - 8f) / 20f) * .25f;
+        float stretch = Mathf.Clamp01((v.magnitude - 9f) / 20f) * .22f;
         Vector2 s = squash;
-        if (stretch > 0 && st != "freeze")
+        float ang = 0;
+        if (stretch > 0)
         {
-            float ang = Mathf.Atan2(v.y, v.x) * Mathf.Rad2Deg;
-            squashT.localRotation = Quaternion.Euler(0, 0, ang);
+            ang = Mathf.Atan2(v.y, v.x) * Mathf.Rad2Deg;
             s = new Vector2(s.x * (1 + stretch), s.y * (1 - stretch * .6f));
-            spinT.localRotation = Quaternion.Euler(0, 0, -ang);
         }
-        else
-        {
-            squashT.localRotation = Quaternion.identity;
-            spinT.localRotation = Quaternion.identity;
-        }
+        squashT.localRotation = Quaternion.Euler(0, 0, ang);
         float d = visRadius * 2f;
         squashT.localScale = new Vector3(s.x * d, s.y * d, 1);
         transform.rotation = Quaternion.identity;
 
-        bool rolls = st == "idle" || st == "crouch" || st == "grow" || st == "spin" || st == "bounce";
-        if (rolls)
+        bool rolls = st != "evolve" && st != "stun" && st != "parry" && st != "crouch";
+        if (rolls && !dead)
         {
-            spinAngle -= v.x / Mathf.Max(.3f, visRadius) * Mathf.Rad2Deg * dt;
-            if (st == "spin") spinAngle -= 1440f * dt;
-            spinT.localRotation *= Quaternion.Euler(0, 0, spinAngle);
+            spinAngle -= v.x * gravDir / Mathf.Max(.3f, visRadius) * Mathf.Rad2Deg * dt;
+            if (st == "spin") spinAngle -= 900f * dt * Mathf.Sign(v.x);
         }
+        spinT.localRotation = Quaternion.Euler(0, 0, (rolls ? spinAngle : 0) - ang);
 
         Color c = Color.white;
-        if (invisT > 0) c.a = .35f + Mathf.Sin(Time.time * 20f) * .1f;
-        if (hurtInvT > 0 && Mathf.Repeat(Time.time * 12f, 1f) < .5f) c.a *= .4f;
+        if (Camo) c.a = .35f + Mathf.Sin(Time.time * 18f) * .08f;
+        if (hurtInvT > 0 && !dead && Mathf.Repeat(Time.time * 12f, 1f) < .5f) c.a *= .45f;
         body.color = c;
 
         Color gc;
         switch (st)
         {
-            case "spin": gc = new Color(1f, .85f, .1f, .45f); break;
-            case "freeze": gc = new Color(.6f, .9f, 1f, .5f); break;
-            case "invisibility": gc = new Color(.8f, .8f, 1f, .08f); break;
-            case "heal": gc = new Color(0f, 1f, .3f, .45f); break;
-            case "stun": gc = new Color(1f, 0f, .3f, .4f); break;
-            case "grow": gc = new Color(1f, .75f, .1f, .3f); break;
-            default: gc = new Color(.2f, .6f, 1f, .22f); break;
+            case "dash": case "spin": gc = new Color(1f, .8f, .3f, .45f); break;
+            case "heal": gc = new Color(.2f, 1f, .6f, .5f); break;
+            case "stun": gc = new Color(1f, .3f, .35f, .45f); break;
+            case "reverse": gc = new Color(.6f, .5f, 1f, .4f); break;
+            case "teleport": gc = new Color(.4f, .85f, 1f, .5f); break;
+            case "evolve": gc = new Color(1f, .85f, .4f, .7f); break;
+            case "camouflage": gc = new Color(1f, 1f, 1f, .05f); break;
+            default: gc = new Color(.35f, .5f, 1f, .18f); break;
         }
         glow.color = gc;
-        trail.widthMultiplier = visRadius * 1.4f;
-        trail.emitting = !dead && invisT <= 0 && v.magnitude > 3f;
+        float sa = Parrying ? Mathf.Clamp01(parryT / ParryTime) : 0f;
+        shield.color = new Color(1f, 1f, 1f, sa * .9f);
+        shield.transform.localScale = Vector3.one * (1.25f + (1 - sa) * .4f);
+        trail.widthMultiplier = visRadius * 1.3f;
+        trail.emitting = !dead && !evolving && !Camo && v.magnitude > 4f;
     }
 }

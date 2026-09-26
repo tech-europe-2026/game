@@ -3,21 +3,20 @@ using UnityEngine;
 
 public static class Gfx
 {
-    public static readonly Color Bg = new Color32(11, 14, 38, 255);
-    public static readonly Color Ground = new Color32(29, 43, 83, 255);
-    public static readonly Color GroundTop = new Color32(41, 173, 255, 255);
-    public static readonly Color Ice = new Color32(160, 230, 255, 255);
-    public static readonly Color Crate = new Color32(171, 82, 54, 255);
-    public static readonly Color CrateEdge = new Color32(255, 163, 0, 255);
-    public static readonly Color Cracked = new Color32(95, 87, 79, 255);
-    public static readonly Color Spike = new Color32(255, 0, 77, 255);
-    public static readonly Color Lava = new Color32(255, 80, 20, 255);
-    public static readonly Color Gold = new Color32(255, 236, 39, 255);
-    public static readonly Color Green = new Color32(0, 228, 54, 255);
-    public static readonly Color Pink = new Color32(255, 119, 168, 255);
-    public static readonly Color Glass = new Color32(131, 118, 156, 255);
+    public static readonly Color SkyTop = new Color32(120, 170, 245, 255);
+    public static readonly Color SkyMid = new Color32(186, 214, 255, 255);
+    public static readonly Color SkyBottom = new Color32(255, 222, 214, 255);
+    public static readonly Color Plat = new Color32(252, 252, 255, 255);
+    public static readonly Color PlatShade = new Color32(196, 208, 238, 255);
+    public static readonly Color Ink = new Color32(30, 40, 78, 255);
+    public static readonly Color Gold = new Color32(236, 190, 84, 255);
+    public static readonly Color Coral = new Color32(255, 96, 110, 255);
+    public static readonly Color Mint = new Color32(72, 222, 176, 255);
+    public static readonly Color Lilac = new Color32(150, 128, 255, 255);
+    public static readonly Color Cyan = new Color32(90, 205, 255, 255);
+    public static readonly Color Glass = new Color32(170, 225, 255, 150);
 
-    static Sprite square, circle, glow, spike, ring;
+    static Sprite square, circle, glow, ring, tri, rounded;
     static readonly Dictionary<string, Sprite> ballSprites = new Dictionary<string, Sprite>();
     static Material spriteMat;
 
@@ -30,31 +29,55 @@ public static class Gfx
         }
     }
 
-    public static Sprite Square => square != null ? square : square = Make(4, true, (x, y, n) => 1f);
+    public static Sprite Square => square != null ? square : square = Make(4, (x, y, n) => 1f);
 
-    public static Sprite Circle => circle != null ? circle : circle = Make(64, false, (x, y, n) =>
+    public static Sprite Circle => circle != null ? circle : circle = Make(128, (x, y, n) =>
     {
         float d = Vector2.Distance(new Vector2(x + .5f, y + .5f), new Vector2(n / 2f, n / 2f));
         return Mathf.Clamp01(n / 2f - d);
     });
 
-    public static Sprite Glow => glow != null ? glow : glow = Make(64, false, (x, y, n) =>
+    public static Sprite Glow => glow != null ? glow : glow = Make(64, (x, y, n) =>
     {
         float d = Vector2.Distance(new Vector2(x + .5f, y + .5f), new Vector2(n / 2f, n / 2f)) / (n / 2f);
         return Mathf.Pow(Mathf.Clamp01(1f - d), 2f);
     });
 
-    public static Sprite Ring => ring != null ? ring : ring = Make(64, false, (x, y, n) =>
+    public static Sprite Ring => ring != null ? ring : ring = Make(128, (x, y, n) =>
     {
         float d = Vector2.Distance(new Vector2(x + .5f, y + .5f), new Vector2(n / 2f, n / 2f));
-        return Mathf.Clamp01(1.5f - Mathf.Abs(d - (n / 2f - 3f)));
+        return Mathf.Clamp01(3f - Mathf.Abs(d - (n / 2f - 4f)));
     });
 
-    public static Sprite SpikeSprite => spike != null ? spike : spike = Make(16, true, (x, y, n) =>
+    // upward-pointing triangle filling the unit square
+    public static Sprite Tri => tri != null ? tri : tri = Make(64, (x, y, n) =>
     {
         float half = (n - y) / 2f;
-        return Mathf.Abs(x + .5f - n / 2f) < half ? 1f : 0f;
+        return Mathf.Clamp01(half - Mathf.Abs(x + .5f - n / 2f) + .5f);
     });
+
+    // 9-sliced rounded rectangle, 1 unit = 64px, corner radius .25 units
+    public static Sprite Rounded
+    {
+        get
+        {
+            if (rounded != null) return rounded;
+            const int n = 64, r = 16;
+            var t = NewTex(n);
+            var px = new Color32[n * n];
+            for (int y = 0; y < n; y++)
+                for (int x = 0; x < n; x++)
+                {
+                    float cx = Mathf.Clamp(x + .5f, r, n - r), cy = Mathf.Clamp(y + .5f, r, n - r);
+                    float d = Vector2.Distance(new Vector2(x + .5f, y + .5f), new Vector2(cx, cy));
+                    px[y * n + x] = new Color32(255, 255, 255, (byte)(Mathf.Clamp01(r - d + .5f) * 255));
+                }
+            t.SetPixels32(px);
+            t.Apply();
+            rounded = Sprite.Create(t, new Rect(0, 0, n, n), new Vector2(.5f, .5f), n, 0, SpriteMeshType.FullRect, new Vector4(r, r, r, r));
+            return rounded;
+        }
+    }
 
     public static Sprite Ball(string state)
     {
@@ -66,20 +89,34 @@ public static class Gfx
         return s;
     }
 
-    static Sprite Make(int n, bool point, System.Func<int, int, int, float> alpha)
+    static Texture2D NewTex(int n) => new Texture2D(n, n, TextureFormat.RGBA32, false)
     {
-        var t = new Texture2D(n, n, TextureFormat.RGBA32, false)
-        {
-            filterMode = point ? FilterMode.Point : FilterMode.Bilinear,
-            wrapMode = TextureWrapMode.Clamp
-        };
+        filterMode = FilterMode.Bilinear,
+        wrapMode = TextureWrapMode.Clamp
+    };
+
+    static Sprite Make(int n, System.Func<int, int, int, float> alpha)
+    {
+        var t = NewTex(n);
         var px = new Color32[n * n];
         for (int y = 0; y < n; y++)
             for (int x = 0; x < n; x++)
-                px[y * n + x] = new Color32(255, 255, 255, (byte)(alpha(x, y, n) * 255));
+                px[y * n + x] = new Color32(255, 255, 255, (byte)(Mathf.Clamp01(alpha(x, y, n)) * 255));
         t.SetPixels32(px);
         t.Apply();
         return Sprite.Create(t, new Rect(0, 0, n, n), new Vector2(.5f, .5f), n);
+    }
+
+    public static Sprite VerticalGradient(Color bottom, Color mid, Color top)
+    {
+        var t = new Texture2D(1, 256, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp, filterMode = FilterMode.Bilinear };
+        for (int y = 0; y < 256; y++)
+        {
+            float k = y / 255f;
+            t.SetPixel(0, y, k < .5f ? Color.Lerp(bottom, mid, k * 2f) : Color.Lerp(mid, top, (k - .5f) * 2f));
+        }
+        t.Apply();
+        return Sprite.Create(t, new Rect(0, 0, 1, 256), new Vector2(.5f, .5f), 1);
     }
 
     public static SpriteRenderer Quad(Transform parent, Vector2 localPos, Vector2 size, Color c, int order, Sprite s = null)
@@ -90,6 +127,20 @@ public static class Gfx
         go.transform.localScale = new Vector3(size.x, size.y, 1);
         var sr = go.AddComponent<SpriteRenderer>();
         sr.sprite = s != null ? s : Square;
+        sr.color = c;
+        sr.sortingOrder = order;
+        return sr;
+    }
+
+    public static SpriteRenderer Slab(Transform parent, Vector2 localPos, Vector2 size, Color c, int order)
+    {
+        var go = new GameObject("slab");
+        go.transform.SetParent(parent, false);
+        go.transform.localPosition = localPos;
+        var sr = go.AddComponent<SpriteRenderer>();
+        sr.sprite = Rounded;
+        sr.drawMode = SpriteDrawMode.Sliced;
+        sr.size = size;
         sr.color = c;
         sr.sortingOrder = order;
         return sr;

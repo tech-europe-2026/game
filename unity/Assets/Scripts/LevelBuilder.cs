@@ -1,16 +1,15 @@
+using System.Collections.Generic;
 using UnityEngine;
 
-public static class LevelBuilder
+// Fluent, coordinate-based level construction: every piece is placed in world units.
+public class LevelBuilder
 {
-    public struct Result
-    {
-        public Transform root;
-        public Vector2 start;
-        public Vector2 min, max;
-        public int coins;
-    }
+    public Transform root;
+    public Vector2 start;
+    public Vector2 min = new Vector2(float.MaxValue, float.MaxValue), max = new Vector2(float.MinValue, float.MinValue);
+    public int orbs;
 
-    static PhysicsMaterial2D groundMat, iceMat, padMat;
+    static PhysicsMaterial2D platMat, railMat, padMat, boxMat;
 
     static PhysicsMaterial2D Mat(ref PhysicsMaterial2D m, float friction, float bounce)
     {
@@ -18,299 +17,342 @@ public static class LevelBuilder
         return m;
     }
 
-    public static Result Build(string[] map)
+    public LevelBuilder()
     {
-        var res = new Result { root = new GameObject("Level").transform };
-        int h = map.Length;
-        int w = 0;
-        foreach (var r in map) w = Mathf.Max(w, r.Length);
-        char At(int x, int y)
-        {
-            if (y < 0 || y >= h) return ' ';
-            string row = map[h - 1 - y];
-            return x >= 0 && x < row.Length ? row[x] : ' ';
-        }
-        res.min = new Vector2(0, 0);
-        res.max = new Vector2(w - 1, h - 1);
-
-        var solids = NewComposite(res.root, "Solids", Mat(ref groundMat, .6f, 0f));
-
-        for (int y = 0; y < h; y++)
-        {
-            int x = 0;
-            while (x < w)
-            {
-                char c = At(x, y);
-                if (c == '#')
-                {
-                    int x0 = x;
-                    while (At(x, y) == '#') x++;
-                    AddRun(solids, x0, x - 1, y, At);
-                    continue;
-                }
-                Vector2 p = new Vector2(x, y);
-                switch (c)
-                {
-                    case 'S': res.start = p; break;
-                    case '^': Spike(res.root, p); break;
-                    case '~': Lava(res.root, p); break;
-                    case 'C': Crate(res.root, p); break;
-                    case 'X': Cracked(res.root, p); break;
-                    case 'G': Glass(res.root, p); break;
-                    case 'L': Laser(res.root, p, At); break;
-                    case '*': Pickup(res.root, p, TileKind.Coin); res.coins++; break;
-                    case 'H': Pickup(res.root, p, TileKind.Heal); break;
-                    case 'F': Portal(res.root, p); break;
-                    case 'B': Pad(res.root, p); break;
-                    case 'P': Seesaw(res.root, p); break;
-                    case 'O': Pendulum(res.root, p); break;
-                    case 'D': Domino(res.root, p); break;
-                }
-                x++;
-            }
-        }
-        return res;
+        root = new GameObject("Level").transform;
     }
 
-    static Transform NewComposite(Transform root, string name, PhysicsMaterial2D mat)
+    void Grow(Vector2 p, float pad = 0f)
     {
-        var go = new GameObject(name);
-        go.transform.SetParent(root, false);
-        var rb = go.AddComponent<Rigidbody2D>();
-        rb.bodyType = RigidbodyType2D.Static;
-        var comp = go.AddComponent<CompositeCollider2D>();
-        comp.geometryType = CompositeCollider2D.GeometryType.Polygons;
-        comp.sharedMaterial = mat;
-        return go.transform;
+        min = Vector2.Min(min, p - Vector2.one * pad);
+        max = Vector2.Max(max, p + Vector2.one * pad);
     }
 
-    static void AddRun(Transform parent, int x0, int x1, int y, System.Func<int, int, char> at)
-    {
-        float cx = (x0 + x1) / 2f;
-        int len = x1 - x0 + 1;
-        var box = parent.gameObject.AddComponent<BoxCollider2D>();
-        box.offset = new Vector2(cx, y);
-        box.size = new Vector2(len, 1);
-        box.usedByComposite = true;
-        for (int x = x0; x <= x1; x++)
-        {
-            float shade = ((x * 7 + y * 13) % 5) * .012f;
-            var col = Gfx.Ground + new Color(shade, shade, shade * 2, 0);
-            Gfx.Quad(parent, new Vector2(x, y), Vector2.one, col, 0);
-            if ((x * 31 + y * 17) % 4 == 0)
-                Gfx.Quad(parent, new Vector2(x - .2f, y - .15f), new Vector2(.25f, .25f), new Color32(22, 32, 66, 255), 1);
-            if (at(x, y + 1) != '#')
-            {
-                Gfx.Quad(parent, new Vector2(x, y + .44f), new Vector2(1, .12f), Gfx.GroundTop, 2);
-                var g = Gfx.Quad(parent, new Vector2(x, y + .5f), new Vector2(1.6f, .8f), new Color(Gfx.GroundTop.r, Gfx.GroundTop.g, Gfx.GroundTop.b, .12f), 3, Gfx.Glow);
-                g.transform.localScale = new Vector3(1.8f, .9f, 1);
-            }
-            if (at(x, y - 1) != '#')
-                Gfx.Quad(parent, new Vector2(x, y - .46f), new Vector2(1, .08f), new Color32(18, 26, 56, 255), 2);
-        }
-    }
-
-    static Tile TileGo(Transform root, string name, Vector2 p, TileKind kind)
+    GameObject Go(string name, Vector2 p, float angle = 0f)
     {
         var go = new GameObject(name);
         go.transform.SetParent(root, false);
         go.transform.position = p;
+        go.transform.rotation = Quaternion.Euler(0, 0, angle);
+        return go;
+    }
+
+    static Tile AddTile(GameObject go, TileKind k)
+    {
         var t = go.AddComponent<Tile>();
-        t.kind = kind;
+        t.kind = k;
         return t;
     }
 
-    static void Spike(Transform root, Vector2 p)
+    public LevelBuilder Start(float x, float y)
     {
-        var t = TileGo(root, "spike", p, TileKind.Spike);
-        for (int i = 0; i < 2; i++)
-            Gfx.Quad(t.transform, new Vector2(-.25f + i * .5f, -.2f), new Vector2(.5f, .6f), Gfx.Spike, 4, Gfx.SpikeSprite);
-        Gfx.Quad(t.transform, new Vector2(0, -.1f), new Vector2(1.4f, 1f), new Color(1, 0, .3f, .15f), 3, Gfx.Glow);
-        var c = t.gameObject.AddComponent<BoxCollider2D>();
+        start = new Vector2(x, y);
+        Grow(start, 2f);
+        return this;
+    }
+
+    // Floating slab. x,y = centre.
+    public GameObject Plat(float x, float y, float w, float h = .7f, float angle = 0f)
+    {
+        var go = Go("plat", new Vector2(x, y), angle);
+        Gfx.Slab(go.transform, new Vector2(0, -.12f), new Vector2(w, h), Gfx.PlatShade, 1);
+        Gfx.Slab(go.transform, Vector2.zero, new Vector2(w, h), Gfx.Plat, 2);
+        var c = go.AddComponent<BoxCollider2D>();
+        c.edgeRadius = .1f;
+        c.size = new Vector2(w - .2f, h - .2f);
+        c.sharedMaterial = Mat(ref platMat, .7f, 0f);
+        AddTile(go, TileKind.Solid);
+        var q = Quaternion.Euler(0, 0, angle);
+        Grow((Vector2)go.transform.position + (Vector2)(q * new Vector2(-w / 2, 0)), h);
+        Grow((Vector2)go.transform.position + (Vector2)(q * new Vector2(w / 2, 0)), h);
+        return go;
+    }
+
+    // Slab from (x0,y0) to (x1,y1) – handy for slopes.
+    public GameObject Ramp(float x0, float y0, float x1, float y1, float h = .7f)
+    {
+        var d = new Vector2(x1 - x0, y1 - y0);
+        return Plat((x0 + x1) / 2, (y0 + y1) / 2, d.magnitude + h * .5f, h, Mathf.Atan2(d.y, d.x) * Mathf.Rad2Deg);
+    }
+
+    // Grind rail through control points (Catmull-Rom smoothed). One-way from above unless solid.
+    public GameObject Rail(bool oneWay, params Vector2[] pts)
+    {
+        var go = Go("rail", Vector2.zero);
+        var smooth = new List<Vector2>();
+        for (int i = 0; i < pts.Length - 1; i++)
+        {
+            Vector2 p0 = pts[Mathf.Max(0, i - 1)], p1 = pts[i], p2 = pts[i + 1], p3 = pts[Mathf.Min(pts.Length - 1, i + 2)];
+            int steps = Mathf.Max(2, Mathf.CeilToInt(Vector2.Distance(p1, p2) * 2f));
+            for (int s = 0; s < steps; s++)
+            {
+                float t = s / (float)steps;
+                smooth.Add(.5f * (2 * p1 + (-p0 + p2) * t + (2 * p0 - 5 * p1 + 4 * p2 - p3) * t * t + (-p0 + 3 * p1 - 3 * p2 + p3) * t * t * t));
+            }
+        }
+        smooth.Add(pts[pts.Length - 1]);
+        foreach (var p in smooth) Grow(p, 1f);
+
+        var e = go.AddComponent<EdgeCollider2D>();
+        e.points = smooth.ToArray();
+        e.edgeRadius = .08f;
+        e.sharedMaterial = Mat(ref railMat, 0f, 0f);
+        if (oneWay)
+        {
+            e.usedByEffector = true;
+            var eff = go.AddComponent<PlatformEffector2D>();
+            eff.surfaceArc = 160f;
+            eff.useOneWayGrouping = true;
+        }
+        AddTile(go, TileKind.Rail);
+
+        var pts3 = new Vector3[smooth.Count];
+        for (int i = 0; i < smooth.Count; i++) pts3[i] = smooth[i];
+        Line(go, pts3, .26f, new Color(1f, .85f, .45f, .35f), 3);
+        Line(go, pts3, .14f, Gfx.Gold, 4);
+        for (int i = 0; i < pts.Length; i += Mathf.Max(1, pts.Length - 1))
+            Gfx.Quad(go.transform, pts[i], Vector2.one * .32f, Gfx.Gold, 5, Gfx.Circle);
+        return go;
+    }
+
+    static void Line(GameObject parent, Vector3[] pts, float width, Color c, int order)
+    {
+        var go = new GameObject("line");
+        go.transform.SetParent(parent.transform, false);
+        var lr = go.AddComponent<LineRenderer>();
+        lr.material = Gfx.SpriteMat;
+        lr.useWorldSpace = true;
+        lr.positionCount = pts.Length;
+        lr.SetPositions(pts);
+        lr.startWidth = lr.endWidth = width;
+        lr.startColor = lr.endColor = c;
+        lr.numCapVertices = 6;
+        lr.numCornerVertices = 4;
+        lr.sortingOrder = order;
+    }
+
+    public GameObject Mover(float x, float y, float w, float dx, float dy, float period, float phase = 0f)
+    {
+        var go = Go("mover", new Vector2(x, y));
+        Gfx.Slab(go.transform, new Vector2(0, -.12f), new Vector2(w, .6f), Gfx.PlatShade, 1);
+        Gfx.Slab(go.transform, Vector2.zero, new Vector2(w, .6f), Gfx.Plat, 2);
+        Gfx.Quad(go.transform, Vector2.zero, new Vector2(.5f, .12f), Gfx.Cyan, 3, Gfx.Circle);
+        var c = go.AddComponent<BoxCollider2D>();
+        c.edgeRadius = .1f;
+        c.size = new Vector2(w - .2f, .4f);
+        c.sharedMaterial = Mat(ref platMat, .7f, 0f);
+        var m = go.AddComponent<Mover>();
+        m.a = new Vector2(x, y);
+        m.b = new Vector2(x + dx, y + dy);
+        m.period = period;
+        m.phase = phase;
+        AddTile(go, TileKind.Solid);
+        Grow(m.a, 1f);
+        Grow(m.b, 1f);
+        return go;
+    }
+
+    public GameObject Spinner(float x, float y, float len, float speed, float angle = 0f)
+    {
+        var go = Go("spinner", new Vector2(x, y), angle);
+        Gfx.Slab(go.transform, Vector2.zero, new Vector2(len, .42f), Gfx.Coral, 7);
+        Gfx.Quad(go.transform, Vector2.zero, new Vector2(len + 1.2f, 1.4f), new Color(1, .4f, .45f, .18f), 6, Gfx.Glow);
+        var c = go.AddComponent<BoxCollider2D>();
+        c.size = new Vector2(len - .1f, .36f);
+        go.AddComponent<Spinner>().speed = speed;
+        AddTile(go, TileKind.Spinner);
+        var hub = Go("hub", new Vector2(x, y));
+        Gfx.Quad(hub.transform, Vector2.zero, Vector2.one * .5f, Color.white, 8, Gfx.Circle);
+        Grow(new Vector2(x, y), len / 2);
+        return go;
+    }
+
+    // Row of shards (spikes) centred at x, y = base; angle 0 points up.
+    public void Shards(float x, float y, int count, float angle = 0f)
+    {
+        var q = Quaternion.Euler(0, 0, angle);
+        for (int i = 0; i < count; i++)
+        {
+            Vector2 off = q * new Vector2((i - (count - 1) / 2f) * .7f, .3f);
+            var go = Go("shard", new Vector2(x, y) + off, angle);
+            Gfx.Quad(go.transform, Vector2.zero, new Vector2(.62f, .66f), Gfx.Coral, 4, Gfx.Tri);
+            var pc = go.AddComponent<PolygonCollider2D>();
+            pc.isTrigger = true;
+            pc.points = new[] { new Vector2(-.25f, -.3f), new Vector2(.25f, -.3f), new Vector2(0, .28f) };
+            AddTile(go, TileKind.Shard);
+        }
+    }
+
+    public void Orb(float x, float y)
+    {
+        var go = Go("orb", new Vector2(x, y));
+        Gfx.Quad(go.transform, Vector2.zero, Vector2.one * 1.4f, new Color(1f, .85f, .4f, .45f), 8, Gfx.Glow);
+        Gfx.Quad(go.transform, Vector2.zero, Vector2.one * .42f, Gfx.Gold, 9, Gfx.Circle);
+        Gfx.Quad(go.transform, new Vector2(-.07f, .07f), Vector2.one * .14f, Color.white, 10, Gfx.Circle);
+        var c = go.AddComponent<CircleCollider2D>();
         c.isTrigger = true;
-        c.size = new Vector2(.8f, .45f);
-        c.offset = new Vector2(0, -.25f);
+        c.radius = .4f;
+        AddTile(go, TileKind.Orb);
+        orbs++;
     }
 
-    static void Lava(Transform root, Vector2 p)
+    public void Orbs(float x0, float y0, float x1, float y1, int n)
     {
-        var t = TileGo(root, "lava", p, TileKind.Lava);
-        t.art = Gfx.Quad(t.transform, Vector2.zero, Vector2.one, Gfx.Lava, 4);
-        Gfx.Quad(t.transform, new Vector2(0, .5f), new Vector2(2f, 1.4f), new Color(1, .35f, 0, .2f), 3, Gfx.Glow);
-        var c = t.gameObject.AddComponent<BoxCollider2D>();
-        c.sharedMaterial = Mat(ref iceMat, 0f, 0f);
+        for (int i = 0; i < n; i++)
+        {
+            float t = n == 1 ? .5f : i / (float)(n - 1);
+            Orb(Mathf.Lerp(x0, x1, t), Mathf.Lerp(y0, y1, t));
+        }
     }
 
-    static void Crate(Transform root, Vector2 p)
+    public void Check(float x, float y)
     {
-        var t = TileGo(root, "crate", p, TileKind.Crate);
-        t.transform.localScale = Vector3.one * .96f;
-        Gfx.Quad(t.transform, Vector2.zero, Vector2.one, Gfx.CrateEdge, 4);
-        Gfx.Quad(t.transform, Vector2.zero, Vector2.one * .78f, Gfx.Crate, 5);
-        var d = Gfx.Quad(t.transform, Vector2.zero, new Vector2(1f, .14f), Gfx.CrateEdge, 6);
-        d.transform.localRotation = Quaternion.Euler(0, 0, 45);
-        t.gameObject.AddComponent<BoxCollider2D>().sharedMaterial = Mat(ref groundMat, .6f, 0f);
-        var rb = t.gameObject.AddComponent<Rigidbody2D>();
-        rb.mass = .8f;
+        var go = Go("check", new Vector2(x, y));
+        Gfx.Quad(go.transform, Vector2.zero, Vector2.one * 2f, new Color(.3f, 1f, .75f, .35f), 8, Gfx.Glow);
+        var t = AddTile(go, TileKind.Check);
+        t.art = Gfx.Quad(go.transform, Vector2.zero, Vector2.one * .9f, Gfx.Mint, 9, Gfx.Ring);
+        Gfx.Quad(go.transform, Vector2.zero, new Vector2(.42f, .12f), Gfx.Mint, 10);
+        Gfx.Quad(go.transform, Vector2.zero, new Vector2(.12f, .42f), Gfx.Mint, 10);
+        var c = go.AddComponent<CircleCollider2D>();
+        c.isTrigger = true;
+        c.radius = .6f;
+    }
+
+    public void Goal(float x, float y)
+    {
+        var go = Go("goal", new Vector2(x, y));
+        Gfx.Quad(go.transform, Vector2.zero, Vector2.one * 5f, new Color(1f, .85f, .5f, .45f), 7, Gfx.Glow);
+        var t = AddTile(go, TileKind.Goal);
+        t.art = Gfx.Quad(go.transform, Vector2.zero, Vector2.one * 2.2f, Gfx.Gold, 9, Gfx.Ring);
+        for (int i = 0; i < 6; i++)
+        {
+            float a = i * Mathf.PI / 3f;
+            Gfx.Quad(t.art.transform, new Vector2(Mathf.Cos(a), Mathf.Sin(a)) * .5f, Vector2.one * .06f, Color.white, 10, Gfx.Circle);
+        }
+        Gfx.Quad(go.transform, Vector2.zero, Vector2.one * 1.5f, Color.white, 8, Gfx.Ring);
+        var c = go.AddComponent<CircleCollider2D>();
+        c.isTrigger = true;
+        c.radius = .8f;
+        Grow(new Vector2(x, y), 2f);
+    }
+
+    // Launch pad; angle 0 launches straight up.
+    public void Pad(float x, float y, float angle = 0f, float power = 20f)
+    {
+        var go = Go("pad", new Vector2(x, y), angle);
+        Gfx.Quad(go.transform, new Vector2(0, .6f), new Vector2(2.4f, 2f), new Color(.3f, 1f, .75f, .3f), 1, Gfx.Glow);
+        Gfx.Slab(go.transform, Vector2.zero, new Vector2(1.5f, .4f), Gfx.Mint, 3);
+        for (int i = 0; i < 2; i++)
+            Gfx.Quad(go.transform, new Vector2(0, .45f + i * .3f), new Vector2(.5f, .18f), new Color(.3f, 1f, .75f, .8f - i * .3f), 3, Gfx.Tri);
+        var c = go.AddComponent<BoxCollider2D>();
+        c.size = new Vector2(1.5f, .4f);
+        c.sharedMaterial = Mat(ref padMat, .3f, 0f);
+        var t = AddTile(go, TileKind.Pad);
+        t.used = false;
+        go.AddComponent<PadPower>().power = power;
+    }
+
+    // Vertical laser gate: camouflage passes through.
+    public void Gate(float x, float y0, float y1)
+    {
+        float h = y1 - y0;
+        var go = Go("gate", new Vector2(x, (y0 + y1) / 2));
+        Gfx.Quad(go.transform, Vector2.zero, new Vector2(1.2f, h + .6f), new Color(1, .4f, .45f, .25f), 5, Gfx.Glow);
+        var t = AddTile(go, TileKind.Gate);
+        t.art = Gfx.Quad(go.transform, Vector2.zero, new Vector2(.14f, h), Gfx.Coral, 6);
+        Gfx.Slab(go.transform, new Vector2(0, h / 2), new Vector2(.5f, .3f), Gfx.Ink, 7);
+        Gfx.Slab(go.transform, new Vector2(0, -h / 2), new Vector2(.5f, .3f), Gfx.Ink, 7);
+        var c = go.AddComponent<BoxCollider2D>();
+        c.isTrigger = true;
+        c.size = new Vector2(.3f, h);
+    }
+
+    public void Glass(float x, float y, float w, float h)
+    {
+        var go = Go("glass", new Vector2(x, y));
+        var t = AddTile(go, TileKind.Glass);
+        t.art = Gfx.Slab(go.transform, Vector2.zero, new Vector2(w, h), Gfx.Glass, 3);
+        Gfx.Quad(go.transform, new Vector2(-w * .2f, h * .15f), new Vector2(.08f, h * .5f), new Color(1, 1, 1, .7f), 4);
+        Gfx.Quad(go.transform, new Vector2(-w * .2f + .18f, h * .1f), new Vector2(.05f, h * .3f), new Color(1, 1, 1, .5f), 4);
+        var c = go.AddComponent<BoxCollider2D>();
+        c.size = new Vector2(w, h);
+        c.sharedMaterial = Mat(ref platMat, .7f, 0f);
+    }
+
+    public Tile Crystal(float x, float y)
+    {
+        var go = Go("crystal", new Vector2(x, y));
+        Gfx.Quad(go.transform, Vector2.zero, Vector2.one * 2.2f, new Color(.6f, .5f, 1f, .4f), 5, Gfx.Glow);
+        var t = AddTile(go, TileKind.Crystal);
+        t.art = Gfx.Quad(go.transform, Vector2.zero, Vector2.one * .75f, Gfx.Lilac, 6, Gfx.Rounded);
+        go.AddComponent<CircleCollider2D>().radius = .45f;
+        return t;
+    }
+
+    public Tile Door(float x, float y, float w, float h)
+    {
+        var go = Go("door", new Vector2(x, y));
+        var t = AddTile(go, TileKind.Door);
+        t.art = Gfx.Slab(go.transform, Vector2.zero, new Vector2(w, h), Gfx.Lilac, 3);
+        for (float yy = -h / 2 + .6f; yy < h / 2 - .3f; yy += .8f)
+            Gfx.Quad(go.transform, new Vector2(0, yy), new Vector2(w * .5f, .08f), new Color(1, 1, 1, .5f), 4);
+        var c = go.AddComponent<BoxCollider2D>();
+        c.size = new Vector2(w, h);
+        return t;
+    }
+
+    public void Turret(float x, float y, Vector2 dir, float period, float delay = 0f)
+    {
+        var go = Go("turret", new Vector2(x, y));
+        Gfx.Slab(go.transform, new Vector2(0, -.1f), new Vector2(1.1f, 1.1f), Gfx.PlatShade, 4);
+        Gfx.Slab(go.transform, Vector2.zero, new Vector2(1.1f, 1.1f), Gfx.Plat, 5);
+        var tu = go.AddComponent<Turret>();
+        tu.dir = dir.normalized;
+        tu.period = period;
+        tu.delay = delay;
+        tu.eye = Gfx.Quad(go.transform, dir.normalized * .18f, Vector2.one * .4f, Gfx.Coral, 6, Gfx.Circle);
+        var c = go.AddComponent<BoxCollider2D>();
+        c.size = new Vector2(1.1f, 1.1f);
+    }
+
+    public void Box(float x, float y, float s = 1.2f)
+    {
+        var go = Go("box", new Vector2(x, y));
+        Gfx.Slab(go.transform, Vector2.zero, new Vector2(s, s), new Color32(255, 214, 150, 255), 5);
+        Gfx.Slab(go.transform, new Vector2(0, .08f), new Vector2(s - .25f, s - .35f), new Color32(255, 230, 185, 255), 6);
+        var c = go.AddComponent<BoxCollider2D>();
+        c.size = new Vector2(s - .1f, s - .1f);
+        c.edgeRadius = .05f;
+        c.sharedMaterial = Mat(ref boxMat, .5f, 0f);
+        var rb = go.AddComponent<Rigidbody2D>();
+        rb.mass = 2.5f;
         rb.gravityScale = 3f;
     }
 
-    static void Cracked(Transform root, Vector2 p)
+    public void Seesaw(float x, float y, float len)
     {
-        var t = TileGo(root, "cracked", p, TileKind.Cracked);
-        Gfx.Quad(t.transform, Vector2.zero, Vector2.one, Gfx.Cracked, 4);
-        Gfx.Quad(t.transform, new Vector2(-.1f, .1f), new Vector2(.08f, .7f), new Color32(40, 30, 30, 255), 5).transform.localRotation = Quaternion.Euler(0, 0, 25);
-        Gfx.Quad(t.transform, new Vector2(.2f, -.2f), new Vector2(.4f, .07f), new Color32(40, 30, 30, 255), 5).transform.localRotation = Quaternion.Euler(0, 0, -20);
-        Gfx.Quad(t.transform, new Vector2(0, .44f), new Vector2(1, .12f), Gfx.CrateEdge, 6);
-        t.gameObject.AddComponent<BoxCollider2D>().sharedMaterial = Mat(ref groundMat, .6f, 0f);
-    }
-
-    static void Glass(Transform root, Vector2 p)
-    {
-        var t = TileGo(root, "glass", p, TileKind.Solid);
-        Gfx.Quad(t.transform, Vector2.zero, Vector2.one, new Color(Gfx.Glass.r, Gfx.Glass.g, Gfx.Glass.b, .55f), 4);
-        Gfx.Quad(t.transform, new Vector2(-.2f, .2f), new Vector2(.1f, .5f), new Color(1, 1, 1, .5f), 5).transform.localRotation = Quaternion.Euler(0, 0, -30);
-        t.gameObject.AddComponent<BoxCollider2D>();
-    }
-
-    static void Laser(Transform root, Vector2 p, System.Func<int, int, char> at)
-    {
-        int len = 0;
-        int x = Mathf.RoundToInt(p.x), y = Mathf.RoundToInt(p.y);
-        while (y - len >= 0 && at(x, y - len) != '#' && len < 30) len++;
-        var t = TileGo(root, "laser", p, TileKind.Laser);
-        float centerY = -(len - 1) / 2f;
-        t.art = Gfx.Quad(t.transform, new Vector2(0, centerY), new Vector2(.22f, len), Gfx.Spike, 6);
-        Gfx.Quad(t.transform, new Vector2(0, centerY), new Vector2(.08f, len), Color.white, 7);
-        var glow = Gfx.Quad(t.transform, new Vector2(0, centerY), new Vector2(1.2f, len + 1), new Color(1, 0, .3f, .25f), 5, Gfx.Glow);
-        glow.transform.localScale = new Vector3(1.2f, len + 1, 1);
-        Gfx.Quad(t.transform, new Vector2(0, .3f), new Vector2(.7f, .4f), new Color32(95, 87, 79, 255), 8);
-        var c = t.gameObject.AddComponent<BoxCollider2D>();
-        c.isTrigger = true;
-        c.size = new Vector2(.3f, len);
-        c.offset = new Vector2(0, centerY);
-    }
-
-    static void Pickup(Transform root, Vector2 p, TileKind kind)
-    {
-        var t = TileGo(root, kind.ToString(), p, kind);
-        if (kind == TileKind.Coin)
-        {
-            Gfx.Quad(t.transform, Vector2.zero, Vector2.one, Gfx.Gold, 10, Gfx.Circle);
-            Gfx.Quad(t.transform, Vector2.zero, new Vector2(.35f, .6f), new Color32(255, 163, 0, 255), 11);
-            Gfx.Quad(t.transform, Vector2.zero, Vector2.one * 3f, new Color(1, .9f, .2f, .25f), 9, Gfx.Glow);
-        }
-        else
-        {
-            Gfx.Quad(t.transform, Vector2.zero, Vector2.one * .8f, Gfx.Green, 10, Gfx.Circle);
-            Gfx.Quad(t.transform, Vector2.zero, new Vector2(.5f, .14f), Color.white, 11);
-            Gfx.Quad(t.transform, Vector2.zero, new Vector2(.14f, .5f), Color.white, 11);
-            Gfx.Quad(t.transform, Vector2.zero, Vector2.one * 2.5f, new Color(0, 1, .3f, .3f), 9, Gfx.Glow);
-        }
-        var c = t.gameObject.AddComponent<CircleCollider2D>();
-        c.isTrigger = true;
-        c.radius = .45f;
-    }
-
-    static void Portal(Transform root, Vector2 p)
-    {
-        var t = TileGo(root, "portal", p, TileKind.Portal);
-        Gfx.Quad(t.transform, Vector2.zero, Vector2.one * 2.2f, new Color(1, .47f, .66f, .5f), 8, Gfx.Glow);
-        Gfx.Quad(t.transform, Vector2.zero, Vector2.one, Gfx.Pink, 9, Gfx.Ring);
-        Gfx.Quad(t.transform, Vector2.zero, Vector2.one * .7f, Gfx.Gold, 9, Gfx.Ring);
-        Gfx.Quad(t.transform, Vector2.zero, Vector2.one * .35f, Color.white, 10, Gfx.Circle);
-        Gfx.Quad(t.transform, new Vector2(.4f, 0), new Vector2(.12f, .12f), Color.white, 10);
-        Gfx.Quad(t.transform, new Vector2(-.4f, 0), new Vector2(.12f, .12f), Color.white, 10);
-        var c = t.gameObject.AddComponent<CircleCollider2D>();
-        c.isTrigger = true;
-        c.radius = .4f;
-    }
-
-    static void Pad(Transform root, Vector2 p)
-    {
-        var t = TileGo(root, "pad", p, TileKind.Pad);
-        Gfx.Quad(t.transform, new Vector2(0, -.3f), new Vector2(1, .4f), new Color32(95, 87, 79, 255), 4);
-        t.art = Gfx.Quad(t.transform, new Vector2(0, -.02f), new Vector2(1, .18f), Gfx.Green, 5);
-        Gfx.Quad(t.transform, new Vector2(0, .3f), new Vector2(2f, 1.4f), new Color(0, 1, .3f, .25f), 3, Gfx.Glow);
-        var c = t.gameObject.AddComponent<BoxCollider2D>();
-        c.size = new Vector2(1, .6f);
-        c.offset = new Vector2(0, -.2f);
-        c.sharedMaterial = Mat(ref padMat, .4f, 0f);
-    }
-
-    static void Seesaw(Transform root, Vector2 p)
-    {
-        var baseT = TileGo(root, "seesaw-base", p + Vector2.down * .9f, TileKind.Solid);
-        Gfx.Quad(baseT.transform, Vector2.zero, new Vector2(.6f, .9f), new Color32(95, 87, 79, 255), 4, Gfx.SpikeSprite);
-        var bc = baseT.gameObject.AddComponent<PolygonCollider2D>();
-        bc.points = new[] { new Vector2(-.3f, -.45f), new Vector2(.3f, -.45f), new Vector2(0, .45f) };
-
-        var plank = new GameObject("seesaw");
-        plank.transform.SetParent(root, false);
-        plank.transform.position = p;
-        Gfx.Quad(plank.transform, Vector2.zero, new Vector2(7f, .35f), Gfx.CrateEdge, 5);
-        Gfx.Quad(plank.transform, Vector2.zero, new Vector2(6.8f, .18f), Gfx.Crate, 6);
-        var col = plank.AddComponent<BoxCollider2D>();
-        col.size = new Vector2(7f, .35f);
-        col.sharedMaterial = Mat(ref groundMat, .6f, 0f);
+        var baseGo = Go("seesaw-base", new Vector2(x, y - .75f));
+        Gfx.Quad(baseGo.transform, Vector2.zero, new Vector2(1.1f, 1.1f), Gfx.PlatShade, 2, Gfx.Tri);
+        var plank = Go("seesaw", new Vector2(x, y));
+        Gfx.Slab(plank.transform, new Vector2(0, -.08f), new Vector2(len, .45f), Gfx.PlatShade, 4);
+        Gfx.Slab(plank.transform, Vector2.zero, new Vector2(len, .45f), Gfx.Plat, 5);
+        Gfx.Quad(plank.transform, Vector2.zero, Vector2.one * .25f, Gfx.Cyan, 6, Gfx.Circle);
+        var c = plank.AddComponent<BoxCollider2D>();
+        c.size = new Vector2(len, .45f);
+        c.sharedMaterial = Mat(ref platMat, .7f, 0f);
         var rb = plank.AddComponent<Rigidbody2D>();
-        rb.mass = 2f;
+        rb.mass = 3f;
         rb.gravityScale = 3f;
         var hinge = plank.AddComponent<HingeJoint2D>();
         hinge.autoConfigureConnectedAnchor = false;
         hinge.anchor = Vector2.zero;
-        hinge.connectedAnchor = p;
+        hinge.connectedAnchor = new Vector2(x, y);
         hinge.useLimits = true;
-        hinge.limits = new JointAngleLimits2D { min = -22, max = 22 };
+        hinge.limits = new JointAngleLimits2D { min = -25, max = 25 };
     }
 
-    static void Pendulum(Transform root, Vector2 p)
+    public void Label(float x, float y, string text)
     {
-        var pivot = new GameObject("pivot");
-        pivot.transform.SetParent(root, false);
-        pivot.transform.position = p;
-        Gfx.Quad(pivot.transform, Vector2.zero, Vector2.one * .5f, new Color32(95, 87, 79, 255), 6, Gfx.Circle);
-        var prb = pivot.AddComponent<Rigidbody2D>();
-        prb.bodyType = RigidbodyType2D.Static;
-
-        const float length = 6f;
-        var ball = new GameObject("wrecking-ball");
-        ball.transform.SetParent(root, false);
-        ball.transform.position = p + new Vector2(length * .7f, -length * .7f);
-        Gfx.Quad(ball.transform, Vector2.zero, Vector2.one * 1.6f, new Color32(95, 87, 79, 255), 7, Gfx.Circle);
-        Gfx.Quad(ball.transform, new Vector2(-.3f, .3f), Vector2.one * .4f, new Color32(194, 195, 199, 255), 8, Gfx.Circle);
-        Gfx.Quad(ball.transform, Vector2.zero, Vector2.one * 3f, new Color(1, 0, .3f, .2f), 6, Gfx.Glow);
-        var chain = ball.AddComponent<LineRenderer>();
-        chain.material = Gfx.SpriteMat;
-        chain.startColor = chain.endColor = new Color32(194, 195, 199, 255);
-        chain.startWidth = chain.endWidth = .12f;
-        chain.positionCount = 2;
-        chain.sortingOrder = 5;
-        ball.AddComponent<CircleCollider2D>().radius = .8f;
-        var rb = ball.AddComponent<Rigidbody2D>();
-        rb.mass = 10f;
-        rb.gravityScale = 2f;
-        rb.angularDrag = 0f;
-        rb.drag = 0f;
-        var j = ball.AddComponent<DistanceJoint2D>();
-        j.connectedBody = prb;
-        j.autoConfigureDistance = false;
-        j.distance = length;
-        j.maxDistanceOnly = false;
-        ball.AddComponent<ChainLine>().pivot = pivot.transform;
-    }
-
-    static void Domino(Transform root, Vector2 p)
-    {
-        var go = new GameObject("domino");
-        go.transform.SetParent(root, false);
-        go.transform.position = p + Vector2.up * .75f;
-        Gfx.Quad(go.transform, Vector2.zero, new Vector2(.35f, 2.5f), Gfx.Pink, 5);
-        Gfx.Quad(go.transform, new Vector2(0, .6f), new Vector2(.15f, .15f), Color.white, 6);
-        Gfx.Quad(go.transform, new Vector2(0, -.6f), new Vector2(.15f, .15f), Color.white, 6);
-        go.AddComponent<BoxCollider2D>().size = new Vector2(.35f, 2.5f);
-        var rb = go.AddComponent<Rigidbody2D>();
-        rb.mass = .4f;
-        rb.gravityScale = 3f;
+        GM.AddSign(new Vector2(x, y), text);
     }
 }

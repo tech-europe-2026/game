@@ -3,88 +3,124 @@ using UnityEngine;
 public class CameraFollow : MonoBehaviour
 {
     Camera cam;
-    Transform target;
     Rigidbody2D targetRb;
+    Ball ball;
     Vector2 min, max;
     Vector3 pos;
     Vector2 look;
-    Transform[] stars;
+    Transform sky;
+    SpriteRenderer skyTint;
+    Transform[] deco;
     float[] depth;
-    Vector2[] starBase;
-    const float BaseSize = 7.5f;
+    Vector2[] decoBase;
+    float tint;
+    const float BaseSize = 7f, WrapW = 70f, WrapH = 44f;
 
     void Awake()
     {
         cam = GetComponent<Camera>();
         cam.orthographic = true;
         cam.orthographicSize = BaseSize;
-        cam.backgroundColor = Gfx.Bg;
+        cam.backgroundColor = Gfx.SkyMid;
         cam.clearFlags = CameraClearFlags.SolidColor;
-        var bg = new GameObject("Background").transform;
-        int n = 140;
-        stars = new Transform[n];
+
+        var skyGo = new GameObject("Sky");
+        sky = skyGo.transform;
+        sky.SetParent(transform, false);
+        sky.localPosition = new Vector3(0, 0, 20);
+        var sr = skyGo.AddComponent<SpriteRenderer>();
+        sr.sprite = Gfx.VerticalGradient(Gfx.SkyBottom, Gfx.SkyMid, Gfx.SkyTop);
+        sr.sortingOrder = -100;
+        skyTint = Gfx.Quad(sky, Vector2.zero, Vector2.one, new Color(.55f, .45f, 1f, 0f), -99);
+
+        var bg = new GameObject("Clouds").transform;
+        int clouds = 16, shapes = 22, n = clouds + shapes;
+        deco = new Transform[n];
         depth = new float[n];
-        starBase = new Vector2[n];
+        decoBase = new Vector2[n];
         for (int i = 0; i < n; i++)
         {
-            float d = Random.Range(.05f, .6f);
-            depth[i] = d;
-            starBase[i] = new Vector2(Random.Range(-30f, 30f), Random.Range(-20f, 20f));
-            bool blob = i < 10;
-            Color c = blob
-                ? (i % 2 == 0 ? new Color(.49f, .15f, .33f, .18f) : new Color(.11f, .17f, .45f, .25f))
-                : new Color(1f, 1f, 1f, Mathf.Lerp(.15f, .7f, d));
-            float size = blob ? Random.Range(8f, 16f) : Mathf.Lerp(.05f, .16f, d);
-            var sr = Gfx.Quad(bg, starBase[i], Vector2.one * size, c, blob ? -20 : -10, blob ? Gfx.Glow : null);
-            if (blob) depth[i] = Random.Range(.05f, .15f);
-            stars[i] = sr.transform;
+            var t = new GameObject("deco").transform;
+            t.SetParent(bg, false);
+            decoBase[i] = new Vector2(Random.Range(-WrapW / 2, WrapW / 2), Random.Range(-WrapH / 2, WrapH / 2));
+            if (i < clouds)
+            {
+                float d = Random.Range(.1f, .7f);
+                depth[i] = d;
+                float a = Mathf.Lerp(.35f, .85f, d), sc = Mathf.Lerp(1.2f, 2.6f, d);
+                int puffs = Random.Range(4, 7);
+                for (int k = 0; k < puffs; k++)
+                {
+                    float s = Random.Range(2.2f, 4f) * sc;
+                    Gfx.Quad(t, new Vector2((k - puffs / 2f) * 1.1f * sc, Random.Range(-.3f, .5f) * sc), new Vector2(s * 1.3f, s), new Color(1, 1, 1, a * .7f), -60 + (int)(d * 10), Gfx.Glow);
+                }
+            }
+            else
+            {
+                float d = Random.Range(.05f, .3f);
+                depth[i] = d;
+                var c = new Color(1, 1, 1, Mathf.Lerp(.2f, .45f, d));
+                float s = Random.Range(.4f, 1.3f);
+                switch (i % 3)
+                {
+                    case 0: Gfx.Quad(t, Vector2.zero, Vector2.one * s * 1.6f, c, -70, Gfx.Ring); break;
+                    case 1: Gfx.Slab(t, Vector2.zero, new Vector2(s * 3f, s * .5f), c, -70); break;
+                    default: Gfx.Quad(t, Vector2.zero, Vector2.one * s * .6f, c, -70, Gfx.Circle); break;
+                }
+                t.rotation = Quaternion.Euler(0, 0, Random.Range(-20f, 20f));
+            }
+            deco[i] = t;
         }
     }
 
-    public void Follow(Rigidbody2D rb, Vector2 levelMin, Vector2 levelMax)
+    public void Follow(Ball b, Vector2 levelMin, Vector2 levelMax)
     {
-        targetRb = rb;
-        target = rb.transform;
+        ball = b;
+        targetRb = b.rb;
         min = levelMin;
         max = levelMax;
-        pos = Clamp(rb.position);
-        pos.z = -10;
+        pos = Clamp(targetRb.position);
         transform.position = pos;
     }
 
     Vector3 Clamp(Vector2 p)
     {
-        float halfW = cam.orthographicSize * cam.aspect;
-        float x = max.x - min.x < halfW * 2 ? (min.x + max.x) / 2 : Mathf.Clamp(p.x, min.x - .5f + halfW, max.x + .5f - halfW);
-        float y = Mathf.Max(p.y, min.y - 1.5f + cam.orthographicSize);
+        float halfH = cam.orthographicSize, halfW = halfH * cam.aspect;
+        float x = max.x - min.x < halfW * 2 ? (min.x + max.x) / 2 : Mathf.Clamp(p.x, min.x - 2f + halfW, max.x + 2f - halfW);
+        float y = max.y - min.y < halfH * 2 ? (min.y + max.y) / 2 : Mathf.Clamp(p.y, min.y - 3f + halfH, max.y + 3f - halfH);
         return new Vector3(x, y, -10);
     }
 
     void LateUpdate()
     {
         float dt = Time.unscaledDeltaTime;
-        if (target != null)
+        if (targetRb != null)
         {
             Vector2 v = targetRb.velocity;
-            look = Vector2.Lerp(look, new Vector2(Mathf.Clamp(v.x * .35f, -3.5f, 3.5f), Mathf.Clamp(v.y * .12f, -2f, 1.5f)), 1f - Mathf.Exp(-dt * 3f));
-            Vector3 goal = Clamp((Vector2)target.position + look + Vector2.up * 1.5f);
-            pos = Vector3.Lerp(pos, goal, 1f - Mathf.Exp(-dt * 6f));
-            var ball = target.GetComponent<Ball>();
-            float size = BaseSize + (ball != null && ball.grown ? 1.2f : 0f) + Mathf.Clamp01((v.magnitude - 12f) / 10f) * 1.2f;
-            cam.orthographicSize = Mathf.Lerp(cam.orthographicSize, size, 1f - Mathf.Exp(-dt * 3f));
+            look = Vector2.Lerp(look, new Vector2(Mathf.Clamp(v.x * .3f, -3.5f, 3.5f), Mathf.Clamp(v.y * .12f, -2f, 2f)), 1f - Mathf.Exp(-dt * 2.5f));
+            Vector3 goal = Clamp(targetRb.position + look + Vector2.up * ball.gravDir * 1.8f);
+            pos = Vector3.Lerp(pos, goal, 1f - Mathf.Exp(-dt * 5f));
+            float size = BaseSize + (ball.grown ? 1f : 0f) + Mathf.Clamp01((v.magnitude - 11f) / 10f) * 1.3f;
+            cam.orthographicSize = Mathf.Lerp(cam.orthographicSize, size, 1f - Mathf.Exp(-dt * 2.5f));
+            tint = Mathf.Lerp(tint, ball.gravDir < 0 ? .22f : 0f, 1f - Mathf.Exp(-dt * 4f));
         }
         float sh = Fx.Shake;
-        Vector3 offset = sh > 0 ? (Vector3)(Random.insideUnitCircle * sh * .6f) : Vector3.zero;
+        Vector3 offset = sh > 0 ? (Vector3)(Random.insideUnitCircle * sh * .5f) : Vector3.zero;
         transform.position = pos + offset;
-        transform.rotation = Quaternion.Euler(0, 0, sh > 0 ? Random.Range(-1f, 1f) * sh * 2f : 0);
+        transform.rotation = Quaternion.Euler(0, 0, sh > 0 ? Random.Range(-1f, 1f) * sh * 1.5f : 0);
+
+        float hh = cam.orthographicSize * 2.4f;
+        sky.localScale = new Vector3(hh * cam.aspect, hh / 256f, 1);
+        skyTint.transform.localScale = new Vector3(1f, 256f, 1f);
+        skyTint.color = new Color(.55f, .45f, 1f, tint);
 
         Vector2 c = pos;
-        for (int i = 0; i < stars.Length; i++)
+        for (int i = 0; i < deco.Length; i++)
         {
-            Vector2 p = starBase[i] + c * (1f - depth[i]);
-            p.x = c.x + Mathf.Repeat(p.x - c.x + 30f, 60f) - 30f;
-            p.y = c.y + Mathf.Repeat(p.y - c.y + 20f, 40f) - 20f;
-            stars[i].position = p;
+            Vector2 p = decoBase[i] + c * (1f - depth[i]);
+            p.x = c.x + Mathf.Repeat(p.x - c.x + WrapW / 2, WrapW) - WrapW / 2;
+            p.y = c.y + Mathf.Repeat(p.y - c.y + WrapH / 2, WrapH) - WrapH / 2;
+            deco[i].position = new Vector3(p.x, p.y, 5);
         }
     }
 }
