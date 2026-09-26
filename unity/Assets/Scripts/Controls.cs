@@ -20,7 +20,7 @@ public class Controls : MonoBehaviour
         { "climb", new[] { KeyCode.C, KeyCode.L } },
     };
 
-    public static readonly string[] TouchButtons = { "dash", "reverse", "climb", "grow", "parry", "teleport", "camo" };
+    public static readonly string[] TouchButtons = { "crouch", "dash", "reverse", "climb", "grow", "parry", "teleport", "camo" };
 
     public struct Button
     {
@@ -30,16 +30,13 @@ public class Controls : MonoBehaviour
     }
 
     public readonly List<Button> buttons = new List<Button>();
-    public Vector2 stickOrigin, stickPos;
-    public bool stickActive;
+    public Vector2 leftPad, rightPad;
+    public float padRadius;
     public bool gameplay;
 
     readonly HashSet<string> held = new HashSet<string>(), prevHeld = new HashSet<string>();
-    int stickFinger = -1;
-    Vector2 stickVec;
 
     public float Unit => Mathf.Min(Screen.height, Screen.width) / 720f;
-    public float StickRadius => 70f * Unit;
 
     void Awake()
     {
@@ -81,12 +78,14 @@ public class Controls : MonoBehaviour
             if (Input.GetKey(KeyCode.D) || Input.GetKey(KeyCode.RightArrow)) x += 1;
             if (Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.UpArrow)) y += 1;
             if (Input.GetKey(KeyCode.S) || Input.GetKey(KeyCode.DownArrow)) y -= 1;
-            if (I != null && I.stickActive)
+            if (I != null)
             {
-                x = Mathf.Clamp(x + I.stickVec.x, -1, 1);
-                y = Mathf.Clamp(y + I.stickVec.y, -1, 1);
+                if (I.held.Contains("left")) x -= 1;
+                if (I.held.Contains("right")) x += 1;
+                if (I.held.Contains("climb")) y += 1;
+                if (I.held.Contains("crouch")) y -= 1;
             }
-            return new Vector2(x, y);
+            return new Vector2(Mathf.Clamp(x, -1, 1), Mathf.Clamp(y, -1, 1));
         }
     }
 
@@ -96,6 +95,9 @@ public class Controls : MonoBehaviour
     {
         buttons.Clear();
         float u = Unit, W = Screen.width, H = Screen.height;
+        padRadius = 82 * u;
+        leftPad = new Vector2(120 * u, H - 120 * u);
+        rightPad = new Vector2(310 * u, H - 120 * u);
         var jump = new Vector2(W - 130 * u, H - 130 * u);
         buttons.Add(new Button { id = "jump", center = jump, radius = 78 * u });
         var list = new List<string>();
@@ -121,43 +123,18 @@ public class Controls : MonoBehaviour
         foreach (var h in held) prevHeld.Add(h);
         held.Clear();
         if (Input.touchCount > 0) Touch = true;
-        if (!Touch || !gameplay) { stickActive = false; stickFinger = -1; stickVec = Vector2.zero; return; }
+        if (!Touch || !gameplay) return;
 
-        bool stickSeen = false;
+        float split = (leftPad.x + rightPad.x) / 2;
         for (int t = 0; t < Input.touchCount; t++)
         {
             var touch = Input.GetTouch(t);
+            if (touch.phase == TouchPhase.Ended || touch.phase == TouchPhase.Canceled) continue;
             var p = new Vector2(touch.position.x, Screen.height - touch.position.y);
-            bool ended = touch.phase == TouchPhase.Ended || touch.phase == TouchPhase.Canceled;
 
-            if (touch.fingerId == stickFinger)
+            if (p.x < Screen.width * .4f && p.y > Screen.height * .35f)
             {
-                if (ended) continue;
-                stickSeen = true;
-                Vector2 d = p - stickOrigin;
-                float max = StickRadius;
-                if (d.magnitude > max)
-                {
-                    stickOrigin += d.normalized * (d.magnitude - max);
-                    d = d.normalized * max;
-                }
-                stickPos = stickOrigin + d;
-                Vector2 v = new Vector2(d.x, -d.y) / max;
-                float ax = Mathf.Abs(v.x) < .18f ? 0 : Mathf.Sign(v.x) * Mathf.Clamp01((Mathf.Abs(v.x) - .18f) / .55f);
-                stickVec = new Vector2(ax, v.y);
-                continue;
-            }
-            if (ended) continue;
-
-            if (p.x < Screen.width * .42f)
-            {
-                if (stickFinger < 0 && touch.phase == TouchPhase.Began)
-                {
-                    stickFinger = touch.fingerId;
-                    stickOrigin = stickPos = p;
-                    stickVec = Vector2.zero;
-                    stickSeen = true;
-                }
+                held.Add(p.x < split ? "left" : "right");
                 continue;
             }
 
@@ -170,7 +147,5 @@ public class Controls : MonoBehaviour
             }
             if (hit != null) held.Add(hit);
         }
-        if (!stickSeen) { stickFinger = -1; stickVec = Vector2.zero; }
-        stickActive = stickFinger >= 0;
     }
 }

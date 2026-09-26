@@ -401,7 +401,7 @@ public class GM : MonoBehaviour
     {
         switch (id)
         {
-            case "crouch": return "STICK DOWN";
+            case "crouch": return "HOLD";
             case "climb": return "HOLD";
             default: return "TAP";
         }
@@ -416,20 +416,28 @@ public class GM : MonoBehaviour
         Text(new Rect(0, H * .3f + 260 * u, W, 40 * u), "Ball States plays in landscape", body, new Color(ink.r, ink.g, ink.b, .65f), (int)(28 * u));
     }
 
+    static void DrawArrow(Vector2 c, float r, int dir, bool down, float u, Color ink)
+    {
+        float rr = r * (down ? .94f : 1f);
+        Pill(new Rect(c.x - rr, c.y - rr, rr * 2, rr * 2), down ? new Color(1, 1, 1, .92f) : new Color(1, 1, 1, .6f));
+        var col = new Color(ink.r, ink.g, ink.b, down ? 1f : .8f);
+        float len = r * .62f, th = 11 * u;
+        var tip = c + new Vector2(dir * r * .2f, 0);
+        var old = GUI.matrix;
+        for (int s = -1; s <= 1; s += 2)
+        {
+            GUI.matrix = old;
+            GUIUtility.RotateAroundPivot(dir * s * -45f, tip);
+            Pill(new Rect(dir > 0 ? tip.x - len + th / 2 : tip.x - th / 2, tip.y - th / 2, len, th), col);
+        }
+        GUI.matrix = old;
+    }
+
     void DrawTouch(float u, Color ink)
     {
         var c = Controls.I;
-        if (c.stickActive)
-        {
-            float r = c.StickRadius;
-            Pill(new Rect(c.stickOrigin.x - r, c.stickOrigin.y - r, r * 2, r * 2), new Color(1, 1, 1, .28f));
-            Pill(new Rect(c.stickPos.x - r * .45f, c.stickPos.y - r * .45f, r * .9f, r * .9f), new Color(1, 1, 1, .85f));
-        }
-        else
-        {
-            float H = Screen.height;
-            Text(new Rect(24 * u, H - 70 * u, 360 * u, 40 * u), "drag here to roll", body, new Color(ink.r, ink.g, ink.b, .35f), (int)(18 * u));
-        }
+        DrawArrow(c.leftPad, c.padRadius, -1, Controls.Held("left"), u, ink);
+        DrawArrow(c.rightPad, c.padRadius, 1, Controls.Held("right"), u, ink);
         foreach (var b in c.buttons)
         {
             bool down = Controls.Held(b.id);

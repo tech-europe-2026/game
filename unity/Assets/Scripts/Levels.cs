@@ -35,8 +35,8 @@ public static class Levels
         b.Orbs(38, -2.4f, 46, -1.7f, 4);
 
         b.Plat(56, 0, 8);
-        b.Plat(58, 3, 4, 3.8f);
-        b.Label(53.5f, 2.6f, "hold S to squeeze|pull the stick down to squeeze");
+        b.Plat(58, 2.9f, 4, 1.1f);
+        b.Label(53.5f, 2.6f, "hold S to shrink|hold CROUCH to shrink");
         b.Orb(58, .75f);
         b.Plat(66, 0, 8);
 
