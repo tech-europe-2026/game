@@ -31,8 +31,8 @@ public static class BuildWebGL
         PlayerSettings.defaultWebScreenWidth = 1280;
         PlayerSettings.defaultWebScreenHeight = 720;
         PlayerSettings.runInBackground = true;
-        PlayerSettings.WebGL.compressionFormat = WebGLCompressionFormat.Disabled;
-        PlayerSettings.WebGL.decompressionFallback = false;
+        PlayerSettings.WebGL.compressionFormat = WebGLCompressionFormat.Gzip;
+        PlayerSettings.WebGL.decompressionFallback = true;
         PlayerSettings.WebGL.dataCaching = false;
         PlayerSettings.WebGL.template = "PROJECT:Sky";
         PlayerSettings.SetManagedStrippingLevel(BuildTargetGroup.WebGL, ManagedStrippingLevel.Minimal);
@@ -40,7 +40,7 @@ public static class BuildWebGL
         var opts = new BuildPlayerOptions
         {
             scenes = new[] { ScenePath },
-            locationPathName = "Build/WebGL",
+            locationPathName = "../webgl",
             target = BuildTarget.WebGL,
             options = BuildOptions.None
         };

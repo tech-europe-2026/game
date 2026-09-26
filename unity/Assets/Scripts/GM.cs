@@ -62,6 +62,7 @@ public class GM : MonoBehaviour
         I = this;
         Application.targetFrameRate = 60;
         Physics2D.gravity = new Vector2(0, -9.81f);
+        gameObject.AddComponent<Controls>();
         gameObject.AddComponent<Fx>();
         Sfx.Init(gameObject);
         cam = Camera.main;
@@ -105,11 +106,13 @@ public class GM : MonoBehaviour
     void Update()
     {
         uiT += Time.unscaledDeltaTime;
+        Controls.I.Layout(unlocked);
+        Controls.I.gameplay = mode == Mode.Playing && !Controls.Portrait;
         bannerT += Time.unscaledDeltaTime;
         switch (mode)
         {
             case Mode.Title:
-                if (Input.anyKeyDown || Input.GetMouseButtonDown(0))
+                if ((Input.anyKeyDown || Input.GetMouseButtonDown(0)) && !Controls.Portrait)
                 {
                     mode = Mode.Playing;
                     ball.controlLocked = false;
@@ -124,7 +127,7 @@ public class GM : MonoBehaviour
                     float y = ball.rb.position.y;
                     if (y < level.min.y - 9f || y > level.max.y + 9f) ball.Die();
                 }
-                if (Input.GetKeyDown(KeyCode.R)) LoadLevel(levelIndex);
+                if (Input.GetKeyDown(KeyCode.R) || Controls.Pressed("restart")) LoadLevel(levelIndex);
                 if (Input.GetKeyDown(KeyCode.N)) StartCoroutine(Advance(0f));
                 break;
             case Mode.Won:
@@ -284,10 +287,13 @@ public class GM : MonoBehaviour
             {
                 Vector3 sp = cam.WorldToScreenPoint(p);
                 if (sp.x < -200 || sp.x > W + 200) continue;
-                Text(new Rect(sp.x - 300 * u, H - sp.y - 20 * u, 600 * u, 40 * u), text, body, new Color(ink.r, ink.g, ink.b, .75f), (int)(20 * u));
+                var parts = text.Split('|');
+                string shown = Controls.Touch && parts.Length > 1 ? parts[1] : parts[0];
+                Text(new Rect(sp.x - 300 * u, H - sp.y - 20 * u, 600 * u, 40 * u), shown, body, new Color(ink.r, ink.g, ink.b, .75f), (int)(20 * u));
             }
         }
 
+        if (Controls.Portrait) { DrawRotate(W, H, ink); return; }
         if (mode == Mode.Title) { DrawTitle(W, H, u, ink); return; }
         if (mode == Mode.Won) { DrawWon(W, H, u, ink); return; }
 
@@ -308,12 +314,14 @@ public class GM : MonoBehaviour
         Text(new Rect(W - 260 * u, 22 * u, 236 * u, 30 * u), def.name, h1, ink, (int)(20 * u));
         Text(new Rect(W - 260 * u, 50 * u, 236 * u, 24 * u), levelTime.ToString("0.0") + "s   ·   " + deaths + " falls", body, new Color(ink.r, ink.g, ink.b, .6f), (int)(16 * u));
 
+        if (Controls.Touch) DrawTouch(u, ink);
+
         // bottom: unlocked states
         var list = new List<Ability>();
         foreach (var a in Abilities) if (Has(a.id)) list.Add(a);
         float cw = 84 * u, gap = 10 * u, total = list.Count * cw + (list.Count - 1) * gap;
         float x0 = (W - total) / 2, y0 = H - 118 * u;
-        for (int i = 0; i < list.Count; i++)
+        for (int i = 0; i < list.Count && !Controls.Touch; i++)
         {
             var a = list[i];
             var r = new Rect(x0 + i * (cw + gap), y0, cw, 100 * u);
@@ -340,7 +348,7 @@ public class GM : MonoBehaviour
                 float cx = br.x + 20 * u + i * 250 * u;
                 Icon(new Rect(cx + 14 * u, br.y + 40 * u, 84 * u, 84 * u), ab.sprite, a);
                 Text(new Rect(cx + 104 * u, br.y + 50 * u, 140 * u, 34 * u), ab.label, h1, new Color(ink.r, ink.g, ink.b, a), (int)(24 * u));
-                Text(new Rect(cx + 104 * u, br.y + 86 * u, 140 * u, 26 * u), ab.key, body, new Color(ink.r, ink.g, ink.b, .6f * a), (int)(16 * u));
+                Text(new Rect(cx + 104 * u, br.y + 86 * u, 140 * u, 26 * u), Controls.Touch ? TouchHint(ab.id) : ab.key, body, new Color(ink.r, ink.g, ink.b, .6f * a), (int)(16 * u));
             }
         }
 
@@ -371,8 +379,8 @@ public class GM : MonoBehaviour
 
         float p = .6f + Mathf.Sin(uiT * 4f) * .4f;
         Pill(new Rect(W / 2 - 170 * u, H * .72f, 340 * u, 58 * u), new Color(ink.r, ink.g, ink.b, .9f));
-        Text(new Rect(W / 2 - 170 * u, H * .72f, 340 * u, 58 * u), "PRESS ANY KEY", h1, new Color(1, 1, 1, p), (int)(22 * u));
-        Text(new Rect(0, H * .72f + 70 * u, W, 30 * u), "A / D roll   ·   SPACE jump   ·   R restart", body, new Color(ink.r, ink.g, ink.b, .6f), (int)(17 * u));
+        Text(new Rect(W / 2 - 170 * u, H * .72f, 340 * u, 58 * u), Controls.Touch ? "TAP TO START" : "PRESS ANY KEY", h1, new Color(1, 1, 1, p), (int)(22 * u));
+        Text(new Rect(0, H * .72f + 70 * u, W, 30 * u), Controls.Touch ? "left thumb rolls   ·   right thumb jumps & switches states" : "A / D roll   ·   SPACE jump   ·   R restart", body, new Color(ink.r, ink.g, ink.b, .6f), (int)(17 * u));
     }
 
     void DrawWon(float W, float H, float u, Color ink)
@@ -386,6 +394,60 @@ public class GM : MonoBehaviour
             totalOrbs + " / " + totalOrbsMax + " orbs   ·   " + totalDeaths + " falls   ·   " + totalTime.ToString("0.0") + "s",
             body, new Color(ink.r, ink.g, ink.b, .7f), (int)(22 * u));
         Text(new Rect(0, H * .12f + 290 * u, W, 120 * u), rank, hero, Gfx.Gold, (int)(110 * u));
-        Text(new Rect(0, H * .88f, W, 30 * u), "press ENTER to fly again", body, new Color(ink.r, ink.g, ink.b, .6f), (int)(18 * u));
+        Text(new Rect(0, H * .88f, W, 30 * u), Controls.Touch ? "tap to fly again" : "press ENTER to fly again", body, new Color(ink.r, ink.g, ink.b, .6f), (int)(18 * u));
+    }
+
+    static string TouchHint(string id)
+    {
+        switch (id)
+        {
+            case "crouch": return "STICK DOWN";
+            case "climb": return "HOLD";
+            default: return "TAP";
+        }
+    }
+
+    void DrawRotate(float W, float H, Color ink)
+    {
+        float u = Mathf.Min(W, H) / 720f;
+        Box(new Rect(0, 0, W, H), new Color(1, 1, 1, .6f));
+        Icon(new Rect(W / 2 - 90 * u, H * .3f, 180 * u, 180 * u), "reverse");
+        Text(new Rect(0, H * .3f + 200 * u, W, 60 * u), "ROTATE YOUR PHONE", hero, ink, (int)(44 * u));
+        Text(new Rect(0, H * .3f + 260 * u, W, 40 * u), "Ball States plays in landscape", body, new Color(ink.r, ink.g, ink.b, .65f), (int)(28 * u));
+    }
+
+    void DrawTouch(float u, Color ink)
+    {
+        var c = Controls.I;
+        if (c.stickActive)
+        {
+            float r = c.StickRadius;
+            Pill(new Rect(c.stickOrigin.x - r, c.stickOrigin.y - r, r * 2, r * 2), new Color(1, 1, 1, .28f));
+            Pill(new Rect(c.stickPos.x - r * .45f, c.stickPos.y - r * .45f, r * .9f, r * .9f), new Color(1, 1, 1, .85f));
+        }
+        else
+        {
+            float H = Screen.height;
+            Text(new Rect(24 * u, H - 70 * u, 360 * u, 40 * u), "drag here to roll", body, new Color(ink.r, ink.g, ink.b, .35f), (int)(18 * u));
+        }
+        foreach (var b in c.buttons)
+        {
+            bool down = Controls.Held(b.id);
+            float r = b.radius * (down ? .92f : 1f);
+            var rect = new Rect(b.center.x - r, b.center.y - r, r * 2, r * 2);
+            if (b.id == "restart")
+            {
+                Pill(rect, new Color(1, 1, 1, .6f));
+                Text(rect, "R", h1, ink, (int)(20 * u));
+                continue;
+            }
+            float cd = b.id == "jump" ? 0f : Cooldown(b.id);
+            Pill(rect, down ? new Color(1, 1, 1, .9f) : new Color(.93f, .95f, 1f, .62f));
+            var ab = Find(b.id);
+            float ir = r * .6f;
+            Icon(new Rect(b.center.x - ir, b.center.y - ir - r * .18f, ir * 2, ir * 2), ab.sprite, cd > 0 ? .35f : 1f);
+            if (cd > 0) Box(new Rect(b.center.x - r * .5f, b.center.y + r * .82f, r * (1 - cd), 3 * u), Gfx.Gold);
+            Text(new Rect(rect.x - 10 * u, b.center.y + r * .42f, rect.width + 20 * u, 20 * u), ab.label, h1, ink, (int)((b.id == "jump" ? 15 : 11) * u));
+        }
     }
 }

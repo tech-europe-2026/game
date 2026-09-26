@@ -87,8 +87,6 @@ public class Ball : MonoBehaviour
         trail.colorGradient = grad;
     }
 
-    static bool Key(KeyCode a, KeyCode b = KeyCode.None) => Input.GetKey(a) || (b != KeyCode.None && Input.GetKey(b));
-    static bool Down(KeyCode a, KeyCode b = KeyCode.None) => Input.GetKeyDown(a) || (b != KeyCode.None && Input.GetKeyDown(b));
 
     void Update()
     {
@@ -101,21 +99,21 @@ public class Ball : MonoBehaviour
 
         if (!controlLocked && stunT <= 0)
         {
-            if (Down(KeyCode.Space, KeyCode.W) || Input.GetKeyDown(KeyCode.UpArrow)) jumpBuffer = .12f;
-            if ((Input.GetKeyUp(KeyCode.Space) || Input.GetKeyUp(KeyCode.W) || Input.GetKeyUp(KeyCode.UpArrow))
+            if (Controls.Pressed("jump")) jumpBuffer = .12f;
+            if (Controls.Released("jump")
                 && rb.velocity.y * gravDir < -3f && dashT <= 0 && !climbing)
                 rb.velocity = new Vector2(rb.velocity.x, rb.velocity.y * .55f);
 
-            bool wantCrouch = GM.Has("crouch") && Key(KeyCode.S, KeyCode.DownArrow) && !grown && !climbing;
+            bool wantCrouch = GM.Has("crouch") && Controls.Crouch && !grown && !climbing;
             if (wantCrouch && !crouching) { crouching = true; SetRadius(RCrouch); Sfx.Play("shrink", .4f); }
             else if (!wantCrouch && crouching && RoomFor(RNormal)) { crouching = false; SetRadius(RNormal); }
 
-            if (GM.Has("dash") && Down(KeyCode.LeftShift, KeyCode.RightShift) && dashCd <= 0) Dash();
-            if (GM.Has("grow") && Down(KeyCode.G)) ToggleGrow();
-            if (GM.Has("teleport") && Down(KeyCode.T) && teleCd <= 0) Teleport();
-            if (GM.Has("parry") && Down(KeyCode.Q, KeyCode.J) && parryCd <= 0) Parry();
-            if (GM.Has("camo") && Down(KeyCode.V) && camoCd <= 0) Camouflage();
-            if (GM.Has("reverse") && Down(KeyCode.E) && flipCd <= 0) Flip();
+            if (GM.Has("dash") && Controls.Pressed("dash") && dashCd <= 0) Dash();
+            if (GM.Has("grow") && Controls.Pressed("grow")) ToggleGrow();
+            if (GM.Has("teleport") && Controls.Pressed("teleport") && teleCd <= 0) Teleport();
+            if (GM.Has("parry") && Controls.Pressed("parry") && parryCd <= 0) Parry();
+            if (GM.Has("camo") && Controls.Pressed("camo") && camoCd <= 0) Camouflage();
+            if (GM.Has("reverse") && Controls.Pressed("reverse") && flipCd <= 0) Flip();
         }
         UpdateVisual();
     }
@@ -123,12 +121,7 @@ public class Ball : MonoBehaviour
     Vector2 InputDir()
     {
         if (controlLocked || stunT > 0) return Vector2.zero;
-        float x = 0, y = 0;
-        if (Key(KeyCode.A, KeyCode.LeftArrow)) x -= 1;
-        if (Key(KeyCode.D, KeyCode.RightArrow)) x += 1;
-        if (Key(KeyCode.W, KeyCode.UpArrow)) y += 1;
-        if (Key(KeyCode.S, KeyCode.DownArrow)) y -= 1;
-        return new Vector2(x, y);
+        return Controls.Move;
     }
 
     void FixedUpdate()
@@ -160,7 +153,7 @@ public class Ball : MonoBehaviour
             if (onRail) maxSpeed = 16f;
             float accel = grounded ? 40f : 24f;
             float vx = rb.velocity.x;
-            if (inp.x != 0 && (Mathf.Abs(vx) < maxSpeed || Mathf.Sign(vx) != inp.x))
+            if (inp.x != 0 && (Mathf.Abs(vx) < maxSpeed || Mathf.Sign(vx) != Mathf.Sign(inp.x)))
                 rb.AddForce(new Vector2(inp.x * accel * rb.mass, 0));
             else if (inp.x == 0 && grounded && !onRail)
                 rb.velocity = new Vector2(Mathf.MoveTowards(vx, 0, 14f * fdt), rb.velocity.y);
@@ -173,7 +166,7 @@ public class Ball : MonoBehaviour
 
     void UpdateClimb(Vector2 inp, float fdt)
     {
-        bool want = GM.Has("climb") && Key(KeyCode.C, KeyCode.L) && !controlLocked && stunT <= 0 && climbStamina > 0 && dashT <= 0;
+        bool want = GM.Has("climb") && Controls.Held("climb") && !controlLocked && stunT <= 0 && climbStamina > 0 && dashT <= 0;
         Vector2 normal = Vector2.zero;
         if (want)
         {

@@ -23,7 +23,7 @@ public static class Levels
     {
         b.Start(0, 1);
         b.Plat(3, 0, 12);
-        b.Label(3, 3, "A / D to roll   ·   SPACE to jump");
+        b.Label(3, 3, "A / D to roll   ·   SPACE to jump|left thumb rolls   ·   tap JUMP");
         b.Orbs(5, 1.3f, 8, 1.3f, 3);
         b.Orb(10.5f, 2.6f);
         b.Plat(16, 0, 8);
@@ -36,7 +36,7 @@ public static class Levels
 
         b.Plat(56, 0, 8);
         b.Plat(58, 3, 4, 3.8f);
-        b.Label(53.5f, 2.6f, "hold S to squeeze");
+        b.Label(53.5f, 2.6f, "hold S to squeeze|pull the stick down to squeeze");
         b.Orb(58, .75f);
         b.Plat(66, 0, 8);
 
@@ -45,7 +45,7 @@ public static class Levels
         b.Orbs(68, 3f, 68.5f, 6f, 3);
         b.Plat(78, 6, 18);
         b.Glass(78, 8.7f, .8f, 4f);
-        b.Label(74, 11.4f, "SHIFT to dash through glass");
+        b.Label(74, 11.4f, "SHIFT to dash through glass|DASH through glass");
         b.Spinner(84, 7.9f, 3.2f, 120);
         b.Orb(81, 7.3f);
         b.Check(86.2f, 7.4f);
@@ -66,7 +66,7 @@ public static class Levels
     {
         b.Start(0, 1);
         b.Plat(3, 0, 10);
-        b.Label(2, 3, "E flips gravity");
+        b.Label(2, 3, "E flips gravity|REVERSE flips gravity");
         b.Plat(15, 6, 20);
         b.Shards(15, 5.65f, 3, 180);
         b.Orb(10, 4.6f);
@@ -77,7 +77,7 @@ public static class Levels
         b.Plat(32, 1, 10);
 
         b.Plat(38, 5, 2, 10);
-        b.Label(33, 5, "hold C to climb");
+        b.Label(33, 5, "hold C to climb|hold CLIMB against a wall");
         b.Orbs(36.3f, 3.5f, 36.3f, 8.5f, 3);
         b.Plat(47, 9.65f, 14);
         b.Orbs(42, 11, 46, 11, 3);
@@ -102,7 +102,7 @@ public static class Levels
     {
         b.Start(0, 1);
         b.Plat(4, 0, 12);
-        b.Label(4, 3, "G to grow heavy");
+        b.Label(4, 3, "G to grow heavy|GROW to get heavy");
         b.Seesaw(16, 1.2f, 8);
         b.Box(19, 2.6f);
         b.Orbs(13, 3, 19, 3, 3);
@@ -114,7 +114,7 @@ public static class Levels
 
         b.Plat(46.5f, -5, 27);
         b.Plat(47, .5f, 20, 1);
-        b.Label(42, -1.4f, "Q to parry · send it back");
+        b.Label(42, -1.4f, "Q to parry · send it back|PARRY · send it back");
         b.Orb(40, -3.8f);
         var crystal = b.Crystal(47, -4.15f);
         var door = b.Door(50, -2.3f, .8f, 4.7f);
@@ -137,7 +137,7 @@ public static class Levels
     {
         b.Start(0, 1);
         b.Plat(4, 0, 12);
-        b.Label(4, 3, "T to blink through walls");
+        b.Label(4, 3, "T to blink through walls|BLINK through walls");
         b.Plat(12, 4, 1.2f, 12);
         b.Plat(22, 0, 20);
         b.Orb(15.5f, 1.4f);
@@ -145,7 +145,7 @@ public static class Levels
         b.Plat(26, 5, 10, 1.2f);
         b.Gate(24, .35f, 4.4f);
         b.Gate(28, .35f, 4.4f);
-        b.Label(21, 7, "V to camouflage through lasers");
+        b.Label(21, 7, "V to camouflage through lasers|CAMO through lasers");
         b.Orbs(23, 1.3f, 29, 1.3f, 3);
 
         b.Gate(33.5f, -3, 7);

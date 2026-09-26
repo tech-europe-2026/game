@@ -6,7 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>{{{ PRODUCT_NAME }}}</title>
+    <title>Ball States</title>
     <style>
       html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; overscroll-behavior: none;
         background: linear-gradient(#78aaf5, #bad6ff 55%, #ffded6); font-family: -apple-system, Segoe UI, Helvetica, Arial, sans-serif; }
@@ -20,17 +20,17 @@
   <body>
     <canvas id="unity-canvas" tabindex="-1"></canvas>
     <div id="loading">BALL STATES<div id="bar"><div id="fill"></div></div></div>
-    <script src="Build/{{{ LOADER_FILENAME }}}"></script>
+    <script src="Build/webgl.loader.js"></script>
     <script>
       var canvas = document.querySelector("#unity-canvas");
       createUnityInstance(canvas, {
-        dataUrl: "Build/{{{ DATA_FILENAME }}}",
-        frameworkUrl: "Build/{{{ FRAMEWORK_FILENAME }}}",
-        codeUrl: "Build/{{{ CODE_FILENAME }}}",
+        dataUrl: "Build/webgl.data.unityweb",
+        frameworkUrl: "Build/webgl.framework.js.unityweb",
+        codeUrl: "Build/webgl.wasm.unityweb",
         streamingAssetsUrl: "StreamingAssets",
-        companyName: {{{ JSON.stringify(COMPANY_NAME) }}},
-        productName: {{{ JSON.stringify(PRODUCT_NAME) }}},
-        productVersion: {{{ JSON.stringify(PRODUCT_VERSION) }}},
+        companyName: "TechEurope2026",
+        productName: "Ball States",
+        productVersion: "1.0",
         devicePixelRatio: Math.min(window.devicePixelRatio || 1, 2),
       }, function (p) { document.querySelector("#fill").style.width = (p * 100) + "%"; })
       .then(function () { document.querySelector("#loading").remove(); canvas.focus(); });

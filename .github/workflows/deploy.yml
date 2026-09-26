@@ -3,18 +3,19 @@ name: Deploy Game to Itch.io
 on:
   push:
     branches:
-      - main # Or 'master', depending on your default branch name
+      - main
+  workflow_dispatch:
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v3
-        
-      - name: Zip the Game Files
-        run: zip -r game.zip index.html style.css game.js
-        
+        uses: actions/checkout@v4
+
+      - name: Zip the Unity WebGL build
+        run: cd webgl && zip -r ../game.zip .
+
       - name: Deploy with Butler
         uses: manleydev/butler-publish-itchio-action@master
         env:
