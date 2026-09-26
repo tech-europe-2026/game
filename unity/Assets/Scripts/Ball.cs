@@ -503,6 +503,10 @@ public class Ball : MonoBehaviour
                 case TileKind.Ice:
                     IceContact(tile, normal);
                     break;
+                case TileKind.Tube:
+                    if (railT <= 0) Sfx.Play("rail", .3f);
+                    railT = .15f;
+                    break;
                 case TileKind.Rail:
                     if (railT <= 0)
                     {
@@ -531,14 +535,15 @@ public class Ball : MonoBehaviour
         if (dead) return;
         var tile = c.collider.GetComponent<Tile>();
         if (tile == null) return;
-        if (tile.kind == TileKind.Rail)
+        if (tile.kind == TileKind.Rail || tile.kind == TileKind.Tube)
         {
+            bool tube = tile.kind == TileKind.Tube;
             railT = .15f;
             var cp = c.GetContact(0);
             Vector2 tangent = new Vector2(-cp.normal.y, cp.normal.x);
             float s = Vector2.Dot(rb.velocity, tangent);
-            if (Mathf.Abs(s) > 1f) rb.AddForce(tangent * Mathf.Sign(s) * 9f * rb.mass);
-            if (Random.value < .35f) Fx.Burst(cp.point, Gfx.Gold, 1, 3f, .1f, 8f, .25f);
+            if (Mathf.Abs(s) > 1f) rb.AddForce(tangent * Mathf.Sign(s) * (tube ? 13f : 9f) * rb.mass);
+            if (Random.value < .35f) Fx.Burst(cp.point, tube ? Color.white : Gfx.Gold, 1, 3f, .1f, 8f, .25f);
         }
         else if (tile.kind == TileKind.Ice) IceContact(tile, c.GetContact(0).normal);
         else if (tile.kind == TileKind.Spinner && !Parrying) Hurt(c.GetContact(0).point);

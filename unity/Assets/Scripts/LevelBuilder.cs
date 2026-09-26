@@ -110,9 +110,8 @@ public class LevelBuilder
     }
 
     // Grind rail through control points (Catmull-Rom smoothed). One-way from above unless solid.
-    public GameObject Rail(bool oneWay, params Vector2[] pts)
+    static List<Vector2> Smooth(Vector2[] pts)
     {
-        var go = Go("rail", Vector2.zero);
         var smooth = new List<Vector2>();
         for (int i = 0; i < pts.Length - 1; i++)
         {
@@ -125,6 +124,13 @@ public class LevelBuilder
             }
         }
         smooth.Add(pts[pts.Length - 1]);
+        return smooth;
+    }
+
+    public GameObject Rail(bool oneWay, params Vector2[] pts)
+    {
+        var go = Go("rail", Vector2.zero);
+        var smooth = Smooth(pts);
         foreach (var p in smooth) Grow(p, 1f);
 
         var e = go.AddComponent<EdgeCollider2D>();
@@ -146,6 +152,47 @@ public class LevelBuilder
         Line(go, pts3, .14f, Gfx.Gold, 4);
         for (int i = 0; i < pts.Length; i += Mathf.Max(1, pts.Length - 1))
             Gfx.Quad(go.transform, pts[i], Vector2.one * .32f, Gfx.Gold, 5, Gfx.Circle);
+        return go;
+    }
+
+    // Short transparent glass tube the ball rolls through; pts trace its centreline.
+    public GameObject Tube(params Vector2[] pts)
+    {
+        const float R = .78f;
+        var go = Go("tube", Vector2.zero);
+        var mid = Smooth(pts);
+        int n = mid.Count;
+        var lo = new Vector2[n];
+        var hi = new Vector2[n];
+        var mid3 = new Vector3[n];
+        var shine = new Vector3[n];
+        for (int i = 0; i < n; i++)
+        {
+            Vector2 d = (mid[Mathf.Min(n - 1, i + 1)] - mid[Mathf.Max(0, i - 1)]).normalized;
+            var nrm = new Vector2(-d.y, d.x);
+            lo[i] = mid[i] - nrm * R;
+            hi[i] = mid[i] + nrm * R;
+            mid3[i] = mid[i];
+            shine[i] = mid[i] + nrm * R * .55f;
+            Grow(mid[i], 1.5f);
+        }
+        foreach (var wall in new[] { lo, hi })
+        {
+            var w = new GameObject("wall");
+            w.transform.SetParent(go.transform, false);
+            var e = w.AddComponent<EdgeCollider2D>();
+            e.points = wall;
+            e.edgeRadius = .05f;
+            e.sharedMaterial = Mat(ref railMat, 0f, 0f);
+            AddTile(w, TileKind.Tube);
+            var w3 = new Vector3[n];
+            for (int i = 0; i < n; i++) w3[i] = wall[i];
+            Line(go, w3, .1f, new Color(1f, 1f, 1f, .75f), 26);
+        }
+        Line(go, mid3, R * 2f, new Color(.92f, .97f, 1f, .2f), 25);
+        Line(go, shine, .08f, new Color(1f, 1f, 1f, .5f), 26);
+        foreach (int i in new[] { 0, n - 1 })
+            Line(go, new Vector3[] { lo[i], hi[i] }, .16f, new Color(1f, 1f, 1f, .85f), 27);
         return go;
     }
 

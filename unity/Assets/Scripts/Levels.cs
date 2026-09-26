@@ -53,9 +53,9 @@ public static class Levels
         b.Orb(81, 7.3f);
         b.Check(86.2f, 7.4f);
 
-        b.Plat(91, 5, 3);
-        b.Orb(91, 6.4f);
-        b.Plat(95.5f, 4, 3);
+        b.Label(92, 9.5f, "roll through the glass");
+        b.Tube(V(86.4f, 7.13f), V(89.5f, 7.1f), V(92, 3.6f), V(94.5f, 5.1f), V(97.9f, 5.13f));
+        b.Orbs(91.2f, 4.6f, 93.5f, 4.4f, 2);
         b.Plat(100.5f, 4, 6);
         b.Shards(100.5f, 4.35f, 3);
         b.Orb(100.5f, 6.4f);
@@ -136,9 +136,11 @@ public static class Levels
         b.Plat(64, 3, 8);
         b.Check(62, 4.5f);
 
-        b.Plat(76, 3, 16);
+        b.Tube(V(67.6f, 4.13f), V(70.5f, 1.4f), V(73.5f, 1.4f), V(76.4f, 4.13f));
+        b.Plat(80, 3, 8);
         b.Turret(76, 9.5f, Vector2.down, 1.5f, .7f);
-        b.Orbs(70, 4.5f, 80, 4.5f, 4);
+        b.Orbs(71, 1.5f, 73, 1.5f, 2);
+        b.Orbs(78, 4.5f, 82, 4.5f, 2);
         b.Label(92, 6.5f, "ice · no steering, just slide");
         b.Ice(84.3f, 3, 97, -2, 1);
         b.Ice(97, -2, 104, -2, 1);
@@ -184,7 +186,8 @@ public static class Levels
         b.Orb(82, 9.4f);
         b.Plat(95, 14, 12);
         b.Shards(95, 13.4f, 2, 180);
-        b.Orbs(90, 12.4f, 100, 12.4f, 3);
+        b.Tube(V(87.6f, 9.13f), V(91, 6.6f), V(95, 6.2f), V(99, 7.6f), V(103.2f, 8.98f));
+        b.Orbs(91, 6.7f, 99, 7.7f, 3);
         b.Ice(103, 7.9f, 106.5f, 7.9f, 1);
         b.Plat(109, 8, 5);
         b.Plat(111.8f, 9.8f, .7f, 4f);
