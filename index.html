@@ -3,22 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Minimal Clicker Game</title>
+    <title>BLACKICE TERMINAL</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div id="game-container">
-        <div id="ui">
-            <div id="score-board">Score: <span id="score">0</span></div>
-            <div id="timer-board">Time: <span id="time">30</span>s</div>
+    <div id="terminal">
+        <div id="titlebar">
+            <span id="title-text">BLACKICE // REMOTE SHELL</span>
+            <span id="trace-counter">TRACES: 0</span>
         </div>
-        <canvas id="gameCanvas" width="800" height="600"></canvas>
-        <div id="game-over" class="hidden">
-            <h2>Game Over!</h2>
-            <p>Final Score: <span id="final-score">0</span></p>
-            <button id="restart-btn">Play Again</button>
+        <div id="output"></div>
+        <div id="input-line">
+            <span id="prompt"></span>
+            <input id="cmd" type="text" autocomplete="off" spellcheck="false" autofocus>
         </div>
     </div>
-    <script src="game.js"></script>
+    <script src="terminal.js"></script>
 </body>
 </html>
