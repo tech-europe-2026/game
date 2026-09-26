@@ -46,6 +46,7 @@ public static class Levels
         b.Ice(20, 0, 28, -3, 1);
         b.Label(24, 2.5f, "ice · you just slide");
         b.Plat(31, -3, 6);
+        b.Check(31, -1.6f);
 
         b.Label(40, -.3f, "grind the rails");
         b.Rail(true, V(34.2f, -2.63f), V(40, -3.6f), V(46, -2.6f), V(51.8f, .3f));
@@ -90,6 +91,7 @@ public static class Levels
         b.Plat(172, 3.5f, 7);
         b.Ice(175.3f, 3.5f, 180, 2, 1);
         b.Plat(184, 2, 8);
+        b.Check(182, 3.4f);
         b.Orb(186, 3.4f);
         b.Plat(191.5f, 3, 5);
         b.Orbs(190.5f, 4.5f, 192.5f, 4.5f, 2);
@@ -121,6 +123,7 @@ public static class Levels
         b.Label(33, 6, "bounce up the steps");
         b.Orbs(36, 5.5f, 42.5f, 11, 3);
         b.Plat(49, 9.65f, 10);
+        b.Check(50, 11.05f);
         b.Orbs(42, 11, 46, 11, 3);
 
         b.Label(58, 12.2f, "flip · roll · flip");
@@ -155,6 +158,7 @@ public static class Levels
         b.Pad(150.8f, 6.55f, 0, 22);
         b.Label(150, 11, "bounce over");
         b.Plat(159, 12.65f, 9);
+        b.Check(161.5f, 14.05f);
         b.Orb(159, 14);
         b.Rail(true, V(163.3f, 13.35f), V(168, 12), V(173, 12.8f));
         b.Orbs(166, 12.8f, 170, 12.8f, 2);
@@ -171,6 +175,7 @@ public static class Levels
         b.Box(19, 2.6f);
         b.Orbs(13, 3, 19, 3, 3);
         b.Plat(26, 1, 8);
+        b.Check(26, 2.4f);
         b.Glass(33, 1, 6, .7f);
         b.Plat(37, 4, 2, 8);
         b.Label(29, 3.8f, "jump grown to smash glass");
@@ -207,6 +212,7 @@ public static class Levels
         b.Tube(V(154.6f, 1.13f), V(158, 1.1f), V(161, -1.5f), V(164, -1.5f), V(167.4f, .13f));
         b.Orbs(160, -1.2f, 164, -1.2f, 3);
         b.Plat(171, -1, 8);
+        b.Check(170, .4f);
         b.Ice(175, -1, 181, -3, 1);
         b.Plat(185, -3, 8);
         b.Gate(186, -2.65f, 1, .5f, true);
@@ -221,6 +227,7 @@ public static class Levels
         b.Plat(4, 0, 12);
         b.Label(6, 3, "red lasers pulse · wait for the gap");
         b.Plat(22, 0, 20);
+        b.Check(15, 1.4f);
         b.Orb(15.5f, 1.4f);
 
         b.Plat(26, 5, 10, 1.2f);
@@ -261,6 +268,7 @@ public static class Levels
         b.Rail(true, V(132.3f, 11.5f), V(137, 9.8f), V(142, 10.6f));
         b.Orbs(135, 10.4f, 139, 10.4f, 2);
         b.Plat(146, 10.3f, 8);
+        b.Check(145, 11.7f);
         RailRun(b, 150.3f, 10.3f);
     }
 
