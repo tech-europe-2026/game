@@ -500,13 +500,15 @@ public class GM : MonoBehaviour
 
         if (mode != Mode.Title && cam != null)
         {
+            var sky = Levels.All[levelIndex].mid;
+            var signInk = sky.r * .3f + sky.g * .59f + sky.b * .11f < .5f ? new Color(1f, 1f, 1f, .9f) : new Color(ink.r, ink.g, ink.b, .75f);
             foreach (var (p, text) in signs)
             {
                 Vector3 sp = cam.WorldToScreenPoint(p);
                 if (sp.x < -200 || sp.x > W + 200) continue;
                 var parts = text.Split('|');
                 string shown = Controls.Touch && parts.Length > 1 ? parts[1] : parts[0];
-                Text(new Rect(sp.x - 300 * u, H - sp.y - 20 * u, 600 * u, 40 * u), shown, body, new Color(ink.r, ink.g, ink.b, .75f), (int)(20 * u));
+                Text(new Rect(sp.x - 300 * u, H - sp.y - 20 * u, 600 * u, 40 * u), shown, body, signInk, (int)(20 * u));
             }
         }
 

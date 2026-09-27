@@ -34,8 +34,11 @@ public static class Music
         new[] { new[] { -12, -8, -5, -1 }, new[] { -10, -7, -3, 2 }, new[] { -15, -12, -8, -3 }, new[] { -17, -13, -10, -5 } },
         new[] { new[] { -7, -3, 0, 5 }, new[] { -10, -6, -3, 2 }, new[] { -5, -1, 2, 7 }, new[] { -12, -9, -5, 0 } },
         new[] { new[] { -15, -12, -8, -3 }, new[] { -19, -15, -12, -7 }, new[] { -17, -14, -10, -5 }, new[] { -20, -17, -13, -8 } },
+        new[] { new[] { -9, -5, -2, 2 }, new[] { -16, -12, -9, -5 }, new[] { -12, -9, -5, -2 }, new[] { -14, -10, -7, -3 } },   // Cadd9 Fmaj7 Am7 G6 (drift)
+        new[] { new[] { -7, -3, 0, 2 }, new[] { -14, -10, -7, -3 }, new[] { -10, -7, -3, 2 }, new[] { -12, -8, -5, -3 } },     // Dsus-ish Gmaj7 Bm9 A6 (glide)
+        new[] { new[] { -16, -12, -9, -5 }, new[] { -12, -9, -5, -2 }, new[] { -19, -16, -12, -9 }, new[] { -14, -10, -7, -2 } }, // Fmaj7 Am7 Dm7 G (evening)
     };
-    static readonly float[] ChordLen = { 3.4f, 3.8f, 4f, 3.2f, 2.6f, 3.6f, 4.2f, 3f, 2.8f, 2.4f, 3.3f, 3.9f, 3.1f, 2.9f, 2.2f };
+    static readonly float[] ChordLen = { 3.4f, 3.8f, 4f, 3.2f, 2.6f, 3.6f, 4.2f, 3f, 2.8f, 2.4f, 3.3f, 3.9f, 3.1f, 2.9f, 2.2f, 4.4f, 4.8f, 4.2f };
     static readonly int[] Arp = { 0, 2, 1, 3, 2, 1, 3, 2 };
 
     public static void Init(GameObject host)
@@ -49,6 +52,7 @@ public static class Music
     public static void Play(int level)
     {
         if (src == null) return;
+        level = level < 15 ? level : Levels.All[Mathf.Min(level, Levels.All.Length - 1)].boss ? 14 : 15 + (level - 15) % 3;
         level = Mathf.Clamp(level, 0, Songs.Length - 1);
         if (current == level && src.isPlaying) return;
         current = level;
@@ -87,7 +91,7 @@ public static class Music
             float step = cl / steps;
             for (int s = 0; s < steps; s++)
             {
-                int note = ch[Arp[s % Arp.Length]] + (level == 2 || level == 6 ? 24 : 12);
+                int note = ch[Arp[s % Arp.Length]] + (level == 2 || level == 6 || level == 16 ? 24 : 12);
                 Bell(buf, start + Mathf.RoundToInt(s * step * Rate), Hz(note), boss ? .045f : .06f, 1.6f);
             }
         }

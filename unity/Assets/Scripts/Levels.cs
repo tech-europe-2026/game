@@ -34,11 +34,11 @@ public static class Levels
         new Level { name = "GHOST LINE", unlock = "jump,phase,dash,reverse", build = GhostLine, top = C(110, 70, 190), mid = C(190, 150, 240), bottom = C(240, 220, 255) },
         new Level { name = "SKYFALL", unlock = "jump,hover,slam,parry", build = Skyfall, top = C(40, 130, 200), mid = C(140, 200, 240), bottom = C(255, 225, 200) },
         new Level { name = "CRIMSON RIFT", unlock = "jump,dash,slam,parry", boss = true, pit = true, camMin = V(-11, -4.7f), camMax = V(11, 6.3f), build = CrimsonRift, top = C(30, 15, 40), mid = C(110, 40, 80), bottom = C(255, 110, 90) },
-        new Level { name = "SKY HIGHWAY", unlock = "jump,dash,slam,climb", build = SkyHighway, top = C(24, 36, 90), mid = C(96, 90, 200), bottom = C(255, 160, 130) },
-        new Level { name = "FROSTLINE", unlock = "jump,dash,hover,slam", build = Frostline, top = C(40, 90, 150), mid = C(140, 210, 240), bottom = C(230, 250, 255) },
+        new Level { name = "SKY HIGHWAY", unlock = "jump,dash,slam,climb", build = SkyHighway, top = C(70, 180, 190), mid = C(165, 232, 222), bottom = C(250, 246, 222) },
+        new Level { name = "FROSTLINE", unlock = "jump,dash,hover,slam", build = Frostline, top = C(62, 66, 76), mid = C(146, 150, 160), bottom = C(222, 224, 230) },
         new Level { name = "GLASS STORM", unlock = "jump,dash,slam,hover", build = GlassStorm, top = C(60, 30, 110), mid = C(200, 120, 220), bottom = C(255, 210, 170) },
         new Level { name = "FLIP STORM", unlock = "jump,reverse,dash,climb", build = FlipStorm, top = C(20, 20, 60), mid = C(120, 60, 180), bottom = C(255, 140, 190) },
-        new Level { name = "RED CROWN", unlock = "jump,dash,slam,hover", boss = true, pit = true, camMin = V(-11, -4.7f), camMax = V(11, 6.3f), build = RedCrown, top = C(20, 10, 30), mid = C(90, 30, 90), bottom = C(255, 90, 120) },
+        new Level { name = "RED CROWN", unlock = "jump,dash,slam,hover", boss = true, pit = true, camMin = V(-11, -4.7f), camMax = V(11, 6.3f), build = RedCrown, top = C(250, 160, 80), mid = C(255, 208, 150), bottom = C(255, 242, 218) },
     };
 
     // intro run that only a self-made gravity flip gets past: floor spikes, then (hard) ceiling spikes
@@ -1110,7 +1110,6 @@ public static class Levels
         b.Pad(x0 + 7.4f, bot - 4.45f, -45, 15);
         b.Cover(x0 + 7, (top + bot) / 2, 14.6f, top - bot + 3, "five ways in · three ways out · lanes merge · S / ↓ squeezes in|five ways in · three ways out · lanes merge");
         b.Plat(x0 + 20.5f, bot - 7, 13);
-        b.Check(x0 + 21, bot - 5.6f);
         Ball.squeezeZone = Rect.MinMaxRect(x0 - .6f, bot - 1.6f, x0 + 14.6f, top - .4f);
         b.Fog(V(x0 - 1, bot - 12), V(x0 + 28, top - 3), V(x0 - .6f, bot - 16), V(x0 + 28.5f, top + .2f));
         return V(x0 + 27, bot - 7);
