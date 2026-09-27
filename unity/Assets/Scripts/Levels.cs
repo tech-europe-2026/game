@@ -37,6 +37,7 @@ public static class Levels
         new Level { name = "SKY HIGHWAY", unlock = "jump,dash,slam,hover", build = SkyHighway, top = C(24, 36, 90), mid = C(96, 90, 200), bottom = C(255, 160, 130) },
         new Level { name = "FROSTLINE", unlock = "jump,dash,hover,slam", build = Frostline, top = C(40, 90, 150), mid = C(140, 210, 240), bottom = C(230, 250, 255) },
         new Level { name = "GLASS STORM", unlock = "jump,dash,slam,hover", build = GlassStorm, top = C(60, 30, 110), mid = C(200, 120, 220), bottom = C(255, 210, 170) },
+        new Level { name = "FLIP STORM", unlock = "jump,reverse,dash,hover", build = FlipStorm, top = C(20, 20, 60), mid = C(120, 60, 180), bottom = C(255, 140, 190) },
     };
 
     // intro run that only a self-made gravity flip gets past: floor spikes, then (hard) ceiling spikes
@@ -505,7 +506,7 @@ public static class Levels
         b.Check(146, .4f);
         b.Plat(155, -1, 10);
         b.Frost(154, -.65f, 3);
-        b.Label(154, 5, "cyan frost: 3 s of drifting, no control");
+        b.Label(154, 5, "cyan frost: 2 s of drifting, no control");
         b.Plat(162.5f, -4, 3);
         b.Pad(162.5f, -3.45f, 0, 20);
         b.Plat(174, 2, 16);
@@ -880,7 +881,7 @@ public static class Levels
     {
         b.Start(0, 1);
         b.Plat(2, 0, 8);
-        b.Label(3, 3.5f, "rails only · cyan ice freezes you for 3 s");
+        b.Label(3, 3.5f, "rails only · cyan ice freezes you for 2 s");
         b.Rail(true, V(6.3f, .7f), V(12, -2), V(20, -3), V(26, -2.4f));
         b.Orbs(12, -.8f, 24, -1.6f, 4);
         b.Label(33, 1, "ice on a climb keeps your speed");
@@ -960,5 +961,74 @@ public static class Levels
         b.Check(zx + 6, top + 1.4f);
         b.Glass(zx + 11, top + 2.35f, .8f, 4f);
         FinaleLoop(b, zx + 13.9f, top, 2.6f, 2f, 2, 1.4f);
+    }
+
+    static void FlipStorm(LevelBuilder b)
+    {
+        b.Start(0, 1);
+        b.Plat(26, 0, 56);
+        b.Plat(38, 5, 68);
+        b.Label(2, 3, "E flips gravity · floor, ceiling, floor, ceiling...|REVERSE again and again");
+        for (int k = 0; k < 5; k++) b.Shards(11 + k * 8, k % 2 == 0 ? .35f : 4.65f, 6, k % 2 == 0 ? 0 : 180);
+        b.Orbs(18, 1.2f, 38, 1.2f, 3);
+        b.Check(50, 1.4f);
+        b.Label(60, 9, "no floor · ride the ceiling · drop before it ends");
+        b.Orbs(58, 4, 66, 4, 3);
+        b.Plat(81, 0, 22);
+        b.Check(76, 1.4f);
+        b.Label(96, 9, "zipper · every surface ends · keep flipping");
+        b.Plat(95, 5, 10);
+        b.Plat(103, 0, 10);
+        b.Plat(111, 5, 10);
+        b.Plat(119, 0, 10);
+        b.Plat(127, 5, 10);
+        b.Orbs(96, 1.2f, 126, 1.2f, 5);
+        b.Plat(136.5f, 0, 13);
+        b.Check(134, 1.4f);
+        var r = Maze5(b, 146, .35f);
+        b.Plat(r.x + 9, r.y, 18);
+        b.Plat(r.x + 9, r.y + 5, 14);
+        b.Shards(r.x + 8, r.y + .35f, 6);
+        b.Label(r.x + 6, r.y + 8, "one last flip");
+        EndWall(b, r.x + 16, r.y);
+    }
+
+    // five hidden entries, lanes merge into three exits; only the right exit lands safely
+    static Vector2 Maze5(LevelBuilder b, float x0, float top)
+    {
+        float bot = top - 28, R = .45f;
+        float[][] raw =
+        {
+            new float[] { 1, 0, 1, 3, 1.5f, 8, 1, 14, 2, 20, 2, 26, 2, 29.5f },
+            new float[] { 4, 0, 4, 3, 8, 9, 5, 13, 1.5f, 17 },
+            new float[] { 7, 0, 7, 3, 5, 7, 9, 15, 7, 21, 7, 29.5f },
+            new float[] { 10, 0, 10, 3, 12, 8, 9.5f, 12, 12.8f, 16.5f },
+            new float[] { 13, 0, 13, 3, 13, 10, 13, 17, 12, 22, 12, 29.5f },
+        };
+        var paths = new Vector2[5][];
+        for (int t = 0; t < 5; t++)
+        {
+            paths[t] = new Vector2[raw[t].Length / 2];
+            for (int k = 0; k < paths[t].Length; k++) paths[t][k] = V(x0 + raw[t][2 * k], top - raw[t][2 * k + 1]);
+        }
+        for (int t = 0; t < 5; t++)
+        {
+            var others = new List<Vector2[]>();
+            for (int o = 0; o < 5; o++) if (o != t) others.Add(paths[o]);
+            b.TubeX(R, others.ToArray(), paths[t]);
+            b.Label(x0 + raw[t][0], top + 1.3f, (t + 1).ToString());
+        }
+        float yc = top - .35f;
+        b.Plat(x0 - 1.5f, yc, 4);
+        for (int k = 0; k < 4; k++) b.Plat(x0 + 2.5f + 3 * k, yc, 2);
+        b.Plat(x0 + 14, yc, 1);
+        b.Plat(x0 + 14.8f, yc + 2, .7f, 4.6f);
+        b.Mover(x0 + 4.5f, bot - 9.5f, 2.4f, 3.5f, 0, 4f);
+        b.Cover(x0 + 7, (top + bot) / 2, 14.6f, top - bot + 3, "five ways in · three ways out · lanes merge|five ways in · three ways out · lanes merge");
+        b.Plat(x0 + 18.25f, bot - 7, 13.5f);
+        b.Check(x0 + 19, bot - 5.6f);
+        Ball.squeezeZone = Rect.MinMaxRect(x0 - .6f, bot - 1.6f, x0 + 14.6f, top - .4f);
+        b.Fog(V(x0 - 1, bot - 12), V(x0 + 25.5f, top - 3), V(x0 - .6f, bot - 16), V(x0 + 26, top + .2f));
+        return V(x0 + 25, bot - 7);
     }
 }

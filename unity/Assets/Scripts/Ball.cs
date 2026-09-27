@@ -575,7 +575,7 @@ public class Ball : MonoBehaviour
     void Freeze()
     {
         if (freezeT > 0 || freezeCd > 0 || looping) return;
-        freezeT = 3f;
+        freezeT = 2f;
         float s = Mathf.Abs(rb.velocity.x) > .5f ? Mathf.Sign(rb.velocity.x) : facing;
         iceTan = new Vector2(s, 0);
         dashT = 0;
