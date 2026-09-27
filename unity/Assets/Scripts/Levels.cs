@@ -663,12 +663,12 @@ public static class Levels
         int[] lane = { 0, 1, 2 }, start = { 0, 1, 2 };
         var paths = new List<Vector2>[3];
         var holes = new List<Vector2>();
-        for (int t = 0; t < 3; t++) paths[t] = new List<Vector2> { V(x0 + lx[t], top), V(x0 + lx[t], top - 1) };
+        for (int t = 0; t < 3; t++) paths[t] = new List<Vector2> { V(x0 + lx[t], top), V(x0 + lx[t], top - 1.5f), V(x0 + lx[t], top - 3) };
         for (int k = 0; k < swaps.Length; k++)
         {
             int a = swaps[k], c = a + 1;
-            float y = top - 1 - step * k * (step * swaps.Length - 1) / (step * swaps.Length);
-            float yn = top - 1 - step * (k + 1) * (step * swaps.Length - 1) / (step * swaps.Length);
+            float y = top - 3 - k * (top - 3 - bot) / swaps.Length;
+            float yn = top - 3 - (k + 1) * (top - 3 - bot) / swaps.Length;
             holes.Add(V(x0 + (lx[a] + lx[c]) / 2, (y + yn) / 2));
             for (int t = 0; t < 3; t++)
             {
@@ -693,10 +693,10 @@ public static class Levels
         }
         b.Shards(x0 + 11, bot - 5.85f, 14);
         float yc = top - .35f;
-        b.Plat(x0 - 1.5f, yc, 5.1f);
-        b.Plat(x0 + 4.5f, yc, 3.1f);
-        b.Plat(x0 + 9.5f, yc, 3.1f);
-        b.Plat(x0 + 13.6f, yc, 1.1f);
+        b.Plat(x0 - 1.25f, yc, 5.5f);
+        b.Plat(x0 + 4.5f, yc, 4f);
+        b.Plat(x0 + 9.5f, yc, 4f);
+        b.Plat(x0 + 13.3f, yc, 1.6f);
         b.Plat(x0 + 14.4f, yc + 2, .7f, 4.6f);
         b.Cover(x0 + 7, (top + bot) / 2, 14.6f, top - bot + 3, "one lane is safe · S to squeeze · switch lanes at the crossings|one lane is safe · CROUCH to squeeze · switch lanes at the crossings");
         b.Plat(x0 + 21, bot - 7, 8);
