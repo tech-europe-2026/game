@@ -57,6 +57,63 @@ public static class Levels
         }
     }
 
+    static void EndWall(LevelBuilder b, float x, float py)
+    {
+        b.Plat(x + .2f, py + 1.8f, .7f, 4f);
+        b.Goal(x - 3, py + 2);
+    }
+
+    // rail hop onto a ledge, then a glass wave tube down to the goal
+    static void FinaleTube(LevelBuilder b, float x, float py)
+    {
+        float y = py + .7f, c1 = py - 1.55f, c2 = c1 - 2f;
+        b.Rail(true, V(x, y), V(x + 3.5f, y - 1.2f), V(x + 7.2f, y - .55f));
+        b.Plat(x + 13.5f, c1, 7);
+        b.Tube(V(x + 16.9f, c1 + 1.13f), V(x + 19.5f, c1 + 1.1f), V(x + 22, c1 - 1.6f), V(x + 24.5f, c1 - .3f), V(x + 27.1f, c1 - .87f));
+        b.Orbs(x + 2, y - .4f, x + 14, c1 + 1.2f, 4);
+        b.Plat(x + 31, c2, 8);
+        EndWall(b, x + 35, c2);
+    }
+
+    // steep ramp into an orange kicker: only a fast ball clears the chasm
+    static Vector2 SpeedKick(LevelBuilder b, float x, float py, bool goal)
+    {
+        float g = py - 4.5f;
+        b.Ramp(x - .2f, py, x + 12, g);
+        b.Plat(x + 14.5f, g, 5);
+        b.Kicker(x + 14.6f, g + .45f, 2.4f, 26);
+        b.Label(x + 6, py + 3, "orange kicker: arrive FAST · D for extra speed|arrive FAST · DASH for extra speed");
+        b.Orbs(x + 18, g + 3, x + 24, g + 3, 3);
+        b.Plat(x + 29, g, 8);
+        if (goal) EndWall(b, x + 33, g);
+        return V(x + 33, g);
+    }
+
+    // hop across islands on tilted green pads
+    static Vector2 PadHops(LevelBuilder b, float x, float py, bool goal)
+    {
+        b.Plat(x + 3, py - 2, 4);
+        b.Pad(x + 3.6f, py - 1.45f, -25, 21);
+        b.Plat(x + 15, py - 1, 4);
+        b.Pad(x + 15.6f, py - .45f, -25, 21);
+        b.Orbs(x + 6, py + 4, x + 12, py + 4, 3);
+        b.Orbs(x + 18, py + 5, x + 23, py + 5, 3);
+        b.Plat(x + 29, py, 8);
+        if (goal) EndWall(b, x + 33, py);
+        return V(x + 33, py);
+    }
+
+    // one long rail dive with a loop of any shape, then the goal
+    static void FinaleLoop(LevelBuilder b, float x, float py, float r, float ry, int turns, float shift)
+    {
+        float y = py + .7f, ly = y - 2.5f, xl = x + 9, xe = xl + shift * turns + 5;
+        b.Rail(true, V(x, y), V(x + 4, ly), V(xe, ly), V(xe + 3, ly + .8f));
+        b.Loop(xl, ly, r, 1, ry, turns, shift);
+        b.Orbs(x + 2, y - .8f, x + 6, ly + .6f, 3);
+        b.Plat(xe + 7.5f, ly - .9f, 8);
+        EndWall(b, xe + 11.5f, ly - .9f);
+    }
+
     static void FirstFlight(LevelBuilder b)
     {
         b.Start(0, 1);
@@ -185,7 +242,7 @@ public static class Levels
         b.Rail(true, V(163.3f, 13.35f), V(168, 12), V(173, 12.8f));
         b.Orbs(166, 12.8f, 170, 12.8f, 2);
         b.Plat(177, 12.5f, 7);
-        RailRun(b, 180.8f, 12.5f, 1);
+        FinaleTube(b, 180.8f, 12.5f);
     }
 
     static void HeavyWeather(LevelBuilder b)
@@ -291,7 +348,7 @@ public static class Levels
         b.Orbs(135, 10.4f, 139, 10.4f, 2);
         b.Plat(146, 10.3f, 8);
         b.Check(145, 11.7f);
-        RailRun(b, 150.3f, 10.3f, 3);
+        PadHops(b, 150.3f, 10.3f, true);
     }
 
     static void Duel(LevelBuilder b)
@@ -344,7 +401,15 @@ public static class Levels
         b.Orbs(97, 5, 109, 9, 4);
         b.Plat(115, 7.4f, 8);
         b.Check(115, 8.8f);
-        RailRun(b, 119.3f, 7.4f, 4);
+        b.Tube(V(119, 8.53f), V(122, 8.4f), V(125, 6.2f), V(128, 5.8f), V(131, 3.6f), V(134.2f, 3.53f));
+        b.Plat(138, 2.4f, 8);
+        b.Check(137, 3.8f);
+        b.Plat(148, 2.4f, 12);
+        b.Plat(147, 6.4f, 10);
+        b.Blaster(150, 4.35f, V(-1, -.7f), 1.4f);
+        b.Label(143, 8.6f, "blue shots ricochet and knock you back · S to slip under|CROUCH to slip under the blue blaster");
+        b.Check(155, 3.8f);
+        SpeedKick(b, 154.3f, 2.4f, true);
     }
 
     // FLIPSIDE: purple fields flip gravity, hover past a laser, a loop, ceiling runs.
@@ -384,7 +449,19 @@ public static class Levels
         b.GravZone(140, 1.5f, 3, 9, 1);
         b.Plat(146, -1, 8);
         b.Check(146, .4f);
-        RailRun(b, 150.3f, -1, 0);
+        b.Plat(155, -1, 10);
+        b.Frost(154, -.65f, 3);
+        b.Label(154, 5, "cyan frost: 3 s of drifting, no control");
+        b.Plat(162.5f, -4, 3);
+        b.Pad(162.5f, -3.45f, 0, 20);
+        b.Plat(174, 2, 16);
+        b.Check(168, 3.4f);
+        b.Blaster(174, 6, V(-.4f, -1), 1.1f, 0, 35);
+        b.Label(174, 8.4f, "the blaster swivels · dash past");
+        b.Tube(V(181.9f, 3.13f), V(185, 3.1f), V(188, 5.8f), V(191, 6.2f), V(194, 4.2f), V(197.2f, 3.13f));
+        b.Plat(201, 2, 8);
+        b.Check(200, 3.4f);
+        FinaleLoop(b, 205.3f, 2, 1.7f, 3.2f, 1, 1.2f);
     }
 
     // GLASSWORKS: slam through a glass floor, hover a wide gap, spring-slam launch.
@@ -425,7 +502,16 @@ public static class Levels
         b.Box(122, 5.5f);
         b.Box(124, 5.5f);
         b.Label(122, 8, "grow to shove crates");
-        RailRun(b, 127.3f, 4.5f, 5);
+        b.Tube(V(126.9f, 5.63f), V(129, 5.6f), V(131, 4), V(131.6f, 0), V(132.6f, -2.5f), V(135, -3.37f), V(138.2f, -3.37f));
+        b.Plat(142, -4.5f, 8);
+        b.Check(141, -3.1f);
+        b.Blaster(150, -.5f, V(-1, -1), 1.3f);
+        b.Label(150, 2.5f, "hover across · blue shots bounce off everything");
+        b.Plat(157, -4.5f, 8);
+        b.Check(155, -3.1f);
+        b.Frost(158, -4.15f, -.5f);
+        var e = PadHops(b, 161.3f, -4.5f, false);
+        RailRun(b, e.x + .3f, e.y, 5);
     }
 
     // SKY RUSH: fast rails, double loop, gravity tunnel, laser hover.
@@ -462,7 +548,17 @@ public static class Levels
         b.Label(128, 1.5f, "double loop!");
         b.Plat(144, -3.5f, 6);
         b.Check(144, -2.1f);
-        RailRun(b, 147.3f, -3.5f, 6);
+        b.Tube(V(146.9f, -2.37f), V(150, -2.4f), V(152.5f, -4), V(155, -2.4f), V(157.5f, -4), V(160, -2.4f), V(162.5f, -3.9f), V(165.2f, -3.37f));
+        b.Plat(169, -4.5f, 8);
+        b.Frost(170, -4.15f, -.5f, 0, true);
+        b.Label(170, -1.5f, "wait for the frost to fade, then jump");
+        b.Plat(183, -4.5f, 12);
+        b.Check(179, -3.1f);
+        b.Blaster(186, 0, V(-1, -.6f), .9f, 0, 50);
+        b.Plat(191.5f, -4.5f, 5);
+        var e = SpeedKick(b, 194.3f, -4.5f, false);
+        b.Check(e.x - 6, e.y + 1.4f);
+        FinaleLoop(b, e.x + .3f, e.y, 1.8f, 1.8f, 2, 3.2f);
     }
 
     // RED STORM: second boss; springs, a U-rail and side ledges; homing orbs, bullet rings, quake shockwaves.

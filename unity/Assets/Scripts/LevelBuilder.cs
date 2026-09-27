@@ -339,7 +339,7 @@ public class LevelBuilder
     {
         float h = y1 - y0;
         var go = Go("gate", new Vector2(x, (y0 + y1) / 2));
-        Color col = push ? Gfx.Cyan : Gfx.Coral;
+        Color col = push ? new Color32(70, 110, 255, 255) : Gfx.Coral;
         var glow = Gfx.Quad(go.transform, Vector2.zero, new Vector2(1.2f, h + .6f), new Color(col.r, col.g, col.b, .25f), 5, Gfx.Glow);
         var t = AddTile(go, TileKind.Gate);
         t.push = push;
@@ -385,6 +385,61 @@ public class LevelBuilder
         var c = go.AddComponent<BoxCollider2D>();
         c.size = new Vector2(w, h);
         return t;
+    }
+
+    public void Frost(float x, float y0, float y1, float shift = 0f, bool pulse = false)
+    {
+        float h = y1 - y0;
+        var go = Go("frost", new Vector2(x, (y0 + y1) / 2));
+        var col = new Color(.55f, 1f, 1f);
+        var t = AddTile(go, TileKind.Gate);
+        t.freeze = true;
+        t.gateShift = shift;
+        if (!pulse) { t.gateOn = 1e6f; t.gateOff = 0f; }
+        t.glow = Gfx.Quad(go.transform, Vector2.zero, new Vector2(1.4f, h + .6f), new Color(col.r, col.g, col.b, .3f), 5, Gfx.Glow);
+        t.art = Gfx.Quad(go.transform, Vector2.zero, new Vector2(.18f, h), col, 6);
+        for (float yy = -h / 2 + .4f; yy < h / 2; yy += .8f)
+            Gfx.Quad(go.transform, new Vector2(0, yy), Vector2.one * .3f, Color.white, 7, Gfx.Circle);
+        Gfx.Slab(go.transform, new Vector2(0, h / 2), new Vector2(.5f, .3f), Gfx.Ink, 7);
+        Gfx.Slab(go.transform, new Vector2(0, -h / 2), new Vector2(.5f, .3f), Gfx.Ink, 7);
+        var c = go.AddComponent<BoxCollider2D>();
+        c.isTrigger = true;
+        c.size = new Vector2(.3f, h);
+    }
+
+    public void Blaster(float x, float y, Vector2 dir, float period, float delay = 0f, float sweep = 0f)
+    {
+        var go = Go("blaster", new Vector2(x, y));
+        Gfx.Quad(go.transform, Vector2.zero, Vector2.one * 2.2f, new Color(.3f, .5f, 1f, .3f), 3, Gfx.Glow);
+        Gfx.Quad(go.transform, Vector2.zero, Vector2.one * 1.2f, new Color32(70, 110, 255, 255), 4, Gfx.Circle);
+        Gfx.Quad(go.transform, Vector2.zero, Vector2.one * .8f, Gfx.Plat, 5, Gfx.Circle);
+        var tu = go.AddComponent<Turret>();
+        tu.dir = dir.normalized;
+        tu.period = period;
+        tu.delay = delay;
+        tu.blue = true;
+        tu.sweep = sweep;
+        tu.speed = 8f;
+        tu.eye = Gfx.Quad(go.transform, dir.normalized * .18f, Vector2.one * .4f, new Color32(70, 110, 255, 255), 6, Gfx.Circle);
+        var c = go.AddComponent<CircleCollider2D>();
+        c.radius = .6f;
+        Grow(new Vector2(x, y), 1.2f);
+    }
+
+    public void Kicker(float x0, float y0, float len, float angle)
+    {
+        float a = angle * Mathf.Deg2Rad;
+        var p = new Vector2(x0 + Mathf.Cos(a) * len / 2, y0 + Mathf.Sin(a) * len / 2);
+        var go = Go("kicker", p, angle);
+        Gfx.Quad(go.transform, new Vector2(0, .5f), new Vector2(len + 1f, 1.8f), new Color(1f, .7f, .2f, .3f), 1, Gfx.Glow);
+        Gfx.Slab(go.transform, Vector2.zero, new Vector2(len, .3f), new Color32(255, 170, 40, 255), 3);
+        for (int i = 0; i < 3; i++)
+            Gfx.Quad(go.transform, new Vector2(-len * .3f + i * len * .3f, .35f), new Vector2(.4f, .2f), new Color(1f, .95f, .6f, .9f), 4, Gfx.Tri).transform.localRotation = Quaternion.Euler(0, 0, -90);
+        var c = go.AddComponent<BoxCollider2D>();
+        c.size = new Vector2(len, .3f);
+        c.sharedMaterial = Mat(ref trampMat, .4f, 0f);
+        AddTile(go, TileKind.Tramp).extreme = true;
+        Grow(p, 2f);
     }
 
     public void Turret(float x, float y, Vector2 dir, float period, float delay = 0f)
@@ -465,8 +520,9 @@ public class LevelBuilder
         AddTile(go, TileKind.GravZone).dir = dir;
     }
 
-    public void Loop(float x, float railY, float r, int dir = 1)
+    public void Loop(float x, float railY, float r, int dir = 1, float ry = 0f, int turns = 1, float shift = LoopShift)
     {
+        if (ry <= 0) ry = r;
         var go = Go("loop", new Vector2(x, railY + .5f));
         var c = go.AddComponent<BoxCollider2D>();
         c.size = new Vector2(.6f, 1.2f);
@@ -474,12 +530,16 @@ public class LevelBuilder
         var t = AddTile(go, TileKind.Loop);
         t.dir = dir;
         t.loopR = r;
-        Vector2 center = new Vector2(x, railY + .5f + r);
-        var pts = new Vector3[49];
+        t.loopRy = ry;
+        t.loopTurns = turns;
+        t.loopShift = shift;
+        Vector2 center = new Vector2(x, railY + .5f + ry);
+        int m = 48 * turns;
+        var pts = new Vector3[m + 1];
         for (int i = 0; i < pts.Length; i++)
         {
             float th = i / 48f * 2 * Mathf.PI;
-            Vector2 p = center + new Vector2(dir * Mathf.Sin(th), -Mathf.Cos(th)) * (r + .58f) + new Vector2(dir * LoopShift * th / (2 * Mathf.PI), 0);
+            Vector2 p = center + new Vector2(dir * Mathf.Sin(th) * (r + .58f), -Mathf.Cos(th) * (ry + .58f)) + new Vector2(dir * shift * th / (2 * Mathf.PI), 0);
             pts[i] = p;
             Grow(p, 1f);
         }

@@ -14,6 +14,7 @@ A minimal physics game in **Unity 2022.3 (WebGL)**. You roll a glossy ball acros
 - **Ball states:** each ability swaps the ball's sprite. The sprites are cut from our own concept art.
 - **10 levels:** you can pick any of them from the menu. Levels 1–5 use 2 abilities besides jump; levels 6–10 use 3, including SLAM and HOVER.
 - **Levels 6–9:** trampolines, gravity-flip fields, glass floors to slam through, loop-the-loop rails and a different mix of rail shapes in every finale.
+- **More traps:** blue blasters whose shots ricochet and knock you back (some swivel), cyan frost lines that freeze you for 3 s of drifting, orange speed kickers over chasms, tilted green pads, and loops of different shapes (tall, flat, double corkscrew). Level endings vary: rail runs, tube drops, pad hops, loop dives.
 - **Boss 2 (level 10):** a new arena with springs and a U-rail. The rival fires homing orbs, bullet rings and quake shockwaves.
 - **Lasers:** red lasers cost a life, blue lasers only push you back.
 - **Boss:** a single fixed screen with 4 lives each. Ram the red ball to take one of its lives. It fights back by shooting, dashing, growing and teleporting.

@@ -26,7 +26,7 @@ public class Ball : MonoBehaviour
     public float iceT;
     public float slamCd, hoverCd, hoverT;
     public bool slamming, looping;
-    float loopTheta, loopSpeed, loopR, loopCd;
+    float loopTheta, loopSpeed, loopR, loopRy, loopShift, loopEnd, loopCd, freezeT, freezeCd;
     Vector2 loopC;
     int loopDir = 1;
     Vector2 iceTan = Vector2.right;
@@ -104,7 +104,7 @@ public class Ball : MonoBehaviour
         float dt = Time.deltaTime;
         dashCd -= dt; teleCd -= dt; parryCd -= dt; camoCd -= dt; flipCd -= dt;
         stunT -= dt; flashT -= dt; healT -= dt; hurtInvT -= dt; parryT -= dt; railT -= dt;
-        jumpBuffer -= dt; pushT -= dt; slamCd -= dt; hoverCd -= dt; loopCd -= dt;
+        jumpBuffer -= dt; pushT -= dt; slamCd -= dt; hoverCd -= dt; loopCd -= dt; freezeCd -= dt;
         if (camoT > 0) camoT -= dt;
 
         if (!controlLocked && stunT <= 0 && iceT <= 0 && !looping)
@@ -150,6 +150,12 @@ public class Ball : MonoBehaviour
         if (grounded && !climbing) climbStamina = Mathf.MoveTowards(climbStamina, ClimbMax, fdt * 2f);
         onRail = railT > 0;
         iceT -= fdt;
+        if (freezeT > 0)
+        {
+            freezeT -= fdt;
+            iceT = .05f;
+            if (freezeT <= 0) { freezeCd = .6f; Fx.Burst(rb.position, Color.white, 12, 5f, .14f, 0f, .4f); Sfx.Play("shrink", .5f); }
+        }
         if (grounded || climbing) flipReady = true;
 
         Vector2 inp = InputDir();
@@ -172,7 +178,7 @@ public class Ball : MonoBehaviour
         else if (iceT > 0)
         {
             float along = Vector2.Dot(rb.velocity, iceTan);
-            rb.velocity += iceTan * (Mathf.Max(along, 9f) - along);
+            rb.velocity += iceTan * (Mathf.Max(along, freezeT > 0 ? 7f : 9f) - along);
             rb.angularVelocity = 0;
             if (Random.value < .3f) Fx.Burst(rb.position - Up * r, new Color(.8f, .95f, 1f), 1, 2f, .1f, 0f, .3f);
         }
@@ -443,7 +449,10 @@ public class Ball : MonoBehaviour
         dashT = 0;
         loopDir = t.dir;
         loopR = t.loopR;
-        loopC = (Vector2)t.transform.position + Vector2.up * loopR;
+        loopRy = t.loopRy > 0 ? t.loopRy : t.loopR;
+        loopShift = t.loopShift;
+        loopEnd = 2 * Mathf.PI * Mathf.Max(1, t.loopTurns);
+        loopC = (Vector2)t.transform.position + Vector2.up * loopRy;
         loopTheta = 0;
         loopSpeed = Mathf.Clamp(rb.velocity.magnitude, 11f, 18f);
         rb.velocity = Vector2.zero;
@@ -454,15 +463,15 @@ public class Ball : MonoBehaviour
     }
 
     Vector2 LoopPoint(float th) =>
-        loopC + new Vector2(loopDir * Mathf.Sin(th), -Mathf.Cos(th)) * loopR + new Vector2(loopDir * LevelBuilder.LoopShift * th / (2 * Mathf.PI), 0);
+        loopC + new Vector2(loopDir * Mathf.Sin(th) * loopR, -Mathf.Cos(th) * loopRy) + new Vector2(loopDir * loopShift * th / (2 * Mathf.PI), 0);
 
     void LoopStep(float fdt)
     {
-        loopTheta += loopSpeed / loopR * fdt;
-        if (loopTheta >= 2 * Mathf.PI)
+        loopTheta += loopSpeed / ((loopR + loopRy) * .5f) * fdt;
+        if (loopTheta >= loopEnd)
         {
             EndLoop();
-            Vector2 p = LoopPoint(2 * Mathf.PI);
+            Vector2 p = LoopPoint(loopEnd);
             rb.position = p;
             transform.position = p;
             rb.velocity = new Vector2(loopDir * loopSpeed, 0);
@@ -503,6 +512,32 @@ public class Ball : MonoBehaviour
     {
         flashState = state;
         flashT = t;
+    }
+
+    public void Knock(Vector2 dir)
+    {
+        if (dead || evolving || looping) return;
+        freezeT = 0;
+        rb.velocity = dir * 13f + Up * 3f;
+        stunT = .3f;
+        squash = new Vector2(1.3f, .75f);
+        Fx.AddShake(.2f);
+        Fx.Ring(rb.position, new Color(.4f, .65f, 1f), 1.3f);
+        Sfx.Play("bounce", .7f);
+    }
+
+    void Freeze()
+    {
+        if (freezeT > 0 || freezeCd > 0 || looping) return;
+        freezeT = 3f;
+        float s = Mathf.Abs(rb.velocity.x) > .5f ? Mathf.Sign(rb.velocity.x) : facing;
+        iceTan = new Vector2(s, 0);
+        dashT = 0;
+        EndHover();
+        if (crouching && RoomFor(RNormal)) { crouching = false; SetRadius(RNormal); }
+        Fx.Ring(rb.position, new Color(.6f, 1f, 1f), 1.6f);
+        Fx.Burst(rb.position, Color.white, 16, 5f, .14f, 0f, .5f);
+        Sfx.Play("land", .6f);
     }
 
     public void Hurt(Vector2 from)
@@ -561,6 +596,7 @@ public class Ball : MonoBehaviour
         gravDir = 1f;
         flipReady = true;
         iceT = 0;
+        freezeT = 0;
         rb.mass = 1f;
         rb.gravityScale = G;
         col.sharedMaterial = normalMat;
@@ -608,6 +644,8 @@ public class Ball : MonoBehaviour
     {
         if (dead || evolving) return;
         float impact = c.relativeVelocity.magnitude;
+        var tur = c.collider.GetComponent<Turret>();
+        if (tur != null && tur.blue) { Knock(c.GetContact(0).normal); return; }
         Vector2 normal = c.GetContact(0).normal;
         var tile = c.collider.GetComponent<Tile>();
         if (tile != null)
@@ -644,6 +682,19 @@ public class Ball : MonoBehaviour
                     IceContact(tile, normal);
                     break;
                 case TileKind.Tramp:
+                    if (tile.extreme && Vector2.Dot(normal, tile.transform.up) > .5f)
+                    {
+                        float sp = Mathf.Clamp(lastVel.magnitude * 1.45f, 8f, 28f);
+                        float side = lastVel.x >= 0 ? 1 : -1;
+                        rb.velocity = new Vector2(side * .72f, .7f).normalized * sp;
+                        squash = new Vector2(.6f, 1.5f);
+                        Flash("bounce", .5f);
+                        Sfx.Play("bounce");
+                        Fx.Burst(c.GetContact(0).point, new Color(1f, .7f, .2f), 18, 9f, .16f);
+                        Fx.Ring(c.GetContact(0).point, new Color(1f, .7f, .2f), 2f);
+                        Fx.AddShake(.2f);
+                        return;
+                    }
                     if (normal.y > .5f)
                     {
                         float v = Mathf.Max(Mathf.Abs(lastVel.y) * 1.1f, 15f);
@@ -748,7 +799,8 @@ public class Ball : MonoBehaviour
                 break;
             case TileKind.Gate:
                 if (!t.GateLive) break;
-                if (t.push) Push(other.transform.position.x);
+                if (t.freeze) Freeze();
+                else if (t.push) Push(other.transform.position.x);
                 else Hurt(new Vector2(other.transform.position.x, rb.position.y));
                 break;
             case TileKind.GravZone:

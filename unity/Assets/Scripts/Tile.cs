@@ -9,7 +9,9 @@ public class Tile : MonoBehaviour
     public SpriteRenderer art;
     public Tile linked;
     public int dir = 1;
-    public float loopR;
+    public float loopR, loopRy, loopShift;
+    public int loopTurns = 1;
+    public bool extreme, freeze;
     public SpriteRenderer glow;
     public bool push;
     public float gateOn = 1.4f, gateOff = 1.3f, gateShift;
