@@ -476,13 +476,26 @@ public class GM : MonoBehaviour
         }
     }
 
+    static readonly (string sprite, string label)[] TitleForms =
+    {
+        ("idle", "ROLL"), ("bounce", "JUMP"), ("dash", "DASH"), ("crouch", "CROUCH"), ("grow", "GROW"),
+        ("reverse", "REVERSE"), ("spin", "SLAM"), ("freeze", "HOVER"), ("heal", "HEAL"), ("evolve", "EVOLVE"),
+    };
+
     void DrawTitle(float W, float H, float u, Color ink)
     {
         Box(new Rect(0, 0, W, H), new Color(1, 1, 1, .72f));
         Text(new Rect(0, H * .12f, W, 100 * u), "SKYROLL", hero, ink, (int)(92 * u));
         Text(new Rect(0, H * .12f + 96 * u, W, 30 * u), "roll  ·  jump  ·  fly", body, new Color(ink.r, ink.g, ink.b, .5f), (int)(20 * u));
         float bob = Mathf.Sin(uiT * 2.5f) * 6 * u;
-        Icon(new Rect(W / 2 - 40 * u, H * .305f + bob, 80 * u, 80 * u), "idle");
+        int n = TitleForms.Length, cur = (int)(uiT / 3f) % n, prev = (cur + n - 1) % n;
+        float k = uiT < 3f ? 1f : Mathf.SmoothStep(0, 1, Mathf.Clamp01((uiT % 3f) / .6f));
+        float pop = 1f + (1f - k) * .15f;
+        var ir = new Rect(W / 2 - 40 * u * pop, H * .305f + bob - 40 * u * (pop - 1), 80 * u * pop, 80 * u * pop);
+        if (k < 1f) Icon(ir, TitleForms[prev].sprite, 1f - k);
+        Icon(ir, TitleForms[cur].sprite, k);
+        if (k < 1f) Text(new Rect(0, H * .305f + 82 * u, W, 24 * u), TitleForms[prev].label, h1, new Color(ink.r, ink.g, ink.b, .55f * (1f - k)), (int)(15 * u));
+        Text(new Rect(0, H * .305f + 82 * u, W, 24 * u), TitleForms[cur].label, h1, new Color(ink.r, ink.g, ink.b, .55f * k), (int)(15 * u));
         var mp = MouseGui;
         for (int i = 0; i < Levels.All.Length; i++)
         {
