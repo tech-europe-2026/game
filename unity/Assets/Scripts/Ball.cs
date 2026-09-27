@@ -18,7 +18,7 @@ public class Ball : MonoBehaviour
 
     public int hearts = MaxHearts;
     public static Rect squeezeZone;
-    float squeezeSpeed;
+    float squeezeSpeed, squeezeY;
     public bool grown, crouching, dead, controlLocked, climbing, onRail, evolving;
     public float dashCd, teleCd, parryCd, camoCd, flipCd;
     public float camoT, parryT, stunT, dashT, flashT, healT, hurtInvT;
@@ -202,8 +202,14 @@ public class Ball : MonoBehaviour
             if (squeezeZone.Contains(rb.position))
             {
                 float sp = rb.velocity.magnitude;
-                if (inp.x == 0 && sp > .5f) rb.velocity *= Mathf.Max(sp, squeezeSpeed * .985f, 5f) / sp;
-                squeezeSpeed = Mathf.Min(rb.velocity.magnitude, 12f);
+                if (squeezeSpeed > 0 && inp.x == 0 && sp > .5f)
+                {
+                    float e = squeezeSpeed * squeezeSpeed + 2f * Physics2D.gravity.magnitude * G * (squeezeY - rb.position.y) * gravDir;
+                    float want = Mathf.Sqrt(Mathf.Max(0f, e)) * .995f;
+                    if (sp < want) rb.velocity *= want / sp;
+                }
+                squeezeSpeed = rb.velocity.magnitude;
+                squeezeY = rb.position.y;
             }
             else squeezeSpeed = 0f;
         }
@@ -798,7 +804,7 @@ public class Ball : MonoBehaviour
             var cp = c.GetContact(0);
             Vector2 tangent = new Vector2(-cp.normal.y, cp.normal.x);
             float s = Vector2.Dot(rb.velocity, tangent);
-            if (Mathf.Abs(s) > 1f) rb.AddForce(tangent * Mathf.Sign(s) * (tube ? 13f : 9f) * rb.mass);
+            if (Mathf.Abs(s) > 1f && !(tube && squeezeZone.Contains(rb.position))) rb.AddForce(tangent * Mathf.Sign(s) * (tube ? 13f : 9f) * rb.mass);
             if (Random.value < .35f) Fx.Burst(cp.point, tube ? Color.white : Gfx.Gold, 1, 3f, .1f, 8f, .25f);
         }
         else if (tile.kind == TileKind.Ice) IceContact(tile, c.GetContact(0).normal);
