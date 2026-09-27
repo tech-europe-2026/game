@@ -157,9 +157,10 @@ public class LevelBuilder
     }
 
     // Short transparent glass tube the ball rolls through; pts trace its centreline.
-    public GameObject Tube(params Vector2[] pts)
+    public GameObject Tube(params Vector2[] pts) => TubeR(.78f, pts);
+
+    public GameObject TubeR(float R, params Vector2[] pts)
     {
-        const float R = .78f;
         var go = Go("tube", Vector2.zero);
         var mid = Smooth(pts);
         int n = mid.Count;
@@ -387,7 +388,7 @@ public class LevelBuilder
         return t;
     }
 
-    public void Frost(float x, float y0, float y1, float shift = 0f, bool pulse = false)
+    public void Frost(float x, float y0, float y1, float shift = 0f)
     {
         float h = y1 - y0;
         var go = Go("frost", new Vector2(x, (y0 + y1) / 2));
@@ -395,7 +396,8 @@ public class LevelBuilder
         var t = AddTile(go, TileKind.Gate);
         t.freeze = true;
         t.gateShift = shift;
-        if (!pulse) { t.gateOn = 1e6f; t.gateOff = 0f; }
+        t.gateOn = 3f;
+        t.gateOff = 3f;
         t.glow = Gfx.Quad(go.transform, Vector2.zero, new Vector2(1.4f, h + .6f), new Color(col.r, col.g, col.b, .3f), 5, Gfx.Glow);
         t.art = Gfx.Quad(go.transform, Vector2.zero, new Vector2(.18f, h), col, 6);
         for (float yy = -h / 2 + .4f; yy < h / 2; yy += .8f)
@@ -405,6 +407,37 @@ public class LevelBuilder
         var c = go.AddComponent<BoxCollider2D>();
         c.isTrigger = true;
         c.size = new Vector2(.3f, h);
+    }
+
+    public void Cover(float x, float y, float w, float h, string text)
+    {
+        var go = Go("cover", new Vector2(x, y));
+        Gfx.Slab(go.transform, new Vector2(0, -.15f), new Vector2(w, h), new Color(.1f, .12f, .28f, 1f), 40);
+        Gfx.Slab(go.transform, Vector2.zero, new Vector2(w, h), new Color(.2f, .22f, .45f, 1f), 41);
+        for (int i = 0; i < 14; i++)
+            Gfx.Quad(go.transform, new Vector2(Random.Range(-w / 2 + .5f, w / 2 - .5f), Random.Range(-h / 2 + .5f, h / 2 - .5f)), Vector2.one * Random.Range(.12f, .3f), new Color(1, 1, 1, .35f), 42, Gfx.Circle);
+        Label(x, y + h / 2 + 3.2f, text);
+    }
+
+    public void Void(float x, float y, float w, float h)
+    {
+        var go = Go("void", new Vector2(x, y));
+        var c = go.AddComponent<BoxCollider2D>();
+        c.size = new Vector2(w, h);
+        c.isTrigger = true;
+        AddTile(go, TileKind.Void);
+    }
+
+    public void PhaseWall(float x, float y, float w, float h)
+    {
+        var go = Go("phase", new Vector2(x, y));
+        Gfx.Slab(go.transform, Vector2.zero, new Vector2(w, h), new Color(.7f, .45f, 1f, .45f), 3);
+        for (float yy = -h / 2 + .3f; yy < h / 2; yy += .6f)
+            Gfx.Quad(go.transform, new Vector2(0, yy), new Vector2(w * .8f, .12f), new Color(1f, .85f, 1f, .7f), 4);
+        var c = go.AddComponent<BoxCollider2D>();
+        c.size = new Vector2(w, h);
+        AddTile(go, TileKind.Phase);
+        Grow(new Vector2(x, y), h);
     }
 
     public void Blaster(float x, float y, Vector2 dir, float period, float delay = 0f, float sweep = 0f)
@@ -547,10 +580,12 @@ public class LevelBuilder
         Line(go, pts, .14f, Gfx.Gold, 4);
     }
 
-    public global::Boss Rival(float x, float y, Vector2 arenaMin, Vector2 arenaMax, int tier = 0)
+    public global::Boss Rival(float x, float y, Vector2 arenaMin, Vector2 arenaMax, int tier = 0, float pitL = 0f, float pitR = 0f)
     {
         var b = global::Boss.Create(new Vector2(x, y), root);
         b.tier = tier;
+        b.pitL = pitL;
+        b.pitR = pitR;
         b.arenaMin = arenaMin;
         b.arenaMax = arenaMax;
         return b;

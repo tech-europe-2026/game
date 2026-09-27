@@ -45,7 +45,8 @@ public class GM : MonoBehaviour
         new Ability("reverse", "reverse", "E", "REVERSE"),
         new Ability("climb", "climb", "HOLD C", "CLIMB"),
         new Ability("grow", "grow", "G", "GROW"),
-        new Ability("parry", "parry", "Q", "PARRY"),
+        new Ability("parry", "parry", "J", "SHIELD"),
+        new Ability("phase", "camouflage", "V", "PHASE"),
         new Ability("teleport", "teleport", "T", "BLINK"),
         new Ability("camo", "camouflage", "V", "CAMO"),
     };
@@ -142,8 +143,8 @@ public class GM : MonoBehaviour
     {
         float W = Screen.width, H = Screen.height, u = H / 720f;
         int n = 5, row = i / n, col = i % n;
-        float cw = Mathf.Min(190 * u, (W - 60 * u) / n - 14 * u), gap = 14 * u, total = n * cw + (n - 1) * gap;
-        return new Rect((W - total) / 2 + col * (cw + gap), H * .46f + row * 124 * u, cw, 110 * u);
+        float cw = Mathf.Min(190 * u, (W - 60 * u) / n - 14 * u), gap = 12 * u, total = n * cw + (n - 1) * gap;
+        return new Rect((W - total) / 2 + col * (cw + gap), H * .43f + row * 100 * u, cw, 90 * u);
     }
 
     Rect MusicRect { get { float u = Screen.height / 720f; return new Rect(Screen.width - 160 * u, 98 * u, 76 * u, 40 * u); } }
@@ -177,7 +178,8 @@ public class GM : MonoBehaviour
                 if (!ball.dead)
                 {
                     float y = ball.rb.position.y;
-                    if (y < level.min.y - 9f || y > level.max.y + 9f) ball.Die();
+                    if (Levels.All[levelIndex].pit && y < level.min.y - 2f) ball.PitFall(Levels.All[levelIndex].camMin + new Vector2(3f, 2f));
+                    else if (y < level.min.y - 9f || y > level.max.y + 9f) ball.Die();
                 }
                 if (Input.GetKeyDown(KeyCode.Escape) || Input.GetKeyDown(KeyCode.L) || (click && MenuRect.Contains(MouseGui))) { ToMenu(); break; }
                 if (Input.GetKeyDown(KeyCode.R) || Controls.Pressed("restart")) LoadLevel(levelIndex);
@@ -201,7 +203,7 @@ public class GM : MonoBehaviour
     {
         mode = Mode.LevelDone;
         doneTitle = "RED WINS";
-        doneSub = levelIndex == 4 ? "try again · dash into it from the side" : "try again · slam it from above, jump the shockwaves";
+        doneSub = levelIndex == 4 ? "try again · dash into it from the side" : levelIndex == 9 ? "try again · slam it from above, jump the shockwaves" : "try again · shield the blue shots, stay off the edge";
         yield return new WaitForSeconds(2.2f);
         doneTitle = "EVOLVED";
         doneSub = null;
@@ -374,6 +376,7 @@ public class GM : MonoBehaviour
             case "teleport": return Mathf.Clamp01(ball.teleCd / Ball.TeleCd);
             case "parry": return Mathf.Clamp01(ball.parryCd / Ball.ParryCd);
             case "camo": return Mathf.Clamp01(ball.camoCd / Ball.CamoCd);
+            case "phase": return Mathf.Clamp01(ball.phaseCd / Ball.PhaseCd);
             case "reverse": return ball.flipReady ? Mathf.Clamp01(ball.flipCd / Ball.FlipCd) : 1f;
             case "climb": return 1f - Mathf.Clamp01(ball.climbStamina / Ball.ClimbMax);
             default: return 0f;
@@ -505,8 +508,8 @@ public class GM : MonoBehaviour
             if (on) cr = new Rect(cr.x - 3 * u, cr.y - 5 * u, cr.width + 6 * u, cr.height + 6 * u);
             Pill(cr, on ? ink : new Color(1, 1, 1, .9f));
             var tc = on ? Color.white : ink;
-            Text(new Rect(cr.x, cr.y + 20 * u, cr.width, 40 * u), (i + 1).ToString(), hero, tc, (int)(30 * u));
-            Text(new Rect(cr.x, cr.y + 62 * u, cr.width, 26 * u), d.name, h1, new Color(tc.r, tc.g, tc.b, .85f), (int)(13 * u));
+            Text(new Rect(cr.x, cr.y + 12 * u, cr.width, 36 * u), (i + 1).ToString(), hero, tc, (int)(26 * u));
+            Text(new Rect(cr.x, cr.y + 48 * u, cr.width, 26 * u), d.name, h1, new Color(tc.r, tc.g, tc.b, .85f), (int)(13 * u));
         }
         Text(new Rect(0, H - 52 * u, W, 30 * u), Controls.Touch ? "tap a level" : "click a level  ·  1-9, 0", body, new Color(ink.r, ink.g, ink.b, .45f), (int)(16 * u));
     }

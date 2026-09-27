@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public enum TileKind { Solid, Rail, Shard, Spinner, Gate, Orb, Check, Goal, Pad, Glass, Crystal, Door, Ice, Tube, Tramp, GravZone, Loop }
+public enum TileKind { Solid, Rail, Shard, Spinner, Gate, Orb, Check, Goal, Pad, Glass, Crystal, Door, Ice, Tube, Tramp, GravZone, Loop, Phase, Void }
 
 public class Tile : MonoBehaviour
 {

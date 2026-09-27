@@ -18,11 +18,12 @@ public class Controls : MonoBehaviour
         { "teleport", new[] { KeyCode.T } },
         { "parry", new[] { KeyCode.J } },
         { "camo", new[] { KeyCode.V } },
+        { "phase", new[] { KeyCode.V } },
         { "reverse", new[] { KeyCode.E } },
         { "climb", new[] { KeyCode.C, KeyCode.L } },
     };
 
-    public static readonly string[] TouchButtons = { "crouch", "dash", "reverse", "slam", "hover", "climb", "grow", "parry", "teleport", "camo" };
+    public static readonly string[] TouchButtons = { "crouch", "dash", "reverse", "slam", "hover", "climb", "grow", "parry", "phase", "teleport", "camo" };
 
     public struct Button
     {

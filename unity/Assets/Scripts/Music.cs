@@ -29,8 +29,13 @@ public static class Music
         new[] { new[] { -5, -1, 2, 7 }, new[] { -9, -5, -2, 2 }, new[] { -2, 2, 5, 10 }, new[] { -7, -3, 0, 5 } },         // E C A D
         new[] { new[] { -10, -6, -3, 2 }, new[] { -14, -10, -7, -2 }, new[] { -9, -5, -2, 3 }, new[] { -12, -8, -5, 0 } }, // B7-ish G C A
         new[] { new[] { -14, -11, -7, -2 }, new[] { -18, -14, -11, -6 }, new[] { -21, -18, -14, -9 }, new[] { -19, -15, -12, -7 } }, // Gm Eb C D
+        new[] { new[] { -9, -5, -2, 2 }, new[] { -12, -8, -5, 0 }, new[] { -7, -3, 0, 4 }, new[] { -14, -10, -7, -2 } },
+        new[] { new[] { -16, -12, -9, -4 }, new[] { -11, -7, -4, 1 }, new[] { -14, -11, -7, -2 }, new[] { -9, -6, -2, 3 } },
+        new[] { new[] { -12, -8, -5, -1 }, new[] { -10, -7, -3, 2 }, new[] { -15, -12, -8, -3 }, new[] { -17, -13, -10, -5 } },
+        new[] { new[] { -7, -3, 0, 5 }, new[] { -10, -6, -3, 2 }, new[] { -5, -1, 2, 7 }, new[] { -12, -9, -5, 0 } },
+        new[] { new[] { -15, -12, -8, -3 }, new[] { -19, -15, -12, -7 }, new[] { -17, -14, -10, -5 }, new[] { -20, -17, -13, -8 } },
     };
-    static readonly float[] ChordLen = { 3.4f, 3.8f, 4f, 3.2f, 2.6f, 3.6f, 4.2f, 3f, 2.8f, 2.4f };
+    static readonly float[] ChordLen = { 3.4f, 3.8f, 4f, 3.2f, 2.6f, 3.6f, 4.2f, 3f, 2.8f, 2.4f, 3.3f, 3.9f, 3.1f, 2.9f, 2.2f };
     static readonly int[] Arp = { 0, 2, 1, 3, 2, 1, 3, 2 };
 
     public static void Init(GameObject host)
@@ -68,7 +73,7 @@ public static class Music
         float cl = ChordLen[level];
         int total = Mathf.CeilToInt(song.Length * cl * Rate);
         var buf = new float[total];
-        bool boss = level == 4 || level == 9;
+        bool boss = level == 4 || level == 9 || level == 14;
         for (int c = 0; c < song.Length; c++)
         {
             int start = Mathf.RoundToInt(c * cl * Rate);

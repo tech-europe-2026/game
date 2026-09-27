@@ -9,6 +9,7 @@ public static class Levels
         public bool boss;
         public Color top, mid, bottom;
         public Vector2 camMin, camMax;
+        public bool pit;
         public Action<LevelBuilder> build;
     }
 
@@ -27,6 +28,11 @@ public static class Levels
         new Level { name = "GLASSWORKS", unlock = "jump,hover,grow,slam", build = Glassworks, top = C(70, 180, 190), mid = C(170, 225, 245), bottom = C(245, 235, 255) },
         new Level { name = "SKY RUSH", unlock = "jump,dash,hover,reverse", build = SkyRush, top = C(255, 140, 90), mid = C(255, 190, 150), bottom = C(200, 220, 255) },
         new Level { name = "RED STORM", unlock = "jump,dash,slam,hover", boss = true, camMin = V(-11, -4.7f), camMax = V(11, 6.3f), build = RedStorm, top = C(40, 30, 80), mid = C(120, 70, 150), bottom = C(255, 120, 140) },
+        new Level { name = "BOUNCE HOUSE", unlock = "jump,crouch,slam,dash", build = BounceHouse, top = C(250, 110, 170), mid = C(255, 180, 200), bottom = C(255, 230, 190) },
+        new Level { name = "BLIND DROP", unlock = "jump,crouch,parry,hover", build = BlindDrop, top = C(60, 80, 160), mid = C(130, 150, 220), bottom = C(220, 210, 250) },
+        new Level { name = "GHOST LINE", unlock = "jump,phase,dash,reverse", build = GhostLine, top = C(110, 70, 190), mid = C(190, 150, 240), bottom = C(240, 220, 255) },
+        new Level { name = "SKYFALL", unlock = "jump,hover,slam,parry", build = Skyfall, top = C(40, 130, 200), mid = C(140, 200, 240), bottom = C(255, 225, 200) },
+        new Level { name = "CRIMSON RIFT", unlock = "jump,dash,slam,parry", boss = true, pit = true, camMin = V(-11, -4.7f), camMax = V(11, 6.3f), build = CrimsonRift, top = C(30, 15, 40), mid = C(110, 40, 80), bottom = C(255, 110, 90) },
     };
 
     // Each finale strings three different rail shapes together; the style picks which three.
@@ -407,6 +413,7 @@ public static class Levels
         b.Plat(148, 2.4f, 12);
         b.Plat(147, 6.4f, 10);
         b.Blaster(150, 4.35f, V(-1, -.7f), 1.4f);
+        b.Blaster(144.5f, 5.45f, V(-1, -1), 1.7f, .7f);
         b.Label(143, 8.6f, "blue shots ricochet and knock you back · S to slip under|CROUCH to slip under the blue blaster");
         b.Check(155, 3.8f);
         SpeedKick(b, 154.3f, 2.4f, true);
@@ -550,7 +557,7 @@ public static class Levels
         b.Check(144, -2.1f);
         b.Tube(V(146.9f, -2.37f), V(150, -2.4f), V(152.5f, -4), V(155, -2.4f), V(157.5f, -4), V(160, -2.4f), V(162.5f, -3.9f), V(165.2f, -3.37f));
         b.Plat(169, -4.5f, 8);
-        b.Frost(170, -4.15f, -.5f, 0, true);
+        b.Frost(170, -4.15f, -.5f);
         b.Label(170, -1.5f, "wait for the frost to fade, then jump");
         b.Plat(183, -4.5f, 12);
         b.Check(179, -3.1f);
@@ -571,10 +578,184 @@ public static class Levels
         b.Plat(0, 6, 21.6f, .6f);
         b.Tramp(-7.5f, -3.5f, 2.2f);
         b.Tramp(7.5f, -3.5f, 2.2f);
-        b.Plat(-8.3f, 1.6f, 3);
-        b.Plat(8.3f, 1.6f, 3);
-        b.Rail(true, V(-6.7f, 2.2f), V(0, .2f), V(6.7f, 2.2f));
+        b.Mover(-8, 1.6f, 2.4f, 0, 1.6f, 4.5f);
+        b.Mover(8, 1.6f, 2.4f, 0, 1.6f, 4.5f, .5f);
+        b.Rail(true, V(-5.2f, 2.2f), V(0, .4f), V(5.2f, 2.2f));
         b.Label(0, 4.3f, "slam it from above · jump the shockwaves");
         b.Rival(4, -2.5f, new Vector2(-10, -3.65f), new Vector2(10, 5.5f), 1);
+    }
+
+    // springs over the void; spikes above punish bouncing too high (S = soft, F = super)
+    static Vector2 TrampChain(LevelBuilder b, float x, float py, int variant)
+    {
+        var pads = variant == 0
+            ? new[] { V(4, -3), V(10, -2), V(16, -3.5f), V(22, -1.5f) }
+            : new[] { V(4, -2.5f), V(9.5f, -4), V(15, -1.5f), V(20.5f, -3), V(25.5f, -2) };
+        for (int i = 0; i < pads.Length; i++)
+        {
+            b.Tramp(x + pads[i].x, py + pads[i].y, 2.4f);
+            if ((variant == 0 && (i == 1 || i == 2)) || (variant == 1 && (i == 0 || i == 3)))
+            {
+                float cy = py + pads[i].y + 5.6f;
+                b.Plat(x + pads[i].x, cy + .2f, 3, .4f);
+                b.Shards(x + pads[i].x, cy, 4, 180);
+            }
+            b.Orb(x + pads[i].x, py + pads[i].y + 3);
+        }
+        float end = x + pads[pads.Length - 1].x + 7;
+        b.Plat(end, py, 6);
+        b.Check(end, py + 1.4f);
+        return V(end + 3, py);
+    }
+
+    // three hidden squeeze tubes fall through a dark block; only one exit is safe
+    static Vector2 Maze(LevelBuilder b, float x0, float top, int safe)
+    {
+        float[] wig = { 1.2f, -1.1f, 1f };
+        for (int i = 0; i < 3; i++)
+        {
+            float mx = x0 + 2 + 4 * i, w = wig[i] * (i == 1 ? -1 : 1);
+            b.TubeR(.45f, V(mx, top), V(mx, top - 2), V(mx + w, top - 4.5f), V(mx - w, top - 7), V(mx + w * .8f, top - 9.5f), V(mx, top - 12.2f));
+            if (i != safe) b.Void(mx, top - 11.3f, 1.2f, 1.2f);
+            b.Label(mx, top + 1.3f, (i + 1).ToString());
+        }
+        float yc = top - .35f;
+        b.Plat(x0 - 1.5f, yc, 5.1f);
+        b.Plat(x0 + 4, yc, 3.1f);
+        b.Plat(x0 + 8, yc, 3.1f);
+        b.Plat(x0 + 11.7f, yc, 2.5f);
+        b.Plat(x0 + 13.2f, yc + 2, .7f, 4.6f);
+        b.Cover(x0 + 6, top - 8.4f, 14, 16, "one tube is safe · S to squeeze in|one tube is safe · CROUCH to squeeze in");
+        b.Ramp(x0 - 1, top - 14.2f, x0 + 15, top - 15.7f);
+        b.Plat(x0 + 19, top - 15.85f, 8);
+        b.Check(x0 + 18, top - 14.4f);
+        return V(x0 + 23, top - 15.85f);
+    }
+
+    // BOUNCE HOUSE: trampoline chains with spike ceilings, blaster crossfire, frost drop.
+    static void BounceHouse(LevelBuilder b)
+    {
+        b.Start(0, 1);
+        b.Plat(3, 0, 12);
+        b.Label(4, 3, "springs! S = soft bounce · F = super bounce|CROUCH = soft bounce · SLAM = super bounce");
+        var e = TrampChain(b, 9.3f, 0, 0);
+        b.Plat(e.x + 8, e.y, 16);
+        b.Plat(e.x + 8, e.y + 6.8f, 16);
+        b.Blaster(e.x + 5, e.y + 4.6f, V(-1, -1), 1.2f);
+        b.Blaster(e.x + 9, e.y + 5.2f, V(-.3f, -1), 1.5f, .5f);
+        b.Blaster(e.x + 13, e.y + 4.6f, V(-1, -.6f), 1f, .8f, 25);
+        b.Label(e.x + 8, e.y + 9, "crossfire · D dashes through|crossfire · DASH through");
+        var k = SpeedKick(b, e.x + 16.3f, e.y, false);
+        b.Plat(k.x + 5, k.y, 10);
+        b.Frost(k.x + 5, k.y + .35f, k.y + 4);
+        b.Tramp(k.x + 16, k.y - 1.5f, 3);
+        b.Plat(k.x + 23, k.y + 1.5f, 8);
+        b.Check(k.x + 22, k.y + 2.9f);
+        var t = TrampChain(b, k.x + 27.3f, k.y + 1.5f, 1);
+        FinaleLoop(b, t.x + .3f, t.y, 2.6f, 1.4f, 1, 2.2f);
+    }
+
+    // BLIND DROP: shield the blue shots, frost over a hover gap, a hidden three-tube maze.
+    static void BlindDrop(LevelBuilder b)
+    {
+        b.Start(0, 1);
+        b.Plat(3, 0, 12);
+        b.Label(4, 3, "J = shield · reflects shots|SHIELD reflects shots");
+        b.Plat(17, 0, 16);
+        b.Blaster(14, 5, V(-.3f, -1), 1.3f);
+        b.Blaster(19, 5.5f, V(-.6f, -1), 1.1f, .4f);
+        b.Blaster(24, 5, V(-1, -.8f), 1.5f, .8f, 20);
+        b.Plat(33, 0, 6);
+        b.Check(32, 1.4f);
+        b.Frost(33.5f, .35f, 4);
+        b.Label(39.5f, 4, "jump + Q hovers · frost fades every 3 s|jump + HOVER · frost fades every 3 s");
+        b.Plat(47, 0, 8);
+        b.Check(46, 1.4f);
+        var m = Maze(b, 55, .35f, 2);
+        b.Tube(V(m.x - .1f, m.y + 1.13f), V(m.x + 3, m.y + 1.1f), V(m.x + 5, m.y + 3), V(m.x + 7.5f, m.y + .2f), V(m.x + 10, m.y - 2), V(m.x + 13.2f, m.y - .87f));
+        b.Plat(m.x + 17, m.y - 2, 8);
+        b.Blaster(m.x + 17, m.y + 3.5f, V(-1, -1), 1.2f, 0, 40);
+        b.Check(m.x + 15, m.y - .6f);
+        RailRun(b, m.x + 21.3f, m.y - 2, 3);
+    }
+
+    // GHOST LINE: phase through purple walls, flip onto ceilings, mixed loop shapes.
+    static void GhostLine(LevelBuilder b)
+    {
+        b.Start(0, 1);
+        b.Plat(3, 0, 12);
+        b.Plat(15, 0, 14);
+        b.PhaseWall(16, 2.35f, .8f, 4);
+        b.Label(12, 4.5f, "V phases through purple walls|PHASE through purple walls");
+        b.GravZone(25, 3.5f, 3, 9, -1);
+        b.Plat(33, 7.5f, 12);
+        b.PhaseWall(35, 5.65f, .8f, 3);
+        b.Orbs(29, 6.4f, 38, 6.4f, 4);
+        b.GravZone(42, 3.5f, 3, 9, 1);
+        b.Plat(47, 0, 8);
+        b.Check(46, 1.4f);
+        b.Plat(60, 0, 14);
+        b.Frost(57, .35f, 4);
+        b.Blaster(62, 5, V(-1, -1), 1f);
+        b.Blaster(65, 4.5f, V(-1, -.5f), 1.3f, .6f);
+        b.PhaseWall(64, 2.35f, .8f, 4);
+        b.Check(55, 1.4f);
+        b.Rail(true, V(67.3f, .7f), V(71, -1.8f), V(95, -1.8f), V(98, -1));
+        b.Loop(76, -1.8f, 1.6f, 1, 2.6f, 1, 1.2f);
+        b.Loop(85, -1.8f, 2.6f, 1, 1.5f, 1, 2f);
+        b.Plat(102, -1.5f, 8);
+        b.Check(101, -.1f);
+        b.Tube(V(105.9f, -.37f), V(109, -.4f), V(111, 1.5f), V(113, -.4f), V(116, -2.4f), V(119.2f, -2.37f));
+        b.Plat(123, -3.5f, 8);
+        b.PhaseWall(124, -1.15f, .8f, 4);
+        SpeedKick(b, 127.3f, -3.5f, true);
+    }
+
+    // SKYFALL: slam-launch, down-firing blasters, mid-air frost, a vertical S tube, spring chain.
+    static void Skyfall(LevelBuilder b)
+    {
+        b.Start(0, 1);
+        b.Plat(3, 0, 12);
+        b.Label(4, 3, "jump + F on the spring to launch high|SLAM the spring to launch high");
+        b.Tramp(11.5f, -1.5f, 2.6f);
+        b.Plat(18, 7, 6);
+        b.Check(18, 8.4f);
+        b.Plat(29, 7, 12);
+        b.Blaster(26, 11, V(0, -1), 1.2f);
+        b.Blaster(30, 11.5f, V(0, -1), 1.2f, .4f);
+        b.Blaster(34, 11, V(-.5f, -1), 1f, .8f, 30);
+        b.Label(30, 13.5f, "J shields you from the blue rain|SHIELD from the blue rain");
+        b.Frost(38.5f, 6.5f, 11);
+        b.Label(38.5f, 13, "hover through when the frost is gone");
+        b.Plat(46, 7, 8);
+        b.Check(45, 8.4f);
+        b.Tube(V(49.9f, 8.13f), V(53, 8.1f), V(55, 5), V(53, 2), V(55, -1), V(58.2f, -1.87f));
+        b.Plat(62, -3, 8);
+        b.Check(61, -1.6f);
+        var t = TrampChain(b, 66.3f, -3, 1);
+        b.Plat(t.x + 6, t.y, 6);
+        b.Blaster(t.x + 6, t.y + 4.5f, V(-1, -1), 1.1f, 0, 35);
+        b.Blaster(t.x + 9, t.y + 4, V(-1, -.4f), 1.4f, .5f);
+        RailRun(b, t.x + 9.3f, t.y, 1);
+    }
+
+    // CRIMSON RIFT: final boss over a bottomless rift; blue push shots, bullet rain.
+    static void CrimsonRift(LevelBuilder b)
+    {
+        b.Start(-6, -2.5f);
+        b.Plat(-6.25f, -4, 7.5f);
+        b.Plat(6.25f, -4, 7.5f);
+        b.Plat(-10.4f, .6f, .8f, 10);
+        b.Plat(10.4f, .6f, .8f, 10);
+        b.Plat(0, 6, 21.6f, .6f);
+        b.Mover(0, -2.2f, 2.2f, 3.2f, 0, 5f);
+        b.Tramp(-8.5f, -3.5f, 1.8f);
+        b.Tramp(8.5f, -3.5f, 1.8f);
+        b.Plat(-6, 1.4f, 3);
+        b.Plat(6, 1.4f, 3);
+        b.Rail(true, V(-3.6f, 3), V(0, 2), V(3.6f, 3));
+        b.Blaster(-9.5f, 4.5f, V(1, -.6f), 3.2f, 1f, 20);
+        b.Label(0, 4.6f, "don't fall into the rift · J shields blue shots|don't fall · SHIELD blue shots");
+        b.Rival(6, -2.5f, new Vector2(-10, -3.65f), new Vector2(10, 5.5f), 2, -2.5f, 2.5f);
     }
 }

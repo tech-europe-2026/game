@@ -13,6 +13,9 @@ public class Boss : MonoBehaviour
     public Vector2 LastVel { get; private set; }
     public Vector2 arenaMin, arenaMax;
     public int tier;
+    public float pitL, pitR;
+    bool HasPit => pitR > pitL;
+    bool OverPit(float x) => HasPit && x > pitL - .3f && x < pitR + .3f;
 
     CircleCollider2D col;
     SpriteRenderer body, glow;
@@ -83,7 +86,13 @@ public class Boss : MonoBehaviour
     {
         float d = Vector2.Distance(p.rb.position, rb.position);
         float r = Random.value;
-        if (tier > 0)
+        if (tier > 1)
+        {
+            if (hearts == 1 && r < .15f) pending = "blink";
+            else if (d > 7f) pending = r < .3f ? "push" : r < .55f ? "rain" : r < .8f ? "homing" : "shoot";
+            else pending = r < .25f ? "push" : r < .45f ? "burst" : r < .65f ? "dash" : r < .85f ? "quake" : "grow";
+        }
+        else if (tier > 0)
         {
             if (hearts == 1 && r < .2f) pending = "blink";
             else if (d > 7f) pending = r < .4f ? "homing" : r < .75f ? "shoot" : "blink";
@@ -98,7 +107,8 @@ public class Boss : MonoBehaviour
         switch (pending)
         {
             case "dash": case "burst": tell = "spin"; break;
-            case "shoot": case "homing": tell = "parry"; break;
+            case "shoot": case "homing": case "push": tell = "parry"; break;
+            case "rain": tell = "evolve"; break;
             case "grow": tell = "grow"; break;
             case "quake": tell = "bounce"; break;
             default: tell = "teleport"; break;
@@ -132,6 +142,24 @@ public class Boss : MonoBehaviour
                 }
                 Sfx.Play("parry", .7f);
                 break;
+            case "push":
+                float pa = Mathf.Atan2(to.y, to.x);
+                for (int i = -2; i <= 2; i++)
+                {
+                    var d = new Vector2(Mathf.Cos(pa + i * .22f), Mathf.Sin(pa + i * .22f));
+                    Bullet.Spawn(rb.position + d * (col.radius + .5f), d * 9f, false, true);
+                }
+                Sfx.Play("parry", .8f);
+                break;
+            case "rain":
+                for (int i = 0; i < 7; i++)
+                {
+                    float rx = Mathf.Lerp(arenaMin.x + 1, arenaMax.x - 1, (i + Random.value * .6f) / 7f);
+                    Bullet.Spawn(new Vector2(rx, arenaMax.y - .3f), new Vector2(0, -6.5f - Random.value * 2f));
+                }
+                Fx.AddShake(.2f);
+                Sfx.Play("parry", .9f);
+                break;
             case "homing":
                 for (int i = -1; i <= 1; i += 2)
                     Bullet.Spawn(rb.position + new Vector2(i * (col.radius + .45f), .3f), new Vector2(i * 3f, 3f), true);
@@ -163,6 +191,7 @@ public class Boss : MonoBehaviour
                 break;
             case "blink":
                 float x = p.rb.position.x > (arenaMin.x + arenaMax.x) / 2 ? arenaMin.x + 2.5f : arenaMax.x - 2.5f;
+                if (OverPit(x)) x = x < pitL ? pitL - 2f : pitR + 2f;
                 var target = new Vector2(x, arenaMin.y + 2f);
                 Fx.Burst(rb.position, Gfx.Coral, 16, 5f, .16f, 0f, .5f);
                 rb.position = target;
@@ -189,6 +218,15 @@ public class Boss : MonoBehaviour
         float fdt = Time.fixedDeltaTime;
         grounded = Physics2D.OverlapCircle(rb.position + Vector2.down * col.radius * .55f, col.radius * .6f, filter, hits) > 1;
         var p = Player;
+        if (HasPit && rb.position.y < arenaMin.y - .8f && tellT <= 0)
+        {
+            quakeT = dashT = 0;
+            diving = false;
+            rb.gravityScale = G;
+            Act("blink", p);
+            LastVel = rb.velocity;
+            return;
+        }
         if (quakeT > 0)
         {
             quakeT -= fdt;
@@ -205,6 +243,12 @@ public class Boss : MonoBehaviour
             float dir = Mathf.Abs(dx) > .6f ? Mathf.Sign(dx) : 0f;
             // keep a little distance while the player is dashing at us
             if (p.dashT > 0 && Mathf.Abs(dx) < 4f) dir = -Mathf.Sign(dx);
+            if (HasPit && grounded && OverPit(rb.position.x + dir * 1.3f) && !OverPit(rb.position.x))
+            {
+                bool across = (p.rb.position.x - (pitL + pitR) / 2) * (rb.position.x - (pitL + pitR) / 2) < 0;
+                if (across && jumpCd <= 0) { rb.velocity = new Vector2(dir * 8.5f, 12.5f); jumpCd = .9f; Flash("bounce", .3f); }
+                else { dir = 0; rb.velocity = new Vector2(rb.velocity.x * .8f, rb.velocity.y); }
+            }
             float max = growT > 0 ? 5.5f : 7f;
             if (dir != 0 && (Mathf.Abs(rb.velocity.x) < max || Mathf.Sign(rb.velocity.x) != dir))
                 rb.AddForce(new Vector2(dir * 30f * rb.mass, 0));

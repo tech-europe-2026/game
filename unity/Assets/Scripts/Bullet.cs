@@ -44,12 +44,6 @@ public class Bullet : MonoBehaviour
             if (ball != null)
             {
                 if (reflected) continue;
-                if (blue)
-                {
-                    ball.Knock(vel.normalized);
-                    Pop();
-                    return;
-                }
                 if (ball.Parrying)
                 {
                     reflected = true;
@@ -59,6 +53,7 @@ public class Bullet : MonoBehaviour
                     ball.OnParry(transform.position);
                     return;
                 }
+                if (blue) { ball.Knock(vel.normalized); Pop(); return; }
                 ball.Hurt(transform.position);
                 Pop();
                 return;

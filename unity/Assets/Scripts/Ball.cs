@@ -6,7 +6,8 @@ public class Ball : MonoBehaviour
     public const int MaxHearts = 4;
     public const float DashCd = .9f, TeleCd = 1.2f, ParryCd = .8f, CamoCd = 5f, FlipCd = .35f;
     public const float CamoTime = 2.6f, ParryTime = .38f, ClimbMax = 3f;
-    public const float SlamCd = .5f, HoverCd = 2.2f, HoverTime = 1f;
+    public const float SlamCd = .5f, HoverCd = 2.2f, HoverTime = 1f, PhaseCd = 2f, PhaseTime = 1.1f;
+    public float phaseCd, phaseT;
     const float G = 3f;
 
     public Rigidbody2D rb;
@@ -104,7 +105,8 @@ public class Ball : MonoBehaviour
         float dt = Time.deltaTime;
         dashCd -= dt; teleCd -= dt; parryCd -= dt; camoCd -= dt; flipCd -= dt;
         stunT -= dt; flashT -= dt; healT -= dt; hurtInvT -= dt; parryT -= dt; railT -= dt;
-        jumpBuffer -= dt; pushT -= dt; slamCd -= dt; hoverCd -= dt; loopCd -= dt; freezeCd -= dt;
+        jumpBuffer -= dt; pushT -= dt; slamCd -= dt; hoverCd -= dt; loopCd -= dt; freezeCd -= dt; phaseCd -= dt;
+        if (phaseT > 0) { phaseT -= dt; if (phaseT <= 0) SetPhase(false); }
         if (camoT > 0) camoT -= dt;
 
         if (!controlLocked && stunT <= 0 && iceT <= 0 && !looping)
@@ -126,6 +128,7 @@ public class Ball : MonoBehaviour
             if (GM.Has("reverse") && Controls.Pressed("reverse") && flipCd <= 0) Flip();
             if (GM.Has("slam") && Controls.Pressed("slam") && slamCd <= 0) Slam();
             if (GM.Has("hover") && Controls.Pressed("hover") && hoverCd <= 0) Hover();
+            if (GM.Has("phase") && Controls.Pressed("phase") && phaseCd <= 0) { phaseT = PhaseTime; phaseCd = PhaseCd; SetPhase(true); }
         }
         UpdateVisual();
     }
@@ -442,7 +445,7 @@ public class Ball : MonoBehaviour
 
     void StartLoop(Tile t)
     {
-        if (looping || loopCd > 0 || gravDir < 0 || rb.velocity.x * t.dir < 3f) return;
+        if (looping || loopCd > 0 || gravDir < 0 || rb.velocity.x * t.dir < 1.5f) return;
         looping = true;
         slamming = false;
         EndHover();
@@ -475,7 +478,7 @@ public class Ball : MonoBehaviour
             rb.position = p;
             transform.position = p;
             rb.velocity = new Vector2(loopDir * loopSpeed, 0);
-            loopCd = .4f;
+            loopCd = .15f;
             Fx.Burst(p, Gfx.Gold, 12, 5f, .14f, 0f, .4f);
         }
         else
@@ -512,6 +515,33 @@ public class Ball : MonoBehaviour
     {
         flashState = state;
         flashT = t;
+    }
+
+    void SetPhase(bool on)
+    {
+        foreach (var t in FindObjectsOfType<Tile>())
+            if (t.kind == TileKind.Phase)
+            {
+                var c = t.GetComponent<Collider2D>();
+                if (c != null) Physics2D.IgnoreCollision(col, c, on);
+            }
+        if (on)
+        {
+            Flash("camouflage", PhaseTime);
+            Sfx.Play("teleport", .6f);
+            Fx.Ring(rb.position, new Color(.75f, .5f, 1f), 1.5f);
+        }
+    }
+
+    public void PitFall(Vector2 p)
+    {
+        if (dead) return;
+        int h = hearts - 1;
+        if (h <= 0) { Die(); return; }
+        Respawn(p);
+        hearts = h;
+        Fx.AddShake(.4f);
+        Sfx.Play("hurt");
     }
 
     public void Knock(Vector2 dir)
@@ -700,6 +730,7 @@ public class Ball : MonoBehaviour
                         float v = Mathf.Max(Mathf.Abs(lastVel.y) * 1.1f, 15f);
                         if (Controls.Held("jump")) v = Mathf.Max(v, 19f);
                         if (slamming) v = 24f;
+                        else if (crouching) v = 10f;
                         v = Mathf.Min(v, 24f);
                         slamming = false;
                         rb.velocity = new Vector2(lastVel.x, v);
@@ -783,7 +814,7 @@ public class Ball : MonoBehaviour
     void OnTriggerStay2D(Collider2D other)
     {
         var t = other.GetComponent<Tile>();
-        if (t != null && (t.kind == TileKind.Shard || t.kind == TileKind.Gate || t.kind == TileKind.GravZone)) HandleTrigger(other);
+        if (t != null && (t.kind == TileKind.Shard || t.kind == TileKind.Gate || t.kind == TileKind.GravZone || t.kind == TileKind.Loop)) HandleTrigger(other);
     }
 
     void HandleTrigger(Collider2D other)
@@ -802,6 +833,9 @@ public class Ball : MonoBehaviour
                 if (t.freeze) Freeze();
                 else if (t.push) Push(other.transform.position.x);
                 else Hurt(new Vector2(other.transform.position.x, rb.position.y));
+                break;
+            case TileKind.Void:
+                Die();
                 break;
             case TileKind.GravZone:
                 SetGravity(t.dir);
@@ -835,6 +869,7 @@ public class Ball : MonoBehaviour
         if (evolving) return "evolve";
         if (stunT > 0 || (hurtInvT > .6f && !dead)) return "stun";
         if (looping || slamming) return "spin";
+        if (phaseT > 0) return "camouflage";
         if (hoverT > 0 || iceT > 0) return "freeze";
         if (Parrying) return "parry";
         if (Camo) return "camouflage";
