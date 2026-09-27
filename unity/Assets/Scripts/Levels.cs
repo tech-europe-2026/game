@@ -37,7 +37,7 @@ public static class Levels
         new Level { name = "SKY HIGHWAY", unlock = "jump,dash,slam,climb", build = SkyHighway, top = C(70, 180, 190), mid = C(165, 232, 222), bottom = C(250, 246, 222) },
         new Level { name = "FROSTLINE", unlock = "jump,dash,hover,slam", build = Frostline, top = C(62, 66, 76), mid = C(146, 150, 160), bottom = C(222, 224, 230) },
         new Level { name = "GLASS STORM", unlock = "jump,dash,slam,hover", build = GlassStorm, top = C(60, 30, 110), mid = C(200, 120, 220), bottom = C(255, 210, 170) },
-        new Level { name = "FLIP STORM", unlock = "jump,reverse,dash,climb", build = FlipStorm, top = C(20, 20, 60), mid = C(120, 60, 180), bottom = C(255, 140, 190) },
+        new Level { name = "FLIP STORM", unlock = "jump,reverse,crouch,climb", build = FlipStorm, top = C(20, 20, 60), mid = C(120, 60, 180), bottom = C(255, 140, 190) },
         new Level { name = "RED CROWN", unlock = "jump,dash,slam,hover", boss = true, pit = true, camMin = V(-11, -4.7f), camMax = V(11, 6.3f), build = RedCrown, top = C(10, 10, 14), mid = C(42, 43, 50), bottom = C(105, 107, 118) },
     };
 
