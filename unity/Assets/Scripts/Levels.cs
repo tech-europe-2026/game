@@ -991,7 +991,7 @@ public static class Levels
     {
         b.Start(0, 1);
         b.Plat(3, 0, 10);
-        b.Label(3, 3.5f, "fast glass · SLAM breaks one floor at a time");
+        b.Label(3, 3.5f, "fast glass · HOLD slam to smash floor after floor · let go in time");
         float y = .7f, ly = -1.8f, xl = 17;
         float xe = xl + LevelBuilder.LoopShiftFor(LevelBuilder.LoopWidth(2.4f), 1.2f) + 6;
         b.Rail(true, V(8.1f, y - .4f), V(12, ly), V(xe, ly), V(xe + 3, ly + .8f));
