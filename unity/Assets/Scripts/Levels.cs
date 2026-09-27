@@ -654,22 +654,19 @@ public static class Levels
 
     // three glass squeeze lanes drop through two crossing chambers; only one exit is safe
     // three squeeze tubes braid all the way down; at every X crossing the walls open so you can switch lanes.
-    // lane 3 ends in a glass slide to the goal side, lanes 1-2 spit you onto tiny ledges above spikes
+    // lane 3 drops onto the platform, lanes 1-2 into the pit unless you catch the drifting ledge
     static Vector2 Maze(LevelBuilder b, float x0, float top, int safe)
     {
         float[] lx = { 2, 7, 12 };
-        int[] swaps = { 1, 0, 1, 1, 0, 0 };
+        int[] swaps = { 1, 0, 1, 0, 1, 0 };
         float step = 5f, bot = top - step * swaps.Length, R = .45f;
-        int[] lane = { 0, 1, 2 }, start = { 0, 1, 2 };
+        int[] lane = { 0, 1, 2 };
         var paths = new List<Vector2>[3];
-        var holes = new List<Vector2>();
         for (int t = 0; t < 3; t++) paths[t] = new List<Vector2> { V(x0 + lx[t], top), V(x0 + lx[t], top - 1.5f), V(x0 + lx[t], top - 3) };
         for (int k = 0; k < swaps.Length; k++)
         {
             int a = swaps[k], c = a + 1;
-            float y = top - 3 - k * (top - 3 - bot) / swaps.Length;
             float yn = top - 3 - (k + 1) * (top - 3 - bot) / swaps.Length;
-            holes.Add(V(x0 + (lx[a] + lx[c]) / 2, (y + yn) / 2));
             for (int t = 0; t < 3; t++)
             {
                 if (lane[t] == a) lane[t] = c;
@@ -677,21 +674,15 @@ public static class Levels
                 paths[t].Add(V(x0 + lx[lane[t]], yn));
             }
         }
-        int safeEnd = 0;
+        for (int t = 0; t < 3; t++) paths[t].Add(V(x0 + lx[lane[t]], bot - 1.5f));
         for (int t = 0; t < 3; t++)
         {
-            if (lane[t] == 0)
-            {
-                safeEnd = t;
-                paths[t].Add(V(x0 + lx[0], bot - 2.5f));
-                paths[t].Add(V(x0 + lx[0] + 2.5f, bot - 6.3f));
-                paths[t].Add(V(x0 + 17, bot - 6.3f));
-            }
-            else b.Plat(x0 + lx[lane[t]], bot - 3.4f, 1.1f);
-            b.TubeH(R, holes.ToArray(), 1.15f, paths[t].ToArray());
-            b.Label(x0 + lx[t], top + 1.3f, (start[t] + 1).ToString());
+            var others = new List<Vector2[]>();
+            for (int o = 0; o < 3; o++) if (o != t) others.Add(paths[o].ToArray());
+            b.TubeX(R, others.ToArray(), paths[t].ToArray());
+            b.Label(x0 + lx[t], top + 1.3f, (t + 1).ToString());
         }
-        b.Shards(x0 + 11, bot - 5.85f, 14);
+        b.Mover(x0 + 5.5f, bot - 9.5f, 1.6f, 3.5f, 0, 4f);
         float yc = top - .35f;
         b.Plat(x0 - 1.25f, yc, 5.5f);
         b.Plat(x0 + 4.5f, yc, 4f);
@@ -699,7 +690,7 @@ public static class Levels
         b.Plat(x0 + 13.3f, yc, 1.6f);
         b.Plat(x0 + 14.4f, yc + 2, .7f, 4.6f);
         b.Cover(x0 + 7, (top + bot) / 2, 14.6f, top - bot + 3, "one lane is safe · S to squeeze · switch lanes at the crossings|one lane is safe · CROUCH to squeeze · switch lanes at the crossings");
-        b.Plat(x0 + 21, bot - 7, 8);
+        b.Plat(x0 + 18.25f, bot - 7, 13.5f);
         b.Check(x0 + 19, bot - 5.6f);
         return V(x0 + 25, bot - 7);
     }

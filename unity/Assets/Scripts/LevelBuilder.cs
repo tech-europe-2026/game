@@ -111,6 +111,16 @@ public class LevelBuilder
     }
 
     // Grind rail through control points (Catmull-Rom smoothed). One-way from above unless solid.
+    static bool Inside(List<Vector2> line, Vector2 p, float r)
+    {
+        for (int i = 0; i + 1 < line.Count; i++)
+        {
+            Vector2 a = line[i], ab = line[i + 1] - a;
+            float t = Mathf.Clamp01(Vector2.Dot(p - a, ab) / Mathf.Max(ab.sqrMagnitude, 1e-6f));
+            if ((a + ab * t - p).sqrMagnitude < r * r) return true;
+        }
+        return false;
+    }
     static List<Vector2> Smooth(Vector2[] pts)
     {
         var smooth = new List<Vector2>();
@@ -159,13 +169,15 @@ public class LevelBuilder
     // Short transparent glass tube the ball rolls through; pts trace its centreline.
     public GameObject Tube(params Vector2[] pts) => TubeR(.78f, pts);
 
-    public GameObject TubeR(float R, params Vector2[] pts) => TubeH(R, null, 0f, pts);
+    public GameObject TubeR(float R, params Vector2[] pts) => TubeX(R, null, pts);
 
-    // tube whose walls open wherever it passes within `hr` of a hole, so crossing tubes can be switched between
-    public GameObject TubeH(float R, Vector2[] holes, float hr, params Vector2[] pts)
+    // tube whose walls are cut where they run inside one of the `others`, so crossing tubes merge into a sealed X
+    public GameObject TubeX(float R, Vector2[][] others, params Vector2[] pts)
     {
         var go = Go("tube", Vector2.zero);
         var mid = Smooth(pts);
+        var cuts = new List<List<Vector2>>();
+        if (others != null) foreach (var o in others) cuts.Add(Smooth(o));
         int n = mid.Count;
         var lo = new Vector2[n];
         var hi = new Vector2[n];
@@ -187,9 +199,9 @@ public class LevelBuilder
             for (int i = 0; i <= n; i++)
             {
                 bool open = i == n;
-                if (!open && holes != null)
-                    foreach (var h in holes)
-                        if ((wall[i] - h).sqrMagnitude < hr * hr) { open = true; break; }
+                if (!open)
+                    foreach (var o in cuts)
+                        if (Inside(o, wall[i], R + .02f)) { open = true; break; }
                 if (!open) { run.Add(wall[i]); continue; }
                 if (run.Count >= 2)
                 {
