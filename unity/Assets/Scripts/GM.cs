@@ -27,7 +27,7 @@ public class GM : MonoBehaviour
     string newStates;
     float bannerT, uiT, menuT;
     int sel = -1;
-    bool picking;
+    bool picking, howTo;
     string doneTitle = "LEVEL PASSED", doneSub;
 
     public struct Ability
@@ -177,7 +177,9 @@ public class GM : MonoBehaviour
         if (c.yMax > clip.yMax - 10) scroll += c.yMax - (clip.yMax - 10);
     }
 
-    Rect PlayRect { get { float u = Screen.height / 720f; return new Rect(Screen.width / 2 - 130 * u, Screen.height * .74f, 260 * u, 76 * u); } }
+    Rect PlayRect { get { float u = Screen.height / 720f; return new Rect(Screen.width / 2 - 130 * u, Screen.height * .70f, 260 * u, 76 * u); } }
+    Rect HowRect { get { float u = Screen.height / 720f; return new Rect(Screen.width / 2 - 110 * u, Screen.height * .70f + 92 * u, 220 * u, 48 * u); } }
+    Rect HowPlayRect { get { float u = Screen.height / 720f; return new Rect(Screen.width / 2 - 120 * u, Screen.height - 104 * u, 240 * u, 60 * u); } }
     Rect BackRect { get { float u = Screen.height / 720f; return new Rect(40 * u, 44 * u, 110 * u, 44 * u); } }
 
     Rect MusicRect { get { float u = Screen.height / 720f; return new Rect(Screen.width - 160 * u, 98 * u, 76 * u, 40 * u); } }
@@ -197,8 +199,15 @@ public class GM : MonoBehaviour
         {
             case Mode.Title:
                 if (Controls.Portrait || menuT < .3f) break;
+                if (howTo)
+                {
+                    if (Input.GetKeyDown(KeyCode.Escape) || Input.GetKeyDown(KeyCode.Backspace) || (click && BackRect.Contains(MouseGui))) { howTo = false; menuT = 0; }
+                    else if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.Space) || (click && HowPlayRect.Contains(MouseGui))) { howTo = false; picking = true; sel = -1; menuT = 0; }
+                    break;
+                }
                 if (!picking)
                 {
+                    if (Input.GetKeyDown(KeyCode.H) || (click && HowRect.Contains(MouseGui))) { howTo = true; menuT = 0; break; }
                     if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.Space) || (click && PlayRect.Contains(MouseGui))) { picking = true; sel = -1; menuT = 0; }
                     break;
                 }
@@ -609,6 +618,7 @@ public class GM : MonoBehaviour
     void DrawTitle(float W, float H, float u, Color ink)
     {
         if (picking) { DrawLevels(W, H, u, ink); return; }
+        if (howTo) { DrawHowTo(W, H, u, ink); return; }
         Box(new Rect(0, 0, W, H), new Color(1, 1, 1, .35f));
         var soft = new Color(ink.r, ink.g, ink.b, .5f);
         Text(new Rect(0, H * .08f, W, 110 * u), "SKYROLL", hero, ink, (int)(104 * u));
@@ -645,7 +655,94 @@ public class GM : MonoBehaviour
         Pill(new Rect(pr.x, pr.y + 6 * u, pr.width, pr.height), new Color(0, 0, 0, .12f));
         Pill(pr, hov ? Gfx.Gold : ink);
         Text(pr, "PLAY", hero, Color.white, (int)(34 * u));
-        Text(new Rect(0, H - 44 * u, W, 26 * u), Controls.Touch ? "tap play" : "press ENTER", body, new Color(ink.r, ink.g, ink.b, .4f), (int)(15 * u));
+        var hr = HowRect;
+        bool hh = !Controls.Touch && hr.Contains(MouseGui);
+        Pill(hr, new Color(1, 1, 1, hh ? .95f : .7f));
+        Text(hr, "HOW TO PLAY", h1, ink, (int)(16 * u));
+        Text(new Rect(0, H - 44 * u, W, 26 * u), Controls.Touch ? "tap play" : "ENTER to play  ·  H for how to play", body, new Color(ink.r, ink.g, ink.b, .4f), (int)(15 * u));
+    }
+
+    static readonly (string sprite, string name, string key, string touch, string text)[] Guide =
+    {
+        ("idle", "ROLL", "← →", "STICK", "roll left and right · slopes build speed"),
+        ("bounce", "JUMP", "SPACE", "JUMP", "hop gaps, spikes and onto rails"),
+        ("crouch", "SQUEEZE", "S / ↓", "SQUEEZE", "shrink to slip into narrow tubes"),
+        ("dash", "DASH", "→ + D", "DASH", "burst forward · smashes glass walls"),
+        ("spin", "SLAM", "F", "SLAM", "dive down · hold to break floor after floor"),
+        ("freeze", "HOVER", "Q", "HOVER", "float in mid-air for a moment"),
+        ("reverse", "REVERSE", "E", "REVERSE", "flip gravity and ride the ceiling"),
+        ("climb", "CLIMB", "HOLD C", "CLIMB", "stick to a wall and climb it"),
+        ("grow", "GROW", "G", "GROW", "turn big and heavy · crushes glass"),
+        ("parry", "SHIELD", "J", "SHIELD", "2 s shield · reflects blue shots"),
+        ("camouflage", "PHASE", "V", "PHASE", "pass through purple walls"),
+        ("heal", "CHECKPOINTS", "", "", "green cross heals · white ones save"),
+    };
+
+    void DrawHowTo(float W, float H, float u, Color ink)
+    {
+        Box(new Rect(0, 0, W, H), new Color(1, 1, 1, .45f));
+        var br = BackRect;
+        Pill(br, new Color(1, 1, 1, .8f));
+        Text(br, "‹  BACK", h1, ink, (int)(15 * u));
+        Text(new Rect(0, 50 * u, W, 60 * u), "HOW TO PLAY", hero, ink, (int)(40 * u));
+        Text(new Rect(0, 104 * u, W, 26 * u), "each level unlocks a few ball forms · they show at the bottom of the screen", body, new Color(ink.r, ink.g, ink.b, .5f), (int)(15 * u));
+        const int cols = 4;
+        float gap = 16 * u, cw = Mathf.Min(270 * u, (W - 80 * u - (cols - 1) * gap) / cols), ch = 118 * u, total = cols * cw + (cols - 1) * gap;
+        var mp = MouseGui;
+        for (int i = 0; i < Guide.Length; i++)
+        {
+            var g = Guide[i];
+            float appear = Mathf.Clamp01((menuT - i * .03f) / .25f);
+            var cr = new Rect((W - total) / 2 + (i % cols) * (cw + gap), 146 * u + (i / cols) * (ch + gap) + (1 - appear) * 16 * u, cw, ch);
+            bool on = !Controls.Touch && cr.Contains(mp);
+            Round(new Rect(cr.x, cr.y + 6 * u, cr.width, cr.height), new Color(0, 0, 0, (on ? .14f : .06f) * appear), 20 * u);
+            Round(cr, new Color(1, 1, 1, .93f * appear), 20 * u);
+            var disc = new Rect(cr.x + 14 * u, cr.y + 16 * u, 86 * u, 86 * u);
+            Pill(disc, new Color(.78f, .87f, 1f, .6f * appear));
+            float bob = on ? Mathf.Sin(uiT * 5) * 3 * u : 0;
+            Icon(new Rect(disc.x + 9 * u, disc.y + 9 * u + bob, 68 * u, 68 * u), g.sprite, appear);
+            float tx = disc.xMax + 12 * u, tw = cr.xMax - tx - 12 * u;
+            h1.alignment = TextAnchor.MiddleLeft; body.alignment = TextAnchor.UpperLeft; body.wordWrap = true;
+            Text(new Rect(tx, cr.y + 14 * u, tw, 26 * u), g.name, h1, new Color(ink.r, ink.g, ink.b, appear), (int)(16 * u));
+            string key = Controls.Touch ? g.touch : g.key;
+            if (key.Length > 0)
+            {
+                var kr = new Rect(tx, cr.y + 42 * u, 16 * u + key.Length * 8.5f * u, 22 * u);
+                Round(kr, new Color(Gfx.Gold.r, Gfx.Gold.g, Gfx.Gold.b, .9f * appear), 7 * u);
+                h1.alignment = TextAnchor.MiddleCenter;
+                Text(kr, key, h1, new Color(1, 1, 1, appear), (int)(11 * u));
+                h1.alignment = TextAnchor.MiddleLeft;
+            }
+            Text(new Rect(tx, cr.y + (key.Length > 0 ? 68 : 44) * u, tw, 46 * u), g.text, body, new Color(ink.r, ink.g, ink.b, .65f * appear), (int)(12 * u));
+            h1.alignment = TextAnchor.MiddleCenter; body.alignment = TextAnchor.MiddleCenter; body.wordWrap = false;
+        }
+        var pr = HowPlayRect;
+        bool hov = !Controls.Touch && pr.Contains(mp);
+        Pill(new Rect(pr.x, pr.y + 5 * u, pr.width, pr.height), new Color(0, 0, 0, .12f));
+        Pill(pr, hov ? Gfx.Gold : ink);
+        Text(pr, "PLAY", hero, Color.white, (int)(26 * u));
+    }
+
+    static readonly Dictionary<int, Texture2D> skyTex = new Dictionary<int, Texture2D>();
+
+    static Texture2D SkyTex(int i)
+    {
+        if (skyTex.TryGetValue(i, out var t)) return t;
+        var d = Levels.All[i];
+        t = new Texture2D(1, 32) { wrapMode = TextureWrapMode.Clamp, filterMode = FilterMode.Bilinear };
+        for (int y = 0; y < 32; y++)
+        {
+            float k = y / 31f;
+            t.SetPixel(0, y, k > .5f ? Color.Lerp(d.mid, d.top, (k - .5f) * 2f) : Color.Lerp(d.bottom, d.mid, k * 2f));
+        }
+        t.Apply();
+        return skyTex[i] = t;
+    }
+
+    static string AbilitySprite(string id)
+    {
+        foreach (var a in Abilities) if (a.id == id) return a.sprite;
+        return null;
     }
 
     void DrawLevels(float W, float H, float u, Color ink)
@@ -676,25 +773,42 @@ public class GM : MonoBehaviour
             float appear = Mathf.Clamp01((menuT - i * .025f) / .25f);
             cr.y += (1f - appear) * 20 * u - (on ? 6 * u : 0);
             float rad = 22 * u;
-            Round(new Rect(cr.x, cr.y + 8 * u, cr.width, cr.height), new Color(0, 0, 0, (on ? .16f : .07f) * appear), rad);
-            Round(cr, new Color(1, 1, 1, .92f * appear), rad);
-            var art = new Rect(cr.x + 8 * u, cr.y + 8 * u, cr.width - 16 * u, cr.height * .52f);
-            Round(art, new Color(d.top.r, d.top.g, d.top.b, appear), rad - 8 * u);
-            Round(new Rect(art.x, art.y + art.height * .45f, art.width, art.height * .55f), new Color(d.mid.r, d.mid.g, d.mid.b, appear), rad - 8 * u);
-            Round(new Rect(art.x, art.y + art.height * .78f, art.width, art.height * .22f), new Color(d.bottom.r, d.bottom.g, d.bottom.b, appear), rad - 8 * u);
-            float bs = art.height * .62f;
+            Round(new Rect(cr.x, cr.y + (on ? 12 : 6) * u, cr.width, cr.height), new Color(0, 0, 0, (on ? .18f : .07f) * appear), rad);
+            if (on) Round(new Rect(cr.x - 3 * u, cr.y - 3 * u, cr.width + 6 * u, cr.height + 6 * u), new Color(Gfx.Gold.r, Gfx.Gold.g, Gfx.Gold.b, .9f * appear), rad + 3 * u);
+            Round(cr, new Color(1, 1, 1, .96f * appear), rad);
+            var art = new Rect(cr.x + 6 * u, cr.y + 6 * u, cr.width - 12 * u, cr.height * .58f);
+            var oc = GUI.color;
+            GUI.color = new Color(1, 1, 1, appear);
+            GUI.DrawTexture(art, SkyTex(i), ScaleMode.StretchToFill, true, 0, new Color(1, 1, 1, appear), 0, rad - 6 * u);
+            GUI.color = oc;
+            Pill(new Rect(art.xMax - art.width * .42f, art.y + art.height * .55f, art.width * .34f, art.height * .16f), new Color(1, 1, 1, .35f * appear));
+            Pill(new Rect(art.x + art.width * .08f, art.y + art.height * .22f, art.width * .26f, art.height * .12f), new Color(1, 1, 1, .3f * appear));
+            float bs = art.height * .6f;
             Icon(new Rect(art.center.x - bs / 2, art.center.y - bs / 2 + Mathf.Sin(uiT * 3 + i) * (on ? 3 : 0) * u, bs, bs), d.boss ? "stun" : TitleForms[i % TitleForms.Length].sprite, appear);
+            hero.alignment = TextAnchor.UpperLeft;
+            Text(new Rect(art.x + 10 * u, art.y + 4 * u, 60 * u, 30 * u), (i + 1).ToString("00"), hero, new Color(1, 1, 1, .95f * appear), (int)(20 * u));
+            hero.alignment = TextAnchor.MiddleCenter;
             if (d.boss)
             {
-                var bt = new Rect(art.xMax - 58 * u, art.y + 8 * u, 50 * u, 20 * u);
+                var bt = new Rect(art.xMax - 56 * u, art.y + 8 * u, 48 * u, 20 * u);
                 Pill(bt, new Color(1f, .3f, .35f, appear));
                 Text(bt, "BOSS", h1, new Color(1, 1, 1, appear), (int)(11 * u));
             }
-            Text(new Rect(cr.x + 14 * u, art.yMax + 8 * u, 40 * u, 24 * u), (i + 1).ToString("00"), hero, new Color(Gfx.Gold.r, Gfx.Gold.g, Gfx.Gold.b, appear), (int)(18 * u));
             h1.alignment = TextAnchor.MiddleLeft;
-            Text(new Rect(cr.x + 52 * u, art.yMax + 8 * u, cr.width - 58 * u, 24 * u), d.name, h1, new Color(ink.r, ink.g, ink.b, appear), (int)(13 * u));
+            Text(new Rect(cr.x + 14 * u, art.yMax + 6 * u, cr.width - 28 * u, 22 * u), d.name, h1, new Color(ink.r, ink.g, ink.b, appear), (int)(13 * u));
             h1.alignment = TextAnchor.MiddleCenter;
-            Round(new Rect(cr.x + 14 * u, cr.yMax - 16 * u, (on ? cr.width - 28 * u : 26 * u), 4 * u), new Color(ink.r, ink.g, ink.b, (on ? .8f : .2f) * appear), 2 * u);
+            float iy = cr.yMax - 26 * u, ix = cr.x + 14 * u;
+            foreach (var id in d.unlock.Split(','))
+            {
+                if (id == "jump") continue;
+                var sp = AbilitySprite(id);
+                if (sp == null) continue;
+                Icon(new Rect(ix, iy, 18 * u, 18 * u), sp, appear);
+                ix += 21 * u;
+            }
+            int diff = d.boss ? 5 : Mathf.Clamp(1 + i / 4, 1, 5);
+            for (int k = 0; k < 5; k++)
+                Pill(new Rect(cr.xMax - 14 * u - (5 - k) * 9 * u, iy + 6 * u, 6 * u, 6 * u), k < diff ? new Color(d.boss ? 1f : Gfx.Gold.r, d.boss ? .3f : Gfx.Gold.g, d.boss ? .35f : Gfx.Gold.b, appear) : new Color(ink.r, ink.g, ink.b, .12f * appear));
         }
         GUI.EndGroup();
         Text(new Rect(0, H - 40 * u, W, 26 * u), Controls.Touch ? "swipe to scroll  ·  tap a level" : "click a level  ·  scroll for more  ·  arrows + ENTER  ·  ESC back", body, new Color(ink.r, ink.g, ink.b, .4f), (int)(15 * u));
