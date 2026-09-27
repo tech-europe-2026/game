@@ -40,27 +40,29 @@ public static class Levels
     {
         float y = py + .7f;
         Vector2 P(float dx, float dy) => V(x + dx, y + dy);
-        Seg(b, P(0, 0), P(7.2f, -.55f), style % 5);
-        Seg(b, P(10.7f, -1.75f), P(17.2f, -2.25f), (style + 2) % 5);
-        Seg(b, P(20.7f, -3.15f), P(29.2f, -4f), (style + 4) % 5);
+        switch (style % 4)
+        {
+            case 0: // one long roller: big dips and shrinking hills
+                b.Rail(true, P(0, 0), P(4, -3), P(8, -4.4f), P(12, -2.3f), P(16, -4.9f), P(20, -3.3f), P(24.5f, -5.3f), P(29.2f, -4f));
+                break;
+            case 1: // rolling rail, hop, short downhill
+                b.Rail(true, P(0, 0), P(5, -2.6f), P(10, -1.5f), P(15, -3.5f), P(18.5f, -2.9f));
+                b.Rail(true, P(21.5f, -3.4f), P(25.5f, -4.4f), P(29.2f, -4f));
+                break;
+            case 2: // deep plunge that climbs out, then a flat run-in
+                b.Rail(true, P(0, 0), P(6, -5f), P(12, -5.6f), P(18, -3.2f), P(21.5f, -2.8f));
+                b.Rail(true, P(24.5f, -3.6f), P(29.2f, -4f));
+                break;
+            default: // three straight rails stepping down
+                b.Rail(true, P(0, 0), P(7.2f, -.9f));
+                b.Rail(true, P(10.7f, -1.9f), P(17.2f, -2.6f));
+                b.Rail(true, P(20.7f, -3.4f), P(29.2f, -4f));
+                break;
+        }
         b.Orbs(x + 3, y - .6f, x + 22, y - 3.6f, 5);
         b.Plat(x + 33.2f, py - 3.6f, 8);
         b.Plat(x + 37.4f, py - 1.8f, .7f, 4f);
         b.Goal(x + 34.2f, py - 1.6f);
-    }
-
-    static void Seg(LevelBuilder b, Vector2 a, Vector2 e, int shape)
-    {
-        float m = Mathf.Min(a.y, e.y), L = e.x - a.x;
-        Vector2 Q(float t, float dy) => V(a.x + L * t, m + dy);
-        switch (shape)
-        {
-            case 1: b.Rail(true, a, Q(.22f, -2.2f), Q(.65f, -1.9f), e); break;           // drop + kicker
-            case 2: b.Rail(true, a, Q(.3f, -1.4f), Q(.5f, -.6f), Q(.72f, -1.3f), e); break; // camel humps
-            case 3: b.Rail(true, a, Q(.4f, -.5f), Q(.78f, -2.1f), e); break;              // late plunge
-            case 4: b.Rail(true, a, Q(.2f, -1f), Q(.4f, -.35f), Q(.6f, -1.1f), Q(.8f, -.4f), e); break; // wave
-            default: b.Rail(true, a, Q(.5f, -1.3f), e); break;                             // dip
-        }
     }
 
     static void EndWall(LevelBuilder b, float x, float py)
@@ -112,7 +114,7 @@ public static class Levels
     // one long rail dive with a loop of any shape, then the goal
     static void FinaleLoop(LevelBuilder b, float x, float py, float r, float ry, int turns, float shift)
     {
-        float y = py + .7f, ly = y - 2.5f, xl = x + 9, xe = xl + LevelBuilder.LoopShiftFor(r, shift) * turns + 5;
+        float y = py + .7f, ly = y - 2.5f, xl = x + 9, xe = xl + LevelBuilder.LoopShiftFor(LevelBuilder.LoopWidth(r), shift) * turns + 5;
         b.Rail(true, V(x, y), V(x + 4, ly), V(xe, ly), V(xe + 3, ly + .8f));
         b.Loop(xl, ly, r, 1, ry, turns, shift);
         b.Orbs(x + 2, y - .8f, x + 6, ly + .6f, 3);

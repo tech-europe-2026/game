@@ -455,15 +455,16 @@ public class LevelBuilder
     public void Blaster(float x, float y, Vector2 dir, float period, float delay = 0f, float sweep = 0f)
     {
         var go = Go("blaster", new Vector2(x, y));
-        var ink = new Color(.07f, .07f, .1f, 1f);
-        Gfx.Quad(go.transform, Vector2.zero, Vector2.one * 2f, new Color(0, 0, 0, .18f), 3, Gfx.Glow);
+        var ink = new Color(.09f, .1f, .14f, 1f);
+        var neon = new Color(.35f, .62f, 1f, 1f);
+        Gfx.Quad(go.transform, Vector2.zero, Vector2.one * 2.6f, new Color(.3f, .55f, 1f, .22f), 3, Gfx.Glow);
         var barrel = new GameObject("barrel").transform;
         barrel.SetParent(go.transform, false);
-        Gfx.Quad(barrel, new Vector2(.5f, 0), new Vector2(1f, .46f), ink, 4, Gfx.Rounded);
-        Gfx.Quad(barrel, new Vector2(.92f, 0), new Vector2(.16f, .5f), new Color(.2f, .2f, .26f, 1f), 5, Gfx.Rounded);
-        Gfx.Quad(go.transform, Vector2.zero, Vector2.one * 1.2f, ink, 6, Gfx.Circle);
-        Gfx.Quad(go.transform, Vector2.zero, Vector2.one * 1.24f, new Color(1, 1, 1, .22f), 7, Gfx.Ring);
-        Gfx.Quad(go.transform, new Vector2(-.18f, .2f), new Vector2(.34f, .2f), new Color(1, 1, 1, .16f), 7, Gfx.Circle);
+        Gfx.Quad(barrel, new Vector2(.55f, 0), new Vector2(1.1f, .34f), ink, 4, Gfx.Rounded);
+        Gfx.Quad(barrel, new Vector2(1.02f, 0), new Vector2(.12f, .38f), neon, 5, Gfx.Rounded);
+        Gfx.Quad(go.transform, Vector2.zero, Vector2.one * 1.1f, ink, 6, Gfx.Circle);
+        Gfx.Quad(go.transform, Vector2.zero, Vector2.one * .78f, new Color(neon.r, neon.g, neon.b, .9f), 7, Gfx.Ring);
+        Gfx.Quad(go.transform, Vector2.zero, Vector2.one * .62f, new Color(.14f, .16f, .22f, 1f), 7, Gfx.Circle);
         var tu = go.AddComponent<Turret>();
         tu.barrel = barrel;
         tu.dir = dir.normalized;
@@ -573,11 +574,14 @@ public class LevelBuilder
     }
 
     // wide enough drift that the entry and exit legs cross high up and meet the rail tangentially
+    public static float LoopWidth(float r) => Mathf.Max(r, 3.4f);
+
     public static float LoopShiftFor(float r, float shift) => Mathf.Max(shift, 1.15f * (r + .58f));
 
     public void Loop(float x, float railY, float r, int dir = 1, float ry = 0f, int turns = 1, float shift = LoopShift)
     {
         if (ry <= 0) ry = r;
+        r = LoopWidth(r);
         shift = LoopShiftFor(r, shift);
         var go = Go("loop", new Vector2(x, railY + .5f));
         var c = go.AddComponent<BoxCollider2D>();
