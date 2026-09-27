@@ -707,6 +707,7 @@ public class Ball : MonoBehaviour
                     {
                         tile.Break(lastVel);
                         rb.velocity = lastVel * .85f;
+                        if (tile.stopSlam) { slamming = false; rb.velocity = lastVel * .25f; }
                         return;
                     }
                     break;

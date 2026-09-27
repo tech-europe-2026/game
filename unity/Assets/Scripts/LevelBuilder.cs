@@ -396,10 +396,11 @@ public class LevelBuilder
         c.size = new Vector2(.3f, h);
     }
 
-    public void Glass(float x, float y, float w, float h)
+    public void Glass(float x, float y, float w, float h, bool stopSlam = false)
     {
         var go = Go("glass", new Vector2(x, y));
         var t = AddTile(go, TileKind.Glass);
+        t.stopSlam = stopSlam;
         t.art = Gfx.Slab(go.transform, Vector2.zero, new Vector2(w, h), Gfx.Glass, 3);
         Gfx.Quad(go.transform, new Vector2(-w * .2f, h * .15f), new Vector2(.08f, h * .5f), new Color(1, 1, 1, .7f), 4);
         Gfx.Quad(go.transform, new Vector2(-w * .2f + .18f, h * .1f), new Vector2(.05f, h * .3f), new Color(1, 1, 1, .5f), 4);

@@ -35,6 +35,8 @@ public static class Levels
         new Level { name = "SKYFALL", unlock = "jump,hover,slam,parry", build = Skyfall, top = C(40, 130, 200), mid = C(140, 200, 240), bottom = C(255, 225, 200) },
         new Level { name = "CRIMSON RIFT", unlock = "jump,dash,slam,parry", boss = true, pit = true, camMin = V(-11, -4.7f), camMax = V(11, 6.3f), build = CrimsonRift, top = C(30, 15, 40), mid = C(110, 40, 80), bottom = C(255, 110, 90) },
         new Level { name = "SKY HIGHWAY", unlock = "jump,dash,slam,hover", build = SkyHighway, top = C(24, 36, 90), mid = C(96, 90, 200), bottom = C(255, 160, 130) },
+        new Level { name = "FROSTLINE", unlock = "jump,dash,hover,slam", build = Frostline, top = C(40, 90, 150), mid = C(140, 210, 240), bottom = C(230, 250, 255) },
+        new Level { name = "GLASS STORM", unlock = "jump,dash,slam,hover", build = GlassStorm, top = C(60, 30, 110), mid = C(200, 120, 220), bottom = C(255, 210, 170) },
     };
 
     // intro run that only a self-made gravity flip gets past: floor spikes, then (hard) ceiling spikes
@@ -872,5 +874,91 @@ public static class Levels
         b.Blaster(0, 5.05f, V(0, -1), 3.2f, 1f, 25).glide = 8f;
         b.Label(0, 4.6f, "don't fall into the rift · J shields blue shots|don't fall · SHIELD blue shots");
         b.Rival(6, -2.5f, new Vector2(-10, -3.65f), new Vector2(10, 5.5f), 2, -1.3f, 1.3f);
+    }
+
+    static void Frostline(LevelBuilder b)
+    {
+        b.Start(0, 1);
+        b.Plat(2, 0, 8);
+        b.Label(3, 3.5f, "rails only · cyan ice freezes you for 3 s");
+        b.Rail(true, V(6.3f, .7f), V(12, -2), V(20, -3), V(26, -2.4f));
+        b.Orbs(12, -.8f, 24, -1.6f, 4);
+        b.Label(33, 1, "ice on a climb keeps your speed");
+        b.Rail(true, V(29, -3.4f), V(35, -3.6f), V(44, -1), V(45, -.8f));
+        b.Frost(35, -3.6f, -.6f);
+        b.Rail(true, V(47.5f, -2.4f), V(56, -2.6f), V(62, -8), V(64, -10));
+        b.Label(55, 1.5f, "ice here = no jump · the rail drops into the pit");
+        b.Frost(53, -2.6f, .4f, 1.5f);
+        b.Rail(true, V(58, -1.1f), V(70, -1.2f), V(76, -4), V(84, -4.6f), V(88, -3.9f));
+        b.Orbs(60, 0, 68, 0, 3);
+        b.Plat(93, -5.2f, 6);
+        b.Check(92, -3.8f);
+
+        b.Rail(true, V(96.3f, -4.5f), V(102, -8), V(110, -9.2f), V(114, -8.8f));
+        b.Frost(111, -9.2f, -6, .5f);
+        b.Rail(true, V(117, -10.4f), V(126, -10.8f), V(131, -13.5f), V(133, -15));
+        b.Rail(true, V(128, -9), V(138, -9.3f), V(144, -8), V(146, -7.6f));
+        b.Frost(124, -10.8f, -7.6f, 2.2f);
+        b.Label(125, -5, "jump up before the ice grabs you");
+        b.Orbs(130, -7.8f, 142, -6.9f, 3);
+        b.Rail(true, V(149, -8.8f), V(156, -12), V(164, -12.4f), V(168, -11.8f));
+        b.Frost(158, -12.2f, -9, 1);
+        b.Plat(174, -13.6f, 8);
+        b.Check(171, -12.2f);
+
+        b.Rail(true, V(178.3f, -12.9f), V(182, -15), V(196, -15.2f), V(200, -14.4f));
+        b.Loop(188, -15.1f, 2.4f);
+        b.Frost(198, -15.2f, -12, 3.5f);
+        b.Rail(true, V(203, -15.6f), V(210, -16), V(214, -19), V(216, -21));
+        b.Rail(true, V(211, -14.2f), V(222, -14.4f), V(226, -13.6f));
+        b.Label(212, -11, "last fork · take the high rail");
+        b.Plat(231, -15.4f, 8);
+        EndWall(b, 234.5f, -15.4f);
+    }
+
+    static void GlassStorm(LevelBuilder b)
+    {
+        b.Start(0, 1);
+        b.Plat(3, 0, 10);
+        b.Label(3, 3.5f, "fast glass · SLAM breaks one floor at a time");
+        float y = .7f, ly = -1.8f, xl = 17;
+        float xe = xl + LevelBuilder.LoopShiftFor(LevelBuilder.LoopWidth(2.4f), 1.2f) + 6;
+        b.Rail(true, V(8.3f, y), V(12, ly), V(xe, ly), V(xe + 3, ly + .8f));
+        b.Loop(xl, ly, 2.4f);
+        b.Orbs(10, 0, 14, ly + .6f, 3);
+        float p1 = xe + 8;
+        b.Plat(p1, ly - .9f, 8);
+        b.Check(p1 - 2, ly + .5f);
+        b.Glass(p1 + 2.5f, ly + 1.45f, .8f, 3.6f);
+
+        float Y = ly - .9f, cx = p1 + 7.1f;
+        b.Label(cx, Y + 3.5f, "break TWO floors · a third drops you into the pit");
+        for (int k = 0; k < 3; k++) b.Glass(cx, Y - k * 3.2f + .1f, 6.2f, .5f, true);
+        b.Plat(cx - 3.45f, Y - 9, .7f, 18);
+        b.Plat(cx + 3.45f, Y + .5f, .7f, 6.3f);
+        b.Plat(cx + 3.45f, Y - 13.5f, .7f, 14.5f);
+        float ty = Y - 6.4f, tx = cx + 3.8f;
+        b.Plat(tx + 5, ty, 10);
+        b.Plat(tx + 5, ty + 4.2f, 10, .7f);
+        b.Check(tx + 3, ty + 1.4f);
+
+        float zx = tx + 14, bs = ty;
+        b.Plat(zx, bs, 7.9f);
+        b.Plat(zx - 3.6f, bs + 10.3f, .7f, 16);
+        b.Plat(zx + 3.6f, bs + 6.9f, .7f, 13.2f);
+        b.Label(zx, bs + 18.5f, "zig-zag springs · climb the wall");
+        for (int i = 0; i < 5; i++)
+        {
+            bool left = i % 2 == 0;
+            float lx = zx + (left ? -2.3f : 2.3f), yy = bs + i * 2.8f;
+            if (i > 0) b.Plat(lx, yy, 1.8f);
+            b.Pad(lx, yy + .55f, left ? -20 : 20, 17);
+        }
+        b.Orbs(zx - 1, bs + 4, zx + 1, bs + 12, 3);
+        float top = bs + 14;
+        b.Plat(zx + 3.6f + 5, top, 10);
+        b.Check(zx + 6, top + 1.4f);
+        b.Glass(zx + 11, top + 2.35f, .8f, 4f);
+        FinaleLoop(b, zx + 13.9f, top, 2.6f, 2f, 2, 1.4f);
     }
 }

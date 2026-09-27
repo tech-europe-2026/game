@@ -143,12 +143,35 @@ public class GM : MonoBehaviour
 
     static Vector2 MouseGui => new Vector2(Input.mousePosition.x, Screen.height - Input.mousePosition.y);
 
+    const int Cols = 5;
+    float scroll, dragY, dragMoved;
+
+    Rect ListClip { get { float u = Screen.height / 720f; return new Rect(0, 150 * u, Screen.width, Screen.height - 200 * u); } }
+
     Rect CardRect(int i)
     {
         float W = Screen.width, H = Screen.height, u = H / 720f;
-        int n = Levels.All.Length > 15 ? 8 : 5, row = i / n, col = i % n;
-        float gap = 16 * u, cw = Mathf.Min(200 * u, (W - 80 * u - (n - 1) * gap) / n), ch = 150 * u, total = n * cw + (n - 1) * gap;
-        return new Rect((W - total) / 2 + col * (cw + gap), 170 * u + row * (ch + gap), cw, ch);
+        int row = i / Cols, col = i % Cols;
+        float gap = 18 * u, cw = Mathf.Min(200 * u, (W - 80 * u - (Cols - 1) * gap) / Cols), ch = 150 * u, total = Cols * cw + (Cols - 1) * gap;
+        return new Rect((W - total) / 2 + col * (cw + gap), 170 * u + row * (ch + gap) - scroll, cw, ch);
+    }
+
+    float MaxScroll
+    {
+        get
+        {
+            float u = Screen.height / 720f, gap = 18 * u, ch = 150 * u;
+            int rows = (Levels.All.Length + Cols - 1) / Cols;
+            var clip = ListClip;
+            return Mathf.Max(0, 20 * u + rows * (ch + gap) + 20 * u - clip.height);
+        }
+    }
+
+    void ScrollTo(int i)
+    {
+        var c = CardRect(i); var clip = ListClip;
+        if (c.y < clip.y + 10) scroll -= clip.y + 10 - c.y;
+        if (c.yMax > clip.yMax - 10) scroll += c.yMax - (clip.yMax - 10);
     }
 
     Rect PlayRect { get { float u = Screen.height / 720f; return new Rect(Screen.width / 2 - 130 * u, Screen.height * .74f, 260 * u, 76 * u); } }
@@ -177,16 +200,29 @@ public class GM : MonoBehaviour
                     break;
                 }
                 if (Input.GetKeyDown(KeyCode.Escape) || Input.GetKeyDown(KeyCode.Backspace) || (click && BackRect.Contains(MouseGui))) { picking = false; menuT = 0; break; }
+                {
+                    float su = Screen.height / 720f;
+                    scroll -= Input.mouseScrollDelta.y * 50 * su;
+                    if (Input.GetMouseButtonDown(0)) { dragY = Input.mousePosition.y; dragMoved = 0; }
+                    else if (Input.GetMouseButton(0))
+                    {
+                        float dy = Input.mousePosition.y - dragY;
+                        scroll += dy; dragMoved += Mathf.Abs(dy); dragY = Input.mousePosition.y;
+                    }
+                    scroll = Mathf.Clamp(scroll, 0, MaxScroll);
+                }
+                bool tapUp = Input.GetMouseButtonUp(0) && dragMoved < 12 && !Controls.Portrait && ListClip.Contains(MouseGui);
                 for (int i = 0; i < Levels.All.Length; i++)
                 {
-                    if (Input.GetKeyDown(i < 9 ? KeyCode.Alpha1 + i : KeyCode.Alpha0) || Input.GetKeyDown(i < 9 ? KeyCode.Keypad1 + i : KeyCode.Keypad0)) { StartLevel(i); return; }
-                    if (click && CardRect(i).Contains(MouseGui)) { StartLevel(i); return; }
+                    if (i < 10 && (Input.GetKeyDown(i < 9 ? KeyCode.Alpha1 + i : KeyCode.Alpha0) || Input.GetKeyDown(i < 9 ? KeyCode.Keypad1 + i : KeyCode.Keypad0))) { StartLevel(i); return; }
+                    if (tapUp && CardRect(i).Contains(MouseGui)) { StartLevel(i); return; }
                 }
-                int nl = Levels.All.Length;
+                int nl = Levels.All.Length, ps = sel;
                 if (Input.GetKeyDown(KeyCode.RightArrow)) sel = sel < 0 ? 0 : (sel + 1) % nl;
                 if (Input.GetKeyDown(KeyCode.LeftArrow)) sel = sel < 0 ? 0 : (sel + nl - 1) % nl;
-                if (Input.GetKeyDown(KeyCode.DownArrow)) sel = sel < 0 ? 0 : Mathf.Min(nl - 1, sel + (nl > 15 ? 8 : 5));
-                if (Input.GetKeyDown(KeyCode.UpArrow)) sel = sel < 0 ? 0 : Mathf.Max(0, sel - (nl > 15 ? 8 : 5));
+                if (Input.GetKeyDown(KeyCode.DownArrow)) sel = sel < 0 ? 0 : Mathf.Min(nl - 1, sel + Cols);
+                if (Input.GetKeyDown(KeyCode.UpArrow)) sel = sel < 0 ? 0 : Mathf.Max(0, sel - Cols);
+                if (sel != ps && sel >= 0) { ScrollTo(sel); scroll = Mathf.Clamp(scroll, 0, MaxScroll); }
                 if (sel >= 0 && (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.Space))) StartLevel(sel);
                 break;
             case Mode.Playing:
@@ -616,11 +652,22 @@ public class GM : MonoBehaviour
         Text(new Rect(0, 56 * u, W, 60 * u), "CHOOSE A LEVEL", hero, ink, (int)(40 * u));
         Text(new Rect(0, 112 * u, W, 26 * u), Levels.All.Length + " worlds in the sky", body, new Color(ink.r, ink.g, ink.b, .5f), (int)(16 * u));
         var mp = MouseGui;
+        var clip = ListClip;
+        float ms = MaxScroll;
+        if (ms > 0)
+        {
+            float th = clip.height - 40 * u, bh = th * clip.height / (clip.height + ms);
+            Round(new Rect(W - 22 * u, clip.y + 20 * u, 6 * u, th), new Color(ink.r, ink.g, ink.b, .1f), 3 * u);
+            Round(new Rect(W - 22 * u, clip.y + 20 * u + (th - bh) * scroll / ms, 6 * u, bh), new Color(ink.r, ink.g, ink.b, .45f), 3 * u);
+        }
+        GUI.BeginGroup(clip);
         for (int i = 0; i < Levels.All.Length; i++)
         {
             var d = Levels.All[i];
             var cr = CardRect(i);
-            bool on = i == sel || (!Controls.Touch && cr.Contains(mp));
+            bool on = i == sel || (!Controls.Touch && clip.Contains(mp) && cr.Contains(mp));
+            cr.y -= clip.y;
+            if (cr.yMax < -20 * u || cr.y > clip.height + 20 * u) continue;
             float appear = Mathf.Clamp01((menuT - i * .025f) / .25f);
             cr.y += (1f - appear) * 20 * u - (on ? 6 * u : 0);
             float rad = 22 * u;
@@ -644,7 +691,8 @@ public class GM : MonoBehaviour
             h1.alignment = TextAnchor.MiddleCenter;
             Round(new Rect(cr.x + 14 * u, cr.yMax - 16 * u, (on ? cr.width - 28 * u : 26 * u), 4 * u), new Color(ink.r, ink.g, ink.b, (on ? .8f : .2f) * appear), 2 * u);
         }
-        Text(new Rect(0, H - 40 * u, W, 26 * u), Controls.Touch ? "tap a level" : "click a level  ·  arrows + ENTER  ·  ESC back", body, new Color(ink.r, ink.g, ink.b, .4f), (int)(15 * u));
+        GUI.EndGroup();
+        Text(new Rect(0, H - 40 * u, W, 26 * u), Controls.Touch ? "swipe to scroll  ·  tap a level" : "click a level  ·  scroll for more  ·  arrows + ENTER  ·  ESC back", body, new Color(ink.r, ink.g, ink.b, .4f), (int)(15 * u));
     }
 
     void DrawMusic(float u, Color ink)
