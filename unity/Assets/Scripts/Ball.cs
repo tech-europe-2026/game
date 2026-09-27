@@ -18,6 +18,7 @@ public class Ball : MonoBehaviour
 
     public int hearts = MaxHearts;
     public static Rect squeezeZone;
+    float squeezeSpeed;
     public bool grown, crouching, dead, controlLocked, climbing, onRail, evolving;
     public float dashCd, teleCd, parryCd, camoCd, flipCd;
     public float camoT, parryT, stunT, dashT, flashT, healT, hurtInvT;
@@ -195,9 +196,16 @@ public class Ball : MonoBehaviour
             float vx = rb.velocity.x;
             if (inp.x != 0 && (Mathf.Abs(vx) < maxSpeed || Mathf.Sign(vx) != Mathf.Sign(inp.x)))
                 rb.AddForce(new Vector2(inp.x * accel * rb.mass, 0));
-            else if (inp.x == 0 && grounded && !onRail)
+            else if (inp.x == 0 && grounded && !onRail && !squeezeZone.Contains(rb.position))
                 rb.velocity = new Vector2(Mathf.MoveTowards(vx, 0, 14f * fdt), rb.velocity.y);
             rb.AddTorque(-inp.x * gravDir * 5f * rb.mass * r);
+            if (squeezeZone.Contains(rb.position))
+            {
+                float sp = rb.velocity.magnitude;
+                if (inp.x == 0 && sp > .5f) rb.velocity *= Mathf.Max(sp, squeezeSpeed * .985f, 5f) / sp;
+                squeezeSpeed = Mathf.Min(rb.velocity.magnitude, 12f);
+            }
+            else squeezeSpeed = 0f;
         }
 
         if (slamming)
