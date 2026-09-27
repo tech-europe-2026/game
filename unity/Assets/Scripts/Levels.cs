@@ -38,7 +38,7 @@ public static class Levels
         new Level { name = "FROSTLINE", unlock = "jump,dash,hover,slam", build = Frostline, top = C(62, 66, 76), mid = C(146, 150, 160), bottom = C(222, 224, 230) },
         new Level { name = "GLASS STORM", unlock = "jump,dash,slam,hover", build = GlassStorm, top = C(60, 30, 110), mid = C(200, 120, 220), bottom = C(255, 210, 170) },
         new Level { name = "FLIP STORM", unlock = "jump,reverse,dash,climb", build = FlipStorm, top = C(20, 20, 60), mid = C(120, 60, 180), bottom = C(255, 140, 190) },
-        new Level { name = "RED CROWN", unlock = "jump,dash,slam,hover", boss = true, pit = true, camMin = V(-11, -4.7f), camMax = V(11, 6.3f), build = RedCrown, top = C(250, 160, 80), mid = C(255, 208, 150), bottom = C(255, 242, 218) },
+        new Level { name = "RED CROWN", unlock = "jump,dash,slam,hover", boss = true, pit = true, camMin = V(-11, -4.7f), camMax = V(11, 6.3f), build = RedCrown, top = C(10, 10, 14), mid = C(42, 43, 50), bottom = C(105, 107, 118) },
     };
 
     // intro run that only a self-made gravity flip gets past: floor spikes, then (hard) ceiling spikes
@@ -197,7 +197,7 @@ public static class Levels
         b.Orbs(68, 3f, 68.5f, 6f, 3);
         b.Plat(78, 6, 18);
         b.Glass(78, 8.7f, .8f, 4f);
-        b.Label(74, 11.4f, "SHIFT to dash through glass|DASH through glass");
+        b.Label(74, 11.4f, "hold → and press D to dash through glass|hold → + DASH through glass");
         b.Spinner(84, 7.9f, 3.2f, 120);
         b.Orb(81, 7.3f);
         b.Check(86.2f, 7.4f);
@@ -710,14 +710,17 @@ public static class Levels
         b.Label(4, 3, "springs! S = soft bounce · F = super bounce|SQUEEZE = soft bounce · SLAM = super bounce");
         var e = TrampChain(b, 9.3f, 0, 0);
         b.Plat(e.x + 8, e.y, 16);
+        b.Gate(e.x + 2, e.y + .35f, e.y + 3.5f, 0, true);
         b.Plat(e.x + 8, e.y + 6.8f, 16);
         b.Blaster(e.x + 5, e.y + 4.6f, V(-1, -1), 1.2f);
         b.Blaster(e.x + 9, e.y + 5.2f, V(-.3f, -1), 1.5f, .5f);
         b.Blaster(e.x + 13, e.y + 4.6f, V(-1, -.6f), 1f, .8f, 25);
         b.Label(e.x + 8, e.y + 9, "crossfire · D dashes through|crossfire · DASH through");
         var k = SpeedKick(b, e.x + 16.3f, e.y, false);
-        b.Plat(k.x + 5, k.y, 10);
+        b.Plat(k.x + 3, k.y, 6);
         b.Frost(k.x + 5, k.y + .35f, k.y + 4);
+        b.Tube(V(k.x + 6.1f, k.y + 1.13f), V(k.x + 7.5f, k.y + 1.1f), V(k.x + 8.5f, k.y + .3f), V(k.x + 9.9f, k.y + 1.13f));
+        b.Plat(k.x + 11, k.y, 2.2f);
         b.Tramp(k.x + 16, k.y - 1.5f, 3);
         b.Plat(k.x + 23, k.y + 1.5f, 8);
         b.Check(k.x + 22, k.y + 2.9f);
@@ -735,12 +738,14 @@ public static class Levels
         b.Blaster(14, 5, V(-.3f, -1), 1.3f);
         b.Blaster(19, 5.5f, V(-.6f, -1), 1.1f, .4f);
         b.Blaster(24, 5, V(-1, -.8f), 1.5f, .8f, 20);
+        b.Tube(V(25.1f, 1.13f), V(26.5f, 1.1f), V(27.5f, .1f), V(28.6f, 1.1f), V(29.9f, 1.13f));
         b.Plat(33, 0, 6);
         b.Check(32, 1.4f);
         b.Frost(33.5f, .35f, 4);
         b.Label(39.5f, 4, "jump + Q hovers · frost fades every 3 s|jump + HOVER · frost fades every 3 s");
         b.Plat(47, 0, 8);
         b.Check(46, 1.4f);
+        b.Gate(49, .35f, 3.5f, 0, true);
         var m = Maze(b, 55, .35f, 2);
         b.Tube(V(m.x - .1f, m.y + 1.13f), V(m.x + 3, m.y + 1.1f), V(m.x + 5, m.y + 3), V(m.x + 7.5f, m.y + .2f), V(m.x + 10, m.y - 2), V(m.x + 13.2f, m.y - .87f));
         b.Plat(m.x + 17, m.y - 2, 8);
@@ -754,6 +759,7 @@ public static class Levels
     {
         FlipGauntlet(b, -44, true);
         b.Plat(3, 0, 12);
+        b.Gate(7, .35f, 3.5f, 0, true);
         b.Plat(15, 0, 14);
         b.PhaseWall(16, 2.35f, .8f, 4);
         b.Label(12, 4.5f, "V phases through purple walls|PHASE through purple walls");
@@ -770,7 +776,7 @@ public static class Levels
         b.Blaster(65, 4.5f, V(-1, -.5f), 1.3f, .6f);
         b.PhaseWall(64, 2.35f, .8f, 4);
         b.Check(55, 1.4f);
-        b.Rail(true, V(67.1f, .3f), V(71, -1.8f), V(95, -1.8f), V(98, -1));
+        b.Coaster(V(67.1f, .3f), V(71, -1.8f), V(95, -1.8f), V(98, -1));
         b.Loop(76, -1.8f, 1.6f, 1, 2.6f, 1, 1.2f);
         b.Loop(85, -1.8f, 2.6f, 1, 1.5f, 1, 2f);
         b.Plat(102, -1.5f, 8);
@@ -798,6 +804,7 @@ public static class Levels
         b.Frost(38.5f, 6.5f, 11);
         b.Label(38.5f, 13, "hover through when the frost is gone");
         b.Plat(46, 7, 8);
+        b.Gate(43.5f, 7.35f, 10.5f, 0, true);
         b.Check(45, 8.4f);
         b.Tube(V(49.9f, 8.13f), V(53, 8.1f), V(55, 5), V(53, 2), V(55, -1), V(58.2f, -1.87f));
         b.Plat(62, -3, 8);
@@ -827,8 +834,8 @@ public static class Levels
         b.Check(47, 2.4f);
 
         b.Label(57, 5, "rails end in the air · jump at the lip");
-        b.Rail(true, V(51.1f, 1.3f), V(56, -1), V(60, -3), V(63.5f, -2.2f));
-        b.Rail(true, V(67.5f, -3.3f), V(73, -5.5f), V(79, -6.2f), V(83, -5.2f));
+        b.Coaster(V(51.1f, 1.3f), V(56, -1), V(60, -3), V(63.5f, -2.2f));
+        b.Coaster(V(67.5f, -3.3f), V(73, -5.5f), V(79, -6.2f), V(83, -5.2f));
         b.Orbs(58, -1, 80, -4.4f, 5);
         b.Blaster(75, -1, V(-1, -1), 1.6f, 0, 25);
         b.Plat(89, -7, 6);
@@ -994,7 +1001,7 @@ public static class Levels
         b.Label(3, 3.5f, "fast glass · HOLD slam to smash floor after floor · let go in time");
         float y = .7f, ly = -1.8f, xl = 17;
         float xe = xl + LevelBuilder.LoopShiftFor(LevelBuilder.LoopWidth(2.4f), 1.2f) + 6;
-        b.Rail(true, V(8.1f, y - .4f), V(12, ly), V(xe, ly), V(xe + 3, ly + .8f));
+        b.Coaster(V(8.1f, y - .4f), V(12, ly), V(xe, ly), V(xe + 3, ly + .8f));
         b.Loop(xl, ly, 2.4f);
         b.Orbs(10, 0, 14, ly + .6f, 3);
         float p1 = xe + 8;
@@ -1010,6 +1017,7 @@ public static class Levels
         b.Spinner(z.x + 5, z.y + 2.3f, 3.4f, 130);
         b.Glass(z.x + 11, z.y + 2.35f, .8f, 4f);
         b.Spinner(z.x + 17, z.y + 2.3f, 3.4f, -150);
+        b.Gate(z.x + 20.5f, z.y + .35f, z.y + 3.5f, .6f, true);
         b.Orbs(z.x + 7, z.y + 1.3f, z.x + 15, z.y + 1.3f, 3);
 
         float mx = z.x + 22;
@@ -1061,6 +1069,7 @@ public static class Levels
         b.Orbs(96, 2.5f, 130, 2.5f, 5);
         b.Plat(136.5f, 0, 13);
         b.Check(133, 1.4f);
+        b.Gate(138.5f, .35f, 3.5f, 0, true);
         ClimbBlock(b, 143, 0, 7, 8);
         b.Plat(146.5f, 13, 7);
         b.Shards(146.5f, 12.65f, 5, 180);
