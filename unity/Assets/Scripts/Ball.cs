@@ -445,7 +445,7 @@ public class Ball : MonoBehaviour
 
     void StartLoop(Tile t)
     {
-        if (looping || loopCd > 0 || gravDir < 0 || rb.velocity.x * t.dir < 1.5f) return;
+        if (looping || loopCd > 0 || gravDir < 0 || rb.velocity.x * t.dir < .3f) return;
         looping = true;
         slamming = false;
         EndHover();

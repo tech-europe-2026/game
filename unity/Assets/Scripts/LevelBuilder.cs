@@ -553,12 +553,17 @@ public class LevelBuilder
         AddTile(go, TileKind.GravZone).dir = dir;
     }
 
+    // wide enough drift that the entry and exit legs cross high up and meet the rail tangentially
+    public static float LoopShiftFor(float r, float shift) => Mathf.Max(shift, 1.15f * (r + .58f));
+
     public void Loop(float x, float railY, float r, int dir = 1, float ry = 0f, int turns = 1, float shift = LoopShift)
     {
         if (ry <= 0) ry = r;
+        shift = LoopShiftFor(r, shift);
         var go = Go("loop", new Vector2(x, railY + .5f));
         var c = go.AddComponent<BoxCollider2D>();
-        c.size = new Vector2(.6f, 1.2f);
+        c.size = new Vector2(.8f, 3.4f);
+        c.offset = new Vector2(0, 1.1f);
         c.isTrigger = true;
         var t = AddTile(go, TileKind.Loop);
         t.dir = dir;

@@ -112,7 +112,7 @@ public static class Levels
     // one long rail dive with a loop of any shape, then the goal
     static void FinaleLoop(LevelBuilder b, float x, float py, float r, float ry, int turns, float shift)
     {
-        float y = py + .7f, ly = y - 2.5f, xl = x + 9, xe = xl + shift * turns + 5;
+        float y = py + .7f, ly = y - 2.5f, xl = x + 9, xe = xl + LevelBuilder.LoopShiftFor(r, shift) * turns + 5;
         b.Rail(true, V(x, y), V(x + 4, ly), V(xe, ly), V(xe + 3, ly + .8f));
         b.Loop(xl, ly, r, 1, ry, turns, shift);
         b.Orbs(x + 2, y - .8f, x + 6, ly + .6f, 3);
