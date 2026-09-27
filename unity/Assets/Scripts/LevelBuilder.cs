@@ -412,11 +412,23 @@ public class LevelBuilder
     public void Cover(float x, float y, float w, float h, string text)
     {
         var go = Go("cover", new Vector2(x, y));
-        Gfx.Slab(go.transform, new Vector2(0, -.15f), new Vector2(w, h), new Color(.1f, .12f, .28f, 1f), 40);
-        Gfx.Slab(go.transform, Vector2.zero, new Vector2(w, h), new Color(.2f, .22f, .45f, 1f), 41);
-        for (int i = 0; i < 14; i++)
-            Gfx.Quad(go.transform, new Vector2(Random.Range(-w / 2 + .5f, w / 2 - .5f), Random.Range(-h / 2 + .5f, h / 2 - .5f)), Vector2.one * Random.Range(.12f, .3f), new Color(1, 1, 1, .35f), 42, Gfx.Circle);
+        Gfx.Slab(go.transform, Vector2.zero, new Vector2(w, h), new Color(.85f, .92f, 1f, .14f), 20);
+        float hw = w / 2, hh = h / 2;
+        Line(go, new Vector3[] { new Vector3(x - hw, y - hh), new Vector3(x - hw, y + hh), new Vector3(x + hw, y + hh), new Vector3(x + hw, y - hh), new Vector3(x - hw, y - hh) }, .08f, new Color(1, 1, 1, .5f), 21);
         Label(x, y + h / 2 + 3.2f, text);
+    }
+
+    public void GlassEdge(params Vector2[] pts)
+    {
+        var go = Go("glassedge", Vector2.zero);
+        var e = go.AddComponent<EdgeCollider2D>();
+        e.points = pts;
+        e.edgeRadius = .05f;
+        e.sharedMaterial = Mat(ref railMat, 0f, 0f);
+        AddTile(go, TileKind.Tube);
+        var p3 = new Vector3[pts.Length];
+        for (int i = 0; i < pts.Length; i++) { p3[i] = pts[i]; Grow(pts[i], 1f); }
+        Line(go, p3, .1f, new Color(1f, 1f, 1f, .75f), 26);
     }
 
     public void Void(float x, float y, float w, float h)

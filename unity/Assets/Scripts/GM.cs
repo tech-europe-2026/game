@@ -28,7 +28,7 @@ public class GM : MonoBehaviour
     float bannerT, uiT, menuT;
     int sel = -1;
     bool picking;
-    string doneTitle = "EVOLVED", doneSub;
+    string doneTitle = "LEVEL CLEAR", doneSub;
 
     public struct Ability
     {
@@ -220,7 +220,7 @@ public class GM : MonoBehaviour
         doneTitle = "RED WINS";
         doneSub = levelIndex == 4 ? "try again · dash into it from the side" : levelIndex == 9 ? "try again · slam it from above, jump the shockwaves" : "try again · shield the blue shots, stay off the edge";
         yield return new WaitForSeconds(2.2f);
-        doneTitle = "EVOLVED";
+        doneTitle = "LEVEL CLEAR";
         doneSub = null;
         LoadLevel(levelIndex);
         mode = Mode.Playing;
@@ -240,7 +240,7 @@ public class GM : MonoBehaviour
         doneSub = "the red ball is beaten";
         Sfx.Play("evolve");
         yield return new WaitForSeconds(2.4f);
-        doneTitle = "EVOLVED";
+        doneTitle = "LEVEL CLEAR";
         doneSub = null;
         totalTime += levelTime;
         totalDeaths += deaths;
@@ -322,10 +322,13 @@ public class GM : MonoBehaviour
     {
         if (hero != null) return;
         white = Texture2D.whiteTexture;
-        hero = new GUIStyle(GUI.skin.label) { fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter };
+        var bold = Resources.Load<Font>("Fonts/Poppins-Bold");
+        var semi = Resources.Load<Font>("Fonts/Poppins-SemiBold");
+        GUI.skin.font = semi;
+        hero = new GUIStyle(GUI.skin.label) { font = bold, alignment = TextAnchor.MiddleCenter };
         h1 = new GUIStyle(hero);
-        h2 = new GUIStyle(hero) { fontStyle = FontStyle.Normal };
-        body = new GUIStyle(hero) { fontStyle = FontStyle.Normal };
+        h2 = new GUIStyle(hero) { font = semi };
+        body = new GUIStyle(hero) { font = semi };
         keycap = new GUIStyle(hero);
     }
 
@@ -349,6 +352,29 @@ public class GM : MonoBehaviour
         var old = GUI.color;
         GUI.color = c;
         GUI.DrawTexture(r, white, ScaleMode.StretchToFill, true, 0, c, 0, r.height / 2);
+        GUI.color = old;
+    }
+
+    void HeartIcon(Rect r, bool full, Color ink, int i)
+    {
+        var tex = Gfx.Heart.texture;
+        var old = GUI.color;
+        if (full)
+        {
+            float beat = 1f + Mathf.Max(0, Mathf.Sin(uiT * 4f - i * .6f)) * .07f;
+            r = new Rect(r.center.x - r.width * beat / 2, r.center.y - r.height * beat / 2, r.width * beat, r.height * beat);
+            GUI.color = new Color(0, 0, 0, .12f);
+            GUI.DrawTexture(new Rect(r.x, r.y + 2, r.width, r.height), tex, ScaleMode.ScaleToFit);
+            GUI.color = Gfx.Coral;
+            GUI.DrawTexture(r, tex, ScaleMode.ScaleToFit);
+            GUI.color = new Color(1, 1, 1, .45f);
+            GUI.DrawTexture(new Rect(r.x + r.width * .2f, r.y + r.height * .2f, r.width * .22f, r.height * .18f), Gfx.Circle.texture, ScaleMode.StretchToFill);
+        }
+        else
+        {
+            GUI.color = new Color(ink.r, ink.g, ink.b, .15f);
+            GUI.DrawTexture(r, tex, ScaleMode.ScaleToFit);
+        }
         GUI.color = old;
     }
 
@@ -425,16 +451,15 @@ public class GM : MonoBehaviour
 
         // top-left: level + hearts + orbs
         var def = Levels.All[levelIndex];
-        Pill(new Rect(24 * u, 22 * u, 330 * u, 56 * u), new Color(1, 1, 1, .7f));
-        Text(new Rect(44 * u, 24 * u, 60 * u, 52 * u), (levelIndex + 1).ToString("00"), h1, ink, (int)(26 * u));
-        Box(new Rect(100 * u, 36 * u, 2 * u, 28 * u), new Color(ink.r, ink.g, ink.b, .25f));
+        Pill(new Rect(24 * u, 22 * u, 380 * u, 56 * u), new Color(1, 1, 1, .72f));
+        Text(new Rect(40 * u, 25 * u, 60 * u, 52 * u), (levelIndex + 1).ToString("00"), hero, ink, (int)(26 * u));
+        Box(new Rect(104 * u, 36 * u, 2 * u, 28 * u), new Color(ink.r, ink.g, ink.b, .2f));
         for (int i = 0; i < Ball.MaxHearts; i++)
-        {
-            bool full = i < ball.hearts;
-            Pill(new Rect((118 + i * 26) * u, 41 * u, 18 * u, 18 * u), full ? (Color)Gfx.Coral : new Color(ink.r, ink.g, ink.b, .15f));
-        }
-        Pill(new Rect(208 * u, 41 * u, 18 * u, 18 * u), Gfx.Gold);
-        Text(new Rect(232 * u, 24 * u, 110 * u, 52 * u), orbs + " / " + level.orbs, h2, ink, (int)(22 * u));
+            HeartIcon(new Rect((120 + i * 30) * u, 38 * u, 24 * u, 24 * u), i < ball.hearts, ink, i);
+        Box(new Rect(248 * u, 36 * u, 2 * u, 28 * u), new Color(ink.r, ink.g, ink.b, .2f));
+        Pill(new Rect(264 * u, 40 * u, 20 * u, 20 * u), Gfx.Gold);
+        Pill(new Rect(269 * u, 44 * u, 6 * u, 6 * u), new Color(1, 1, 1, .8f));
+        Text(new Rect(292 * u, 25 * u, 100 * u, 52 * u), orbs + " / " + level.orbs, h1, ink, (int)(22 * u));
 
         // top-right: time
         Text(new Rect(W - 260 * u, 22 * u, 236 * u, 30 * u), def.name, h1, ink, (int)(20 * u));
@@ -446,7 +471,7 @@ public class GM : MonoBehaviour
             Pill(br, new Color(1, 1, 1, .7f));
             Text(new Rect(br.x + 14 * u, br.y, 70 * u, br.height), "RED", h1, Gfx.Coral, (int)(22 * u));
             for (int i = 0; i < Boss.MaxHearts; i++)
-                Pill(new Rect(br.x + (100 + i * 32) * u, br.y + 18 * u, 20 * u, 20 * u), i < Boss.I.hearts ? (Color)Gfx.Coral : new Color(ink.r, ink.g, ink.b, .15f));
+                HeartIcon(new Rect(br.x + (96 + i * 30) * u, br.y + 16 * u, 24 * u, 24 * u), i < Boss.I.hearts, ink, i);
         }
 
         if (Controls.Touch) DrawTouch(u, ink);
@@ -603,7 +628,7 @@ public class GM : MonoBehaviour
         float orbPct = totalOrbsMax > 0 ? totalOrbs / (float)totalOrbsMax : 1f;
         string rank = orbPct >= .95f && totalDeaths <= 2 ? "S" : orbPct >= .75f && totalDeaths <= 6 ? "A" : orbPct >= .5f ? "B" : "C";
         Icon(new Rect(W / 2 - 80 * u, H * .12f, 160 * u, 160 * u), "evolve");
-        Text(new Rect(0, H * .12f + 170 * u, W, 80 * u), "FULLY EVOLVED", hero, ink, (int)(60 * u));
+        Text(new Rect(0, H * .12f + 170 * u, W, 80 * u), "SKY CONQUERED", hero, ink, (int)(60 * u));
         Text(new Rect(0, H * .12f + 245 * u, W, 36 * u),
             totalOrbs + " / " + totalOrbsMax + " orbs   ·   " + totalDeaths + " falls   ·   " + totalTime.ToString("0.0") + "s",
             body, new Color(ink.r, ink.g, ink.b, .7f), (int)(22 * u));

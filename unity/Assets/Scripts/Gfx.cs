@@ -16,7 +16,7 @@ public static class Gfx
     public static readonly Color Cyan = new Color32(90, 205, 255, 255);
     public static readonly Color Glass = new Color32(170, 225, 255, 150);
 
-    static Sprite square, circle, glow, ring, tri, rounded;
+    static Sprite square, circle, glow, ring, tri, rounded, heart;
     static readonly Dictionary<string, Sprite> ballSprites = new Dictionary<string, Sprite>();
     static Material spriteMat;
 
@@ -28,6 +28,18 @@ public static class Gfx
             return spriteMat;
         }
     }
+
+    public static Sprite Heart => heart != null ? heart : heart = Make(128, (x, y, n) =>
+    {
+        float best = 0f;
+        for (int s = 0; s < 4; s++)
+        {
+            float px = ((x + (s & 1) * .5f + .25f) / n - .5f) * 2.5f, py = ((y + (s >> 1) * .5f + .25f) / n - .45f) * 2.5f;
+            float a = px * px + py * py - 1f;
+            if (a * a * a - px * px * py * py * py <= 0f) best += .25f;
+        }
+        return best;
+    });
 
     public static Sprite Square => square != null ? square : square = Make(4, (x, y, n) => 1f);
 
