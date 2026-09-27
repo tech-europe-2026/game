@@ -138,6 +138,27 @@ public class LevelBuilder
         return smooth;
     }
 
+    public GameObject IceRail(params Vector2[] pts)
+    {
+        var go = Go("icerail", Vector2.zero);
+        var smooth = Smooth(pts);
+        foreach (var p in smooth) Grow(p, 1f);
+        var e = go.AddComponent<EdgeCollider2D>();
+        e.points = smooth.ToArray();
+        e.edgeRadius = .08f;
+        e.sharedMaterial = Mat(ref railMat, 0f, 0f);
+        e.usedByEffector = true;
+        var eff = go.AddComponent<PlatformEffector2D>();
+        eff.surfaceArc = 160f;
+        eff.useOneWayGrouping = true;
+        AddTile(go, TileKind.Rail).freeze = true;
+        var pts3 = new Vector3[smooth.Count];
+        for (int i = 0; i < smooth.Count; i++) pts3[i] = smooth[i];
+        Line(go, pts3, .36f, new Color(.55f, 1f, 1f, .4f), 3);
+        Line(go, pts3, .18f, new Color(.7f, 1f, 1f), 4);
+        return go;
+    }
+
     public GameObject Rail(bool oneWay, params Vector2[] pts)
     {
         var go = Go("rail", Vector2.zero);

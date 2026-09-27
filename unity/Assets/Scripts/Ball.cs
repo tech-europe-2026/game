@@ -765,6 +765,13 @@ public class Ball : MonoBehaviour
                     railT = .15f;
                     break;
                 case TileKind.Rail:
+                    if (tile.freeze && freezeT <= 0 && freezeCd <= 0)
+                    {
+                        Freeze();
+                        var ft = new Vector2(-normal.y, normal.x);
+                        if (Vector2.Dot(ft, rb.velocity) < 0) ft = -ft;
+                        iceTan = ft;
+                    }
                     if (railT <= 0)
                     {
                         Sfx.Play("rail", .5f);

@@ -89,18 +89,18 @@ public static class Levels
         switch (style % 4)
         {
             case 0: // one long roller: big dips and shrinking hills
-                b.Rail(true, P(0, 0), P(4, -3), P(8, -4.4f), P(12, -2.3f), P(16, -4.9f), P(20, -3.3f), P(24.5f, -5.3f), P(29.2f, -4f));
+                b.Rail(true, P(-.2f, -.4f), P(4, -3), P(8, -4.4f), P(12, -2.3f), P(16, -4.9f), P(20, -3.3f), P(24.5f, -5.3f), P(29.2f, -4f));
                 break;
             case 1: // rolling rail, hop, short downhill
-                b.Rail(true, P(0, 0), P(5, -2.6f), P(10, -1.5f), P(15, -3.5f), P(18.5f, -2.9f));
+                b.Rail(true, P(-.2f, -.4f), P(5, -2.6f), P(10, -1.5f), P(15, -3.5f), P(18.5f, -2.9f));
                 b.Rail(true, P(21.5f, -3.4f), P(25.5f, -4.4f), P(29.2f, -4f));
                 break;
             case 2: // deep plunge that climbs out, then a flat run-in
-                b.Rail(true, P(0, 0), P(6, -5f), P(12, -5.6f), P(18, -3.2f), P(21.5f, -2.8f));
+                b.Rail(true, P(-.2f, -.4f), P(6, -5f), P(12, -5.6f), P(18, -3.2f), P(21.5f, -2.8f));
                 b.Rail(true, P(24.5f, -3.6f), P(29.2f, -4f));
                 break;
             default: // three straight rails stepping down
-                b.Rail(true, P(0, 0), P(7.2f, -.9f));
+                b.Rail(true, P(-.2f, -.4f), P(7.2f, -.9f));
                 b.Rail(true, P(10.7f, -1.9f), P(17.2f, -2.6f));
                 b.Rail(true, P(20.7f, -3.4f), P(29.2f, -4f));
                 break;
@@ -121,7 +121,7 @@ public static class Levels
     static void FinaleTube(LevelBuilder b, float x, float py)
     {
         float y = py + .7f, c1 = py - 1.55f, c2 = c1 - 2f;
-        b.Rail(true, V(x, y), V(x + 3.5f, y - 1.2f), V(x + 7.2f, y - .55f));
+        b.Rail(true, V(x - .2f, y - .4f), V(x + 3.5f, y - 1.2f), V(x + 7.2f, y - .55f));
         b.Plat(x + 13.5f, c1, 7);
         b.Tube(V(x + 16.9f, c1 + 1.13f), V(x + 19.5f, c1 + 1.1f), V(x + 22, c1 - 1.6f), V(x + 24.5f, c1 - .3f), V(x + 27.1f, c1 - .87f));
         b.Orbs(x + 2, y - .4f, x + 14, c1 + 1.2f, 4);
@@ -161,7 +161,7 @@ public static class Levels
     static void FinaleLoop(LevelBuilder b, float x, float py, float r, float ry, int turns, float shift)
     {
         float y = py + .7f, ly = y - 2.5f, xl = x + 9, xe = xl + LevelBuilder.LoopShiftFor(LevelBuilder.LoopWidth(r), shift) * turns + 5;
-        b.Rail(true, V(x, y), V(x + 4, ly), V(xe, ly), V(xe + 3, ly + .8f));
+        b.Rail(true, V(x - .2f, y - .4f), V(x + 4, ly), V(xe, ly), V(xe + 3, ly + .8f));
         b.Loop(xl, ly, r, 1, ry, turns, shift);
         b.Orbs(x + 2, y - .8f, x + 6, ly + .6f, 3);
         b.Plat(xe + 7.5f, ly - .9f, 8);
@@ -293,7 +293,7 @@ public static class Levels
         b.Plat(159, 12.65f, 9);
         b.Check(161.5f, 14.05f);
         b.Orb(159, 14);
-        b.Rail(true, V(163.3f, 13.35f), V(168, 12), V(173, 12.8f));
+        b.Rail(true, V(163.3f, 12.95f), V(168, 12), V(173, 12.8f));
         b.Orbs(166, 12.8f, 170, 12.8f, 2);
         b.Plat(177, 12.5f, 7);
         FinaleTube(b, 180.8f, 12.5f);
@@ -398,7 +398,7 @@ public static class Levels
         b.Orb(122, 10.7f);
         b.Plat(129, 10.8f, 6);
         b.Gate(128, 11.15f, 14.3f, 0, true);
-        b.Rail(true, V(132.3f, 11.5f), V(137, 9.8f), V(142, 10.6f));
+        b.Rail(true, V(132.1f, 11.1f), V(137, 9.8f), V(142, 10.6f));
         b.Orbs(135, 10.4f, 139, 10.4f, 2);
         b.Plat(146, 10.3f, 8);
         b.Check(145, 11.7f);
@@ -442,7 +442,7 @@ public static class Levels
         b.Tramp(52, -1.2f, 2.4f);
         b.Plat(57, 2.3f, 5);
         b.Check(57, 3.7f);
-        b.Rail(true, V(59.8f, 3f), V(64, .6f), V(68, .3f), V(78, .3f), V(82, .9f));
+        b.Rail(true, V(59.6f, 2.6f), V(64, .6f), V(68, .3f), V(78, .3f), V(82, .9f));
         b.Loop(72, .3f, 2.2f);
         b.Label(66, 4.6f, "loop the loop!");
         b.Plat(86, .6f, 6);
@@ -488,7 +488,7 @@ public static class Levels
         b.Label(58, 4.5f, "D dashes through glass|DASH through glass");
         b.Plat(67, 0, 6);
         b.Check(67, 1.4f);
-        b.Rail(true, V(70.3f, .7f), V(74, -1.5f), V(78, -2), V(88, -2), V(92, -1.2f));
+        b.Rail(true, V(70.1f, .3f), V(74, -1.5f), V(78, -2), V(88, -2), V(92, -1.2f));
         b.Loop(82, -2, 2.2f);
         b.Plat(96, -1.5f, 6);
         b.Plat(106, -1.5f, 12);
@@ -575,7 +575,7 @@ public static class Levels
         FlipGauntlet(b, -44, false);
         b.Plat(3, 0, 12);
         b.Label(4, 3, "full speed ahead");
-        b.Rail(true, V(9.3f, .7f), V(14, -2), V(18, -2.8f), V(30, -2.8f), V(34, -2));
+        b.Rail(true, V(9.1f, .3f), V(14, -2), V(18, -2.8f), V(30, -2.8f), V(34, -2));
         b.Loop(24, -2.8f, 2.4f);
         b.Rail(true, V(37.5f, -3.2f), V(41, -4.5f), V(45, -3.8f));
         b.Plat(49, -4, 6);
@@ -597,7 +597,7 @@ public static class Levels
         b.Plat(98, 2.2f, 12);
         b.Label(98, 4.4f, "flip past the spikes");
         b.Plat(108, -2, 8);
-        b.Rail(true, V(112.3f, -1.3f), V(116, -3.5f), V(120, -4), V(136, -4), V(140, -3.2f));
+        b.Rail(true, V(112.1f, -1.7f), V(116, -3.5f), V(120, -4), V(136, -4), V(140, -3.2f));
         b.Loop(124, -4, 2.2f);
         b.Loop(132, -4, 2.2f);
         b.Label(128, 1.5f, "double loop!");
@@ -769,7 +769,7 @@ public static class Levels
         b.Blaster(65, 4.5f, V(-1, -.5f), 1.3f, .6f);
         b.PhaseWall(64, 2.35f, .8f, 4);
         b.Check(55, 1.4f);
-        b.Rail(true, V(67.3f, .7f), V(71, -1.8f), V(95, -1.8f), V(98, -1));
+        b.Rail(true, V(67.1f, .3f), V(71, -1.8f), V(95, -1.8f), V(98, -1));
         b.Loop(76, -1.8f, 1.6f, 1, 2.6f, 1, 1.2f);
         b.Loop(85, -1.8f, 2.6f, 1, 1.5f, 1, 2f);
         b.Plat(102, -1.5f, 8);
@@ -826,7 +826,7 @@ public static class Levels
         b.Check(47, 2.4f);
 
         b.Label(57, 5, "rails end in the air · jump at the lip");
-        b.Rail(true, V(51.3f, 1.7f), V(56, -1), V(60, -3), V(63.5f, -2.2f));
+        b.Rail(true, V(51.1f, 1.3f), V(56, -1), V(60, -3), V(63.5f, -2.2f));
         b.Rail(true, V(67.5f, -3.3f), V(73, -5.5f), V(79, -6.2f), V(83, -5.2f));
         b.Orbs(58, -1, 80, -4.4f, 5);
         b.Blaster(75, -1, V(-1, -1), 1.6f, 0, 25);
@@ -846,7 +846,7 @@ public static class Levels
         b.Shards(hx + 1.5f, hyy + .35f, 2);
 
         b.Label(hx + 10, hyy + 3, "the lower rail drops into the pit · jump to the upper one");
-        b.Rail(true, V(hx + 3.3f, hyy + .7f), V(hx + 9, hyy - 3.5f), V(hx + 14, hyy - 7), V(hx + 18, hyy - 8.5f));
+        b.Rail(true, V(hx + 3.1f, hyy + .3f), V(hx + 9, hyy - 3.5f), V(hx + 14, hyy - 7), V(hx + 18, hyy - 8.5f));
         b.Rail(true, V(hx + 13, hyy - 4.4f), V(hx + 20, hyy - 5.4f), V(hx + 27, hyy - 7.6f), V(hx + 31, hyy - 6.8f));
         b.Orbs(hx + 14, hyy - 3.4f, hx + 26, hyy - 6.4f, 4);
         b.Plat(hx + 36, hyy - 9, 5);
@@ -881,35 +881,40 @@ public static class Levels
     {
         b.Start(0, 1);
         b.Plat(2, 0, 8);
-        b.Label(3, 3.5f, "rails only · cyan ice freezes you for 2 s");
-        b.Rail(true, V(6.3f, .7f), V(12, -2), V(20, -3), V(26, -2.4f));
+        b.Label(3, 3.5f, "rails only · cyan rail = frozen for 2 s");
+        b.Rail(true, V(6.1f, .3f), V(12, -2), V(20, -3), V(26, -2.4f));
         b.Orbs(12, -.8f, 24, -1.6f, 4);
-        b.Label(33, 1, "ice on a climb keeps your speed");
-        b.Rail(true, V(29, -3.4f), V(35, -3.6f), V(44, -1), V(45, -.8f));
-        b.Frost(35, -3.6f, -.6f);
-        b.Rail(true, V(47.5f, -2.4f), V(56, -2.6f), V(62, -8), V(64, -10));
-        b.Label(55, 1.5f, "ice here = no jump · the rail drops into the pit");
-        b.Frost(53, -2.6f, .4f, 1.5f);
+        b.Label(34, 1, "cyan on a climb keeps your speed");
+        b.Rail(true, V(29, -3.4f), V(34, -3.6f));
+        b.IceRail(V(34, -3.6f), V(40, -2.3f));
+        b.Rail(true, V(40, -2.3f), V(44, -1), V(45, -.8f));
+        b.Rail(true, V(47.5f, -2.4f), V(51, -2.5f));
+        b.IceRail(V(51, -2.5f), V(54.5f, -2.6f));
+        b.Rail(true, V(54.5f, -2.6f), V(56, -2.6f), V(62, -8), V(64, -10));
+        b.Label(55, 1.5f, "frozen here = no jump · jump over the cyan to the high rail");
         b.Rail(true, V(58, -1.1f), V(70, -1.2f), V(76, -4), V(84, -4.6f), V(88, -3.9f));
         b.Orbs(60, 0, 68, 0, 3);
         b.Plat(93, -5.2f, 6);
         b.Check(92, -3.8f);
 
-        b.Rail(true, V(96.3f, -4.5f), V(102, -8), V(110, -9.2f), V(114, -8.8f));
-        b.Frost(111, -9.2f, -6, .5f);
-        b.Rail(true, V(117, -10.4f), V(126, -10.8f), V(131, -13.5f), V(133, -15));
+        b.Rail(true, V(96.1f, -4.9f), V(102, -8), V(110, -9.2f));
+        b.IceRail(V(110, -9.2f), V(114, -8.8f));
+        b.Rail(true, V(117, -10.4f), V(122, -10.6f));
+        b.IceRail(V(122, -10.6f), V(126, -10.8f));
+        b.Rail(true, V(126, -10.8f), V(131, -13.5f), V(133, -15));
         b.Rail(true, V(128, -9), V(138, -9.3f), V(144, -8), V(146, -7.6f));
-        b.Frost(124, -10.8f, -7.6f, 2.2f);
-        b.Label(125, -5, "jump up before the ice grabs you");
+        b.Label(124, -5, "jump up before the cyan grabs you");
         b.Orbs(130, -7.8f, 142, -6.9f, 3);
-        b.Rail(true, V(149, -8.8f), V(156, -12), V(164, -12.4f), V(168, -11.8f));
-        b.Frost(158, -12.2f, -9, 1);
+        b.Rail(true, V(149, -8.8f), V(156, -12), V(160, -12.3f));
+        b.IceRail(V(160, -12.3f), V(166, -12.2f));
+        b.Rail(true, V(166, -12.2f), V(168, -11.8f));
         b.Plat(174, -13.6f, 8);
         b.Check(171, -12.2f);
 
-        b.Rail(true, V(178.3f, -12.9f), V(182, -15), V(196, -15.2f), V(200, -14.4f));
+        b.Rail(true, V(178.1f, -13.3f), V(182, -15), V(194, -15.2f));
         b.Loop(188, -15.1f, 2.4f);
-        b.Frost(198, -15.2f, -12, 3.5f);
+        b.IceRail(V(194, -15.2f), V(198, -15.3f));
+        b.Rail(true, V(198, -15.3f), V(200, -14.4f));
         b.Rail(true, V(203, -15.6f), V(210, -16), V(214, -19), V(216, -21));
         b.Rail(true, V(211, -14.2f), V(222, -14.4f), V(226, -13.6f));
         b.Label(212, -11, "last fork · take the high rail");
@@ -924,7 +929,7 @@ public static class Levels
         b.Label(3, 3.5f, "fast glass · SLAM breaks one floor at a time");
         float y = .7f, ly = -1.8f, xl = 17;
         float xe = xl + LevelBuilder.LoopShiftFor(LevelBuilder.LoopWidth(2.4f), 1.2f) + 6;
-        b.Rail(true, V(8.3f, y), V(12, ly), V(xe, ly), V(xe + 3, ly + .8f));
+        b.Rail(true, V(8.1f, y - .4f), V(12, ly), V(xe, ly), V(xe + 3, ly + .8f));
         b.Loop(xl, ly, 2.4f);
         b.Orbs(10, 0, 14, ly + .6f, 3);
         float p1 = xe + 8;
