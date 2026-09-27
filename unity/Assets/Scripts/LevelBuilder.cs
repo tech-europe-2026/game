@@ -159,7 +159,10 @@ public class LevelBuilder
     // Short transparent glass tube the ball rolls through; pts trace its centreline.
     public GameObject Tube(params Vector2[] pts) => TubeR(.78f, pts);
 
-    public GameObject TubeR(float R, params Vector2[] pts)
+    public GameObject TubeR(float R, params Vector2[] pts) => TubeH(R, null, 0f, pts);
+
+    // tube whose walls open wherever it passes within `hr` of a hole, so crossing tubes can be switched between
+    public GameObject TubeH(float R, Vector2[] holes, float hr, params Vector2[] pts)
     {
         var go = Go("tube", Vector2.zero);
         var mid = Smooth(pts);
@@ -180,16 +183,29 @@ public class LevelBuilder
         }
         foreach (var wall in new[] { lo, hi })
         {
-            var w = new GameObject("wall");
-            w.transform.SetParent(go.transform, false);
-            var e = w.AddComponent<EdgeCollider2D>();
-            e.points = wall;
-            e.edgeRadius = .05f;
-            e.sharedMaterial = Mat(ref railMat, 0f, 0f);
-            AddTile(w, TileKind.Tube);
-            var w3 = new Vector3[n];
-            for (int i = 0; i < n; i++) w3[i] = wall[i];
-            Line(go, w3, .1f, new Color(1f, 1f, 1f, .75f), 26);
+            var run = new List<Vector2>();
+            for (int i = 0; i <= n; i++)
+            {
+                bool open = i == n;
+                if (!open && holes != null)
+                    foreach (var h in holes)
+                        if ((wall[i] - h).sqrMagnitude < hr * hr) { open = true; break; }
+                if (!open) { run.Add(wall[i]); continue; }
+                if (run.Count >= 2)
+                {
+                    var w = new GameObject("wall");
+                    w.transform.SetParent(go.transform, false);
+                    var e = w.AddComponent<EdgeCollider2D>();
+                    e.points = run.ToArray();
+                    e.edgeRadius = .05f;
+                    e.sharedMaterial = Mat(ref railMat, 0f, 0f);
+                    AddTile(w, TileKind.Tube);
+                    var w3 = new Vector3[run.Count];
+                    for (int k = 0; k < run.Count; k++) w3[k] = run[k];
+                    Line(go, w3, .1f, new Color(1f, 1f, 1f, .75f), 26);
+                }
+                run.Clear();
+            }
         }
         Line(go, mid3, R * 2f, new Color(.92f, .97f, 1f, .2f), 25);
         Line(go, shine, .08f, new Color(1f, 1f, 1f, .5f), 26);

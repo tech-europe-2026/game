@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 public static class Levels
@@ -652,53 +653,55 @@ public static class Levels
     }
 
     // three glass squeeze lanes drop through two crossing chambers; only one exit is safe
+    // three squeeze tubes braid all the way down; at every X crossing the walls open so you can switch lanes.
+    // lane 3 ends in a glass slide to the goal side, lanes 1-2 spit you onto tiny ledges above spikes
     static Vector2 Maze(LevelBuilder b, float x0, float top, int safe)
     {
-        float[] la = { 2, 6, 10 }, lb = { 4, 8, 12 };
-        float jy1 = top - 10f, jy2 = top - 21f, bot = top - 31f, ch = .95f;
-        for (int i = 0; i < 3; i++)
+        float[] lx = { 2, 7, 12 };
+        int[] swaps = { 1, 0, 1, 1, 0, 0 };
+        float step = 5f, bot = top - step * swaps.Length, R = .45f;
+        int[] lane = { 0, 1, 2 }, start = { 0, 1, 2 };
+        var paths = new List<Vector2>[3];
+        var holes = new List<Vector2>();
+        for (int t = 0; t < 3; t++) paths[t] = new List<Vector2> { V(x0 + lx[t], top), V(x0 + lx[t], top - 1) };
+        for (int k = 0; k < swaps.Length; k++)
         {
-            float w = i == 1 ? -.9f : .9f, mx = x0 + la[i];
-            b.TubeR(.45f, V(mx, top), V(mx, top - 2), V(mx + w, top - 4.5f), V(mx - w, top - 7), V(mx, jy1 + ch / 2));
-            mx = x0 + lb[i];
-            b.TubeR(.45f, V(mx, jy1 - ch / 2), V(mx, jy1 - 2), V(mx - w, jy1 - 4.5f), V(mx + w, jy1 - 7.5f), V(mx, jy2 + ch / 2));
-            mx = x0 + la[i];
-            b.TubeR(.45f, V(mx, jy2 - ch / 2), V(mx, jy2 - 2), V(mx + w, jy2 - 4.5f), V(mx - w * .8f, jy2 - 7), V(mx, bot));
-            if (i != safe) b.Void(mx, bot + .9f, 1.2f, 1.2f);
-            b.Label(x0 + la[i], top + 1.3f, (i + 1).ToString());
+            int a = swaps[k], c = a + 1;
+            float y = top - 1 - step * k * (step * swaps.Length - 1) / (step * swaps.Length);
+            float yn = top - 1 - step * (k + 1) * (step * swaps.Length - 1) / (step * swaps.Length);
+            holes.Add(V(x0 + (lx[a] + lx[c]) / 2, (y + yn) / 2));
+            for (int t = 0; t < 3; t++)
+            {
+                if (lane[t] == a) lane[t] = c;
+                else if (lane[t] == c) lane[t] = a;
+                paths[t].Add(V(x0 + lx[lane[t]], yn));
+            }
         }
-        Chamber(b, x0, jy1, ch, la, lb);
-        Chamber(b, x0, jy2, ch, lb, la);
+        int safeEnd = 0;
+        for (int t = 0; t < 3; t++)
+        {
+            if (lane[t] == 0)
+            {
+                safeEnd = t;
+                paths[t].Add(V(x0 + lx[0], bot - 2.5f));
+                paths[t].Add(V(x0 + lx[0] + 2.5f, bot - 6.3f));
+                paths[t].Add(V(x0 + 17, bot - 6.3f));
+            }
+            else b.Plat(x0 + lx[lane[t]], bot - 3.4f, 1.1f);
+            b.TubeH(R, holes.ToArray(), 1.15f, paths[t].ToArray());
+            b.Label(x0 + lx[t], top + 1.3f, (start[t] + 1).ToString());
+        }
+        b.Shards(x0 + 11, bot - 5.85f, 14);
         float yc = top - .35f;
         b.Plat(x0 - 1.5f, yc, 5.1f);
-        b.Plat(x0 + 4, yc, 3.1f);
-        b.Plat(x0 + 8, yc, 3.1f);
-        b.Plat(x0 + 11.7f, yc, 2.5f);
-        b.Plat(x0 + 13.2f, yc + 2, .7f, 4.6f);
-        b.Cover(x0 + 7, top - 15.5f, 14.6f, 33, "one lane is safe · S to squeeze · steer in the crossings|one lane is safe · CROUCH to squeeze · steer in the crossings");
-        b.Ramp(x0 - 1, bot - 2, x0 + 15, bot - 3.5f);
-        b.Plat(x0 + 19, bot - 3.65f, 8);
-        b.Check(x0 + 18, bot - 2.2f);
-        return V(x0 + 23, bot - 3.65f);
-    }
-
-    // flat squeeze-height crossing: openings above at `ins`, holes below at `outs`
-    static void Chamber(LevelBuilder b, float x0, float y, float h, float[] ins, float[] outs)
-    {
-        float l = x0 + 1, r = x0 + 13, yt = y + h / 2, yb = y - h / 2, R = .45f;
-        b.GlassEdge(V(l, yt), V(l, yb));
-        b.GlassEdge(V(r, yt), V(r, yb));
-        foreach (var (holes, yy) in new[] { (ins, yt), (outs, yb) })
-        {
-            float cur = l;
-            foreach (float hx in holes)
-            {
-                float hl = x0 + hx - R;
-                if (hl > cur + .05f) b.GlassEdge(V(cur, yy), V(hl, yy));
-                cur = x0 + hx + R;
-            }
-            if (r > cur + .05f) b.GlassEdge(V(cur, yy), V(r, yy));
-        }
+        b.Plat(x0 + 4.5f, yc, 3.1f);
+        b.Plat(x0 + 9.5f, yc, 3.1f);
+        b.Plat(x0 + 13.6f, yc, 1.1f);
+        b.Plat(x0 + 14.4f, yc + 2, .7f, 4.6f);
+        b.Cover(x0 + 7, (top + bot) / 2, 14.6f, top - bot + 3, "one lane is safe · S to squeeze · switch lanes at the crossings|one lane is safe · CROUCH to squeeze · switch lanes at the crossings");
+        b.Plat(x0 + 21, bot - 7, 8);
+        b.Check(x0 + 19, bot - 5.6f);
+        return V(x0 + 25, bot - 7);
     }
 
     // BOUNCE HOUSE: trampoline chains with spike ceilings, blaster crossfire, frost drop.
