@@ -11,16 +11,18 @@ public class Controls : MonoBehaviour
     static readonly Dictionary<string, KeyCode[]> keys = new Dictionary<string, KeyCode[]>
     {
         { "jump", new[] { KeyCode.Space, KeyCode.W, KeyCode.UpArrow } },
-        { "dash", new[] { KeyCode.LeftShift, KeyCode.RightShift } },
+        { "dash", new[] { KeyCode.D } },
+        { "slam", new[] { KeyCode.F } },
+        { "hover", new[] { KeyCode.Q } },
         { "grow", new[] { KeyCode.G } },
         { "teleport", new[] { KeyCode.T } },
-        { "parry", new[] { KeyCode.Q, KeyCode.J } },
+        { "parry", new[] { KeyCode.J } },
         { "camo", new[] { KeyCode.V } },
         { "reverse", new[] { KeyCode.E } },
         { "climb", new[] { KeyCode.C, KeyCode.L } },
     };
 
-    public static readonly string[] TouchButtons = { "crouch", "dash", "reverse", "climb", "grow", "parry", "teleport", "camo" };
+    public static readonly string[] TouchButtons = { "crouch", "dash", "reverse", "slam", "hover", "climb", "grow", "parry", "teleport", "camo" };
 
     public struct Button
     {
@@ -74,8 +76,8 @@ public class Controls : MonoBehaviour
         get
         {
             float x = 0, y = 0;
-            if (Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.LeftArrow)) x -= 1;
-            if (Input.GetKey(KeyCode.D) || Input.GetKey(KeyCode.RightArrow)) x += 1;
+            if (Input.GetKey(KeyCode.LeftArrow)) x -= 1;
+            if (Input.GetKey(KeyCode.RightArrow)) x += 1;
             if (Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.UpArrow)) y += 1;
             if (Input.GetKey(KeyCode.S) || Input.GetKey(KeyCode.DownArrow)) y -= 1;
             if (I != null)

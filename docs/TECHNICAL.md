@@ -28,9 +28,9 @@ Skyroll is **code-first**. The only scene (`Assets/Scenes/Main.unity`) holds not
 |---|---|
 | `GM.cs` | Bootstraps the systems, runs the game-mode state machine, loads levels, handles checkpoints, deaths and the boss outcome, and draws all UI with IMGUI (title/level menu, HUD, touch buttons, results screens) |
 | `Levels.cs` | Level data: name, allowed abilities, sky gradient and a `build` delegate that describes the geometry |
-| `LevelBuilder.cs` | A small DSL for building geometry: `Plat`, `Rail`, `Coaster`, `Tube`, `Ice`, `Gate`, `Pad`, `Spinner`, `Mover`, `Glass`, `Box`, `Seesaw`, `Turret`, `Orb(s)`, `Check`, `Goal`, `Label`, `Rival`. It also tracks the level bounds |
+| `LevelBuilder.cs` | A small DSL for building geometry: `Plat`, `Rail`, `Coaster`, `Tube`, `Ice`, `Gate`, `Pad`, `Spinner`, `Mover`, `Glass`, `Box`, `Seesaw`, `Turret`, `Orb(s)`, `Check`, `Goal`, `Label`, `Rival`, `Tramp` (trampoline), `GravZone` (gravity-flip field), `Loop` (loop-the-loop). It also tracks the level bounds |
 | `Ball.cs` | The player: physics, abilities, the state/sprite machine, damage, triggers and the rail/tube/ice behaviour |
-| `Boss.cs` | The red rival ball for level 5: AI state machine, ram resolution and lives |
+| `Boss.cs` | The red rival ball for levels 5 and 10 (tier 1 adds homing orbs, 8-way bullet rings and a quake dive with floor shockwaves): AI state machine, ram resolution and lives |
 | `Tile.cs` | Tags any collider with a `TileKind` (Solid, Rail, Tube, Ice, Gate, Orb, Check, Goal, Pad, Glass, …) and runs the per-tile animation (gate pulsing, orb bobbing) |
 | `Controls.cs` | Turns keyboard, mouse and multi-touch into named actions (`Held/Pressed/Released("jump")`, `Move`) and lays out the touch buttons |
 | `CameraFollow.cs` | Smooth follow with velocity look-ahead and speed-based zoom, clamped to the level bounds. Has a fixed-arena mode for the boss, plus the parallax sky and clouds |
@@ -232,3 +232,12 @@ C# sources ──► Unity batch build (BuildWebGL.Build)
 - The HUD uses IMGUI, which is simple and fast to iterate on but not accessibility-aware. Moving to UI Toolkit would add proper focus navigation.
 - The boss AI is a hand-tuned state machine. It has no difficulty setting yet.
 - A native iOS build is possible (Unity iOS target plus Xcode), but the web build was chosen so the game plays instantly from a link.
+
+## Levels 6–10
+
+- **Three abilities besides jump** from level 6 on. New ones: `SLAM` (`F`), a fast downward dive that breaks glass and sends the ball much higher off a trampoline, and `HOVER` (`Q`), which pauses in mid-air for about 1 s.
+- **Trampolines** bounce at `max(1.1·|vy|, 15)`. Holding jump raises that to 19; slamming onto one gives 24.
+- **Gravity fields** are triggers that set the ball's gravity direction.
+- **Loops:** the ball switches to a kinematic body and follows a parametric circle path, shifted forward along x, then leaves at the same speed.
+- **Rail finales** combine three different shapes (dip, drop+kicker, camel humps, late plunge, wave). Which three is chosen per level.
+- **Dash** is on `D`, so rolling uses the arrow keys only.

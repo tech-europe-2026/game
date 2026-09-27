@@ -8,6 +8,7 @@ public static class Levels
         public string name, unlock;
         public bool boss;
         public Color top, mid, bottom;
+        public Vector2 camMin, camMax;
         public Action<LevelBuilder> build;
     }
 
@@ -20,40 +21,40 @@ public static class Levels
         new Level { name = "UPSIDE", unlock = "jump,reverse,crouch", build = Upside, top = C(124, 106, 226), mid = C(198, 180, 255), bottom = C(255, 206, 226) },
         new Level { name = "HEAVY WEATHER", unlock = "jump,grow,dash", build = HeavyWeather, top = C(78, 170, 204), mid = C(172, 230, 236), bottom = C(238, 250, 244) },
         new Level { name = "PULSE", unlock = "jump,dash,crouch", build = PhaseShift, top = C(246, 134, 128), mid = C(255, 196, 170), bottom = C(255, 236, 204) },
-        new Level { name = "DUEL", unlock = "jump,dash,grow", boss = true, build = Duel, top = C(64, 60, 120), mid = C(170, 120, 190), bottom = C(255, 170, 160) },
+        new Level { name = "DUEL", unlock = "jump,dash,grow", boss = true, camMin = V(-11, -4.7f), camMax = V(11, 6.3f), build = Duel, top = C(64, 60, 120), mid = C(170, 120, 190), bottom = C(255, 170, 160) },
+        new Level { name = "SPRINGTIME", unlock = "jump,dash,slam,crouch", build = Springtime, top = C(255, 150, 190), mid = C(255, 204, 222), bottom = C(255, 240, 220) },
+        new Level { name = "FLIPSIDE", unlock = "jump,reverse,hover,dash", build = Flipside, top = C(90, 110, 220), mid = C(150, 200, 250), bottom = C(220, 250, 240) },
+        new Level { name = "GLASSWORKS", unlock = "jump,hover,grow,slam", build = Glassworks, top = C(70, 180, 190), mid = C(170, 225, 245), bottom = C(245, 235, 255) },
+        new Level { name = "SKY RUSH", unlock = "jump,dash,hover,reverse", build = SkyRush, top = C(255, 140, 90), mid = C(255, 190, 150), bottom = C(200, 220, 255) },
+        new Level { name = "RED STORM", unlock = "jump,dash,slam,hover", boss = true, camMin = V(-11, -4.7f), camMax = V(11, 6.3f), build = RedStorm, top = C(40, 30, 80), mid = C(120, 70, 150), bottom = C(255, 120, 140) },
     };
 
+    // Each finale strings three different rail shapes together; the style picks which three.
     static void RailRun(LevelBuilder b, float x, float py, int style = 0)
     {
         float y = py + .7f;
         Vector2 P(float dx, float dy) => V(x + dx, y + dy);
-        switch (style)
-        {
-            case 1:
-                b.Rail(true, P(0, 0), P(1.6f, -2.3f), P(4.5f, -2f), P(7.2f, -.55f));
-                b.Rail(true, P(10.7f, -1.75f), P(12.2f, -3.9f), P(15.2f, -3.6f), P(17.2f, -2.25f));
-                b.Rail(true, P(20.7f, -3.15f), P(22.4f, -5.6f), P(26.5f, -5.2f), P(29.2f, -4f));
-                break;
-            case 2:
-                b.Rail(true, P(0, 0), P(2.2f, -1.5f), P(3.7f, -.7f), P(5.2f, -1.4f), P(7.2f, -.55f));
-                b.Rail(true, P(10.7f, -1.75f), P(12.5f, -3.2f), P(14f, -2.5f), P(15.5f, -3.3f), P(17.2f, -2.25f));
-                b.Rail(true, P(20.7f, -3.15f), P(22.7f, -4.6f), P(24.5f, -3.9f), P(26.6f, -4.9f), P(29.2f, -4f));
-                break;
-            case 3:
-                b.Rail(true, P(0, 0), P(3f, -.6f), P(5.5f, -1.9f), P(7.2f, -.55f));
-                b.Rail(true, P(10.7f, -1.75f), P(12f, -2.1f), P(13.2f, -4.2f), P(15.8f, -3.9f), P(17.2f, -2.25f));
-                b.Rail(true, P(20.7f, -3.15f), P(23f, -3.7f), P(24.5f, -5.9f), P(27.3f, -5.4f), P(29.2f, -4f));
-                break;
-            default:
-                b.Rail(true, P(0, 0), P(3.7f, -1.15f), P(7.2f, -.55f));
-                b.Rail(true, P(10.7f, -1.75f), P(14.2f, -3.05f), P(17.2f, -2.25f));
-                b.Rail(true, P(20.7f, -3.15f), P(24.2f, -4.75f), P(29.2f, -4f));
-                break;
-        }
+        Seg(b, P(0, 0), P(7.2f, -.55f), style % 5);
+        Seg(b, P(10.7f, -1.75f), P(17.2f, -2.25f), (style + 2) % 5);
+        Seg(b, P(20.7f, -3.15f), P(29.2f, -4f), (style + 4) % 5);
         b.Orbs(x + 3, y - .6f, x + 22, y - 3.6f, 5);
         b.Plat(x + 33.2f, py - 3.6f, 8);
         b.Plat(x + 37.4f, py - 1.8f, .7f, 4f);
         b.Goal(x + 34.2f, py - 1.6f);
+    }
+
+    static void Seg(LevelBuilder b, Vector2 a, Vector2 e, int shape)
+    {
+        float m = Mathf.Min(a.y, e.y), L = e.x - a.x;
+        Vector2 Q(float t, float dy) => V(a.x + L * t, m + dy);
+        switch (shape)
+        {
+            case 1: b.Rail(true, a, Q(.22f, -2.2f), Q(.65f, -1.9f), e); break;           // drop + kicker
+            case 2: b.Rail(true, a, Q(.3f, -1.4f), Q(.5f, -.6f), Q(.72f, -1.3f), e); break; // camel humps
+            case 3: b.Rail(true, a, Q(.4f, -.5f), Q(.78f, -2.1f), e); break;              // late plunge
+            case 4: b.Rail(true, a, Q(.2f, -1f), Q(.4f, -.35f), Q(.6f, -1.1f), Q(.8f, -.4f), e); break; // wave
+            default: b.Rail(true, a, Q(.5f, -1.3f), e); break;                             // dip
+        }
     }
 
     static void FirstFlight(LevelBuilder b)
@@ -305,5 +306,179 @@ public static class Levels
         b.Plat(0, .6f, 4);
         b.Label(0, 3.2f, "ram the red ball · dash hits hardest");
         b.Rival(6, -2.5f, new Vector2(-10, -3.65f), new Vector2(10, 5.5f));
+    }
+
+    // SPRINGTIME: trampolines, slam through glass, a first loop.
+    static void Springtime(LevelBuilder b)
+    {
+        b.Start(0, 1);
+        b.Plat(3, 0, 12);
+        b.Label(4, 3, "pink springs bounce · hold SPACE for more|hold JUMP on springs to fly higher");
+        b.Tramp(11, -1.5f, 4);
+        b.Orbs(11, 1, 11, 4, 3);
+        b.Plat(18, 3, 8);
+        b.Check(18, 4.4f);
+        b.Plat(28, 3, 8);
+        b.Plat(28, 5.15f, 6, 2);
+        b.Label(28, 7.6f, "S to squeeze|hold CROUCH to squeeze");
+        b.Orbs(26, 3.8f, 30, 3.8f, 3);
+        b.Plat(35.5f, 3, 3);
+        b.Glass(39, 3, 4, .7f);
+        b.Plat(42, 6, 1, 6);
+        b.Label(38, 5.8f, "jump + F slams through glass|jump + SLAM through glass");
+        b.Plat(44, -1, 12);
+        b.Check(45, .4f);
+        b.Tramp(52, -1.2f, 2.4f);
+        b.Plat(57, 2.3f, 5);
+        b.Check(57, 3.7f);
+        b.Rail(true, V(59.8f, 3f), V(64, .6f), V(68, .3f), V(78, .3f), V(82, .9f));
+        b.Loop(72, .3f, 2.2f);
+        b.Label(66, 4.6f, "loop the loop!");
+        b.Plat(86, .6f, 6);
+        b.Check(86, 2);
+        b.Tramp(92.5f, .3f, 2.6f);
+        b.Plat(97, 3, 3);
+        b.Tramp(101, 2.4f, 2.6f);
+        b.Plat(105.5f, 5.2f, 3);
+        b.Tramp(109.5f, 4.6f, 2.6f);
+        b.Orbs(97, 5, 109, 9, 4);
+        b.Plat(115, 7.4f, 8);
+        b.Check(115, 8.8f);
+        RailRun(b, 119.3f, 7.4f, 4);
+    }
+
+    // FLIPSIDE: purple fields flip gravity, hover past a laser, a loop, ceiling runs.
+    static void Flipside(LevelBuilder b)
+    {
+        b.Start(0, 1);
+        b.Plat(3, 0, 12);
+        b.Label(4, 3, "purple fields flip gravity");
+        b.Plat(14, 0, 6);
+        b.GravZone(20, 3, 4, 8, -1);
+        b.Plat(26, 7.5f, 14);
+        b.Orbs(22, 6.4f, 30, 6.4f, 4);
+        b.GravZone(35, 3.5f, 3, 8, 1);
+        b.Plat(40, 0, 8);
+        b.Check(40, 1.4f);
+        b.Gate(47, -1, 4);
+        b.Label(47, 5, "jump, then Q to hover till the laser drops|jump, then HOVER till the laser drops");
+        b.Plat(52, 0, 4);
+        b.Plat(60, 0, 8);
+        b.Glass(61, 1.85f, .8f, 3);
+        b.Label(58, 4.5f, "D dashes through glass|DASH through glass");
+        b.Plat(67, 0, 6);
+        b.Check(67, 1.4f);
+        b.Rail(true, V(70.3f, .7f), V(74, -1.5f), V(78, -2), V(88, -2), V(92, -1.2f));
+        b.Loop(82, -2, 2.2f);
+        b.Plat(96, -1.5f, 6);
+        b.Plat(106, -1.5f, 12);
+        b.Shards(106, -1.15f, 5);
+        b.Plat(106, 3.2f, 14);
+        b.Label(104, 5.4f, "E runs on the ceiling|REVERSE to run on the ceiling");
+        b.Orbs(102, 2.2f, 110, 2.2f, 3);
+        b.Plat(118, -1.5f, 8);
+        b.Check(118, -.1f);
+        b.GravZone(124, 1.5f, 3, 9, -1);
+        b.Plat(132, 5.5f, 12);
+        b.Orbs(128, 4.4f, 136, 4.4f, 3);
+        b.GravZone(140, 1.5f, 3, 9, 1);
+        b.Plat(146, -1, 8);
+        b.Check(146, .4f);
+        RailRun(b, 150.3f, -1, 0);
+    }
+
+    // GLASSWORKS: slam through a glass floor, hover a wide gap, spring-slam launch.
+    static void Glassworks(LevelBuilder b)
+    {
+        b.Start(0, 1);
+        b.Plat(3, 0, 12);
+        b.Label(4, 3, "G grows heavy · F slams down|GROW heavy · SLAM down");
+        b.Plat(15, 0, 10);
+        b.Box(14, 1);
+        b.Box(16.5f, 1);
+        b.Glass(22.5f, 0, 5, .7f);
+        b.Plat(27.5f, 0, 5);
+        b.Plat(30.5f, 4, 1, 8);
+        b.Label(23, 2.5f, "break the glass floor");
+        b.Plat(28, -4, 14);
+        b.Plat(40, -4, 10);
+        b.Check(38, -2.6f);
+        b.Label(49, -.5f, "jump + Q hovers across|jump + HOVER across");
+        b.Orbs(46, -2.5f, 52, -2.5f, 3);
+        b.Plat(55.5f, -4, 4);
+        b.Tramp(61, -4.2f, 4);
+        b.Label(61, -1, "hold SPACE on springs|hold JUMP on springs");
+        b.Plat(67, -.5f, 8);
+        b.Check(67, .9f);
+        b.Ice(71.2f, -.5f, 78, -3, 1);
+        b.Rail(true, V(78.3f, -2.6f), V(82, -3.2f), V(92, -3.2f), V(95, -2.6f));
+        b.Loop(87, -3.2f, 2f);
+        b.Plat(99, -3, 6);
+        b.Check(99, -1.6f);
+        b.Tramp(105, -3.2f, 3);
+        b.Label(105, 1, "jump + F on the spring = launch|SLAM the spring to launch");
+        b.Orbs(106, 0, 109, 5, 3);
+        b.Plat(112, 4.5f, 8);
+        b.Check(112, 5.9f);
+        b.Plat(122, 4.5f, 10);
+        b.Box(120, 5.5f);
+        b.Box(122, 5.5f);
+        b.Box(124, 5.5f);
+        b.Label(122, 8, "grow to shove crates");
+        RailRun(b, 127.3f, 4.5f, 5);
+    }
+
+    // SKY RUSH: fast rails, double loop, gravity tunnel, laser hover.
+    static void SkyRush(LevelBuilder b)
+    {
+        b.Start(0, 1);
+        b.Plat(3, 0, 12);
+        b.Label(4, 3, "full speed ahead");
+        b.Rail(true, V(9.3f, .7f), V(14, -2), V(18, -2.8f), V(30, -2.8f), V(34, -2));
+        b.Loop(24, -2.8f, 2.4f);
+        b.Rail(true, V(37.5f, -3.2f), V(41, -4.5f), V(45, -3.8f));
+        b.Plat(49, -4, 6);
+        b.Check(49, -2.6f);
+        b.GravZone(54, 0, 3, 10, -1);
+        b.Plat(62, 4, 14);
+        b.Orbs(57, 2.9f, 67, 2.9f, 4);
+        b.GravZone(71, 0, 3, 10, 1);
+        b.Plat(77, -2, 8);
+        b.Glass(79.5f, -.15f, .8f, 3);
+        b.Label(76, 2.5f, "D smashes glass|DASH through glass");
+        b.Check(75, -.6f);
+        b.Gate(84.5f, -1.5f, 3.5f);
+        b.Label(84.5f, 5, "hover till the laser drops");
+        b.Plat(90, -2, 4);
+        b.Check(90, -.6f);
+        b.Plat(98, -2, 8);
+        b.Shards(98, -1.65f, 6);
+        b.Plat(98, 2.2f, 12);
+        b.Label(98, 4.4f, "flip past the spikes");
+        b.Plat(108, -2, 8);
+        b.Rail(true, V(112.3f, -1.3f), V(116, -3.5f), V(120, -4), V(136, -4), V(140, -3.2f));
+        b.Loop(124, -4, 2.2f);
+        b.Loop(132, -4, 2.2f);
+        b.Label(128, 1.5f, "double loop!");
+        b.Plat(144, -3.5f, 6);
+        b.Check(144, -2.1f);
+        RailRun(b, 147.3f, -3.5f, 6);
+    }
+
+    // RED STORM: second boss; springs, a U-rail and side ledges; homing orbs, bullet rings, quake shockwaves.
+    static void RedStorm(LevelBuilder b)
+    {
+        b.Start(-4, -2.5f);
+        b.Plat(0, -4, 20);
+        b.Plat(-10.4f, .6f, .8f, 10);
+        b.Plat(10.4f, .6f, .8f, 10);
+        b.Plat(0, 6, 21.6f, .6f);
+        b.Tramp(-7.5f, -3.5f, 2.2f);
+        b.Tramp(7.5f, -3.5f, 2.2f);
+        b.Plat(-8.3f, 1.6f, 3);
+        b.Plat(8.3f, 1.6f, 3);
+        b.Rail(true, V(-6.7f, 2.2f), V(0, .2f), V(6.7f, 2.2f));
+        b.Label(0, 4.3f, "slam it from above · jump the shockwaves");
+        b.Rival(4, -2.5f, new Vector2(-10, -3.65f), new Vector2(10, 5.5f), 1);
     }
 }

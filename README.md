@@ -1,6 +1,6 @@
 # SKYROLL
 
-A minimal physics game in **Unity 2022.3 (WebGL)**. You roll a glossy ball across floating platforms in the sky and change its state (dash, grow, reverse gravity, climb) to get past rails, glass tubes, ice and pulsing lasers. The last level is a duel against a red rival ball.
+A minimal physics game in **Unity 2022.3 (WebGL)**. You roll a glossy ball across floating platforms in the sky and change its state (dash, grow, reverse gravity, climb) to get past rails, glass tubes, ice and pulsing lasers. Levels 5 and 10 are boss duels against a red rival ball.
 
 **Play:** https://slavastar.itch.io/game (desktop, or iPhone in Safari held sideways)
 
@@ -12,14 +12,16 @@ A minimal physics game in **Unity 2022.3 (WebGL)**. You roll a glossy ball acros
 ## Main concepts
 - **Physics feel:** Unity 2D physics (Box2D) plus squash and stretch, hit-stop, screen shake and particles.
 - **Ball states:** each ability swaps the ball's sprite. The sprites are cut from our own concept art.
-- **5 levels:** you can pick any of them from the menu. Each level uses only 2–3 abilities.
+- **10 levels:** you can pick any of them from the menu. Levels 1–5 use 2 abilities besides jump; levels 6–10 use 3, including SLAM and HOVER.
+- **Levels 6–9:** trampolines, gravity-flip fields, glass floors to slam through, loop-the-loop rails and a different mix of rail shapes in every finale.
+- **Boss 2 (level 10):** a new arena with springs and a U-rail. The rival fires homing orbs, bullet rings and quake shockwaves.
 - **Lasers:** red lasers cost a life, blue lasers only push you back.
 - **Boss:** a single fixed screen with 4 lives each. Ram the red ball to take one of its lives. It fights back by shooting, dashing, growing and teleporting.
 - **Music:** calm music for each level, synthesised in code. Press `M` to mute.
 - **Mobile:** fixed ◀ ▶ pads, a JUMP button and buttons for the level's abilities. A rotate screen appears in portrait.
 
 ## Controls
-`A/D` roll · `Space` jump · `S` crouch · `Shift` dash · `E` reverse gravity · `C` climb · `G` grow · `R` restart · `L` level menu · `M` music
+`←/→` roll · `Space` jump · `S` crouch · `D` dash · `F` slam · `Q` hover · `E` reverse gravity · `G` grow · `R` restart · `L` level menu · `M` music
 
 ## Run locally
 ```bash

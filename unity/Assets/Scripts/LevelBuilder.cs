@@ -9,7 +9,8 @@ public class LevelBuilder
     public Vector2 min = new Vector2(float.MaxValue, float.MaxValue), max = new Vector2(float.MinValue, float.MinValue);
     public int orbs;
 
-    static PhysicsMaterial2D platMat, railMat, padMat, boxMat, iceMat;
+    public const float LoopShift = 1.4f;
+    static PhysicsMaterial2D trampMat, platMat, railMat, padMat, boxMat, iceMat;
 
     static PhysicsMaterial2D Mat(ref PhysicsMaterial2D m, float friction, float bounce)
     {
@@ -436,9 +437,60 @@ public class LevelBuilder
         hinge.limits = new JointAngleLimits2D { min = -25, max = 25 };
     }
 
-    public global::Boss Rival(float x, float y, Vector2 arenaMin, Vector2 arenaMax)
+    public void Tramp(float x, float y, float w)
+    {
+        var go = Go("tramp", new Vector2(x, y));
+        Gfx.Quad(go.transform, new Vector2(0, .5f), new Vector2(w + 1f, 1.6f), new Color(1f, .45f, .6f, .25f), 1, Gfx.Glow);
+        Gfx.Slab(go.transform, Vector2.zero, new Vector2(w, .3f), new Color32(255, 110, 150, 255), 3);
+        Gfx.Quad(go.transform, new Vector2(0, .08f), new Vector2(w * .9f, .06f), new Color(1, 1, 1, .7f), 4);
+        for (int i = -1; i <= 1; i += 2)
+            Gfx.Quad(go.transform, new Vector2(i * w * .38f, -.4f), new Vector2(.12f, .6f), new Color(1f, .5f, .65f, .8f), 2);
+        var c = go.AddComponent<BoxCollider2D>();
+        c.size = new Vector2(w, .3f);
+        c.sharedMaterial = Mat(ref trampMat, .4f, 0f);
+        AddTile(go, TileKind.Tramp);
+        Grow(new Vector2(x - w / 2, y), 1f);
+        Grow(new Vector2(x + w / 2, y), 1f);
+    }
+
+    public void GravZone(float x, float y, float w, float h, int dir)
+    {
+        var go = Go("gravzone", new Vector2(x, y));
+        Gfx.Slab(go.transform, Vector2.zero, new Vector2(w, h), new Color(.6f, .5f, 1f, .16f), 1);
+        for (float yy = -h / 2 + 1f; yy < h / 2 - .5f; yy += 1.6f)
+            Gfx.Quad(go.transform, new Vector2(0, yy), new Vector2(.6f, .4f), new Color(.6f, .5f, 1f, .6f), 2, Gfx.Tri).transform.localRotation = Quaternion.Euler(0, 0, dir < 0 ? 0 : 180);
+        var c = go.AddComponent<BoxCollider2D>();
+        c.size = new Vector2(w, h);
+        c.isTrigger = true;
+        AddTile(go, TileKind.GravZone).dir = dir;
+    }
+
+    public void Loop(float x, float railY, float r, int dir = 1)
+    {
+        var go = Go("loop", new Vector2(x, railY + .5f));
+        var c = go.AddComponent<BoxCollider2D>();
+        c.size = new Vector2(.6f, 1.2f);
+        c.isTrigger = true;
+        var t = AddTile(go, TileKind.Loop);
+        t.dir = dir;
+        t.loopR = r;
+        Vector2 center = new Vector2(x, railY + .5f + r);
+        var pts = new Vector3[49];
+        for (int i = 0; i < pts.Length; i++)
+        {
+            float th = i / 48f * 2 * Mathf.PI;
+            Vector2 p = center + new Vector2(dir * Mathf.Sin(th), -Mathf.Cos(th)) * (r + .58f) + new Vector2(dir * LoopShift * th / (2 * Mathf.PI), 0);
+            pts[i] = p;
+            Grow(p, 1f);
+        }
+        Line(go, pts, .26f, new Color(1f, .85f, .45f, .35f), 3);
+        Line(go, pts, .14f, Gfx.Gold, 4);
+    }
+
+    public global::Boss Rival(float x, float y, Vector2 arenaMin, Vector2 arenaMax, int tier = 0)
     {
         var b = global::Boss.Create(new Vector2(x, y), root);
+        b.tier = tier;
         b.arenaMin = arenaMin;
         b.arenaMax = arenaMax;
         return b;

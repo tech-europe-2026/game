@@ -39,7 +39,9 @@ public class GM : MonoBehaviour
     {
         new Ability("jump", "bounce", "SPACE", "JUMP"),
         new Ability("crouch", "crouch", "S", "CROUCH"),
-        new Ability("dash", "dash", "SHIFT", "DASH"),
+        new Ability("dash", "dash", "D", "DASH"),
+        new Ability("slam", "spin", "F", "SLAM"),
+        new Ability("hover", "freeze", "Q", "HOVER"),
         new Ability("reverse", "reverse", "E", "REVERSE"),
         new Ability("climb", "climb", "HOLD C", "CLIMB"),
         new Ability("grow", "grow", "G", "GROW"),
@@ -95,7 +97,7 @@ public class GM : MonoBehaviour
         checkpoint = level.start;
         ball = Ball.Create(level.start);
         camFollow.fixedView = Levels.All[idx].boss;
-        if (def.boss) camFollow.Follow(ball, new Vector2(-11, -4.7f), new Vector2(11, 6.3f));
+        if (def.boss) camFollow.Follow(ball, def.camMin, def.camMax);
         else camFollow.Follow(ball, level.min, level.max);
         camFollow.SetSky(def.bottom, def.mid, def.top);
         orbs = 0;
@@ -139,9 +141,9 @@ public class GM : MonoBehaviour
     Rect CardRect(int i)
     {
         float W = Screen.width, H = Screen.height, u = H / 720f;
-        int n = Levels.All.Length;
-        float cw = Mathf.Min(200 * u, (W - 60 * u) / n - 14 * u), gap = 14 * u, total = n * cw + (n - 1) * gap;
-        return new Rect((W - total) / 2 + i * (cw + gap), H * .6f, cw, 118 * u);
+        int n = 5, row = i / n, col = i % n;
+        float cw = Mathf.Min(190 * u, (W - 60 * u) / n - 14 * u), gap = 14 * u, total = n * cw + (n - 1) * gap;
+        return new Rect((W - total) / 2 + col * (cw + gap), H * .46f + row * 124 * u, cw, 110 * u);
     }
 
     Rect MusicRect { get { float u = Screen.height / 720f; return new Rect(Screen.width - 160 * u, 98 * u, 76 * u, 40 * u); } }
@@ -163,11 +165,11 @@ public class GM : MonoBehaviour
                 if (Controls.Portrait || menuT < .3f) break;
                 for (int i = 0; i < Levels.All.Length; i++)
                 {
-                    if (Input.GetKeyDown(KeyCode.Alpha1 + i) || Input.GetKeyDown(KeyCode.Keypad1 + i)) { StartLevel(i); return; }
+                    if (Input.GetKeyDown(i < 9 ? KeyCode.Alpha1 + i : KeyCode.Alpha0) || Input.GetKeyDown(i < 9 ? KeyCode.Keypad1 + i : KeyCode.Keypad0)) { StartLevel(i); return; }
                     if (click && CardRect(i).Contains(MouseGui)) { StartLevel(i); return; }
                 }
-                if (Input.GetKeyDown(KeyCode.RightArrow) || Input.GetKeyDown(KeyCode.D)) sel = (sel + 1) % Levels.All.Length;
-                if (Input.GetKeyDown(KeyCode.LeftArrow) || Input.GetKeyDown(KeyCode.A)) sel = (sel + Levels.All.Length - 1) % Levels.All.Length;
+                if (Input.GetKeyDown(KeyCode.RightArrow) || Input.GetKeyDown(KeyCode.DownArrow)) sel = (sel + 1) % Levels.All.Length;
+                if (Input.GetKeyDown(KeyCode.LeftArrow) || Input.GetKeyDown(KeyCode.UpArrow)) sel = (sel + Levels.All.Length - 1) % Levels.All.Length;
                 if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.Space)) StartLevel(sel);
                 break;
             case Mode.Playing:
@@ -199,7 +201,7 @@ public class GM : MonoBehaviour
     {
         mode = Mode.LevelDone;
         doneTitle = "RED WINS";
-        doneSub = "try again · dash into it from the side";
+        doneSub = levelIndex == 4 ? "try again · dash into it from the side" : "try again · slam it from above, jump the shockwaves";
         yield return new WaitForSeconds(2.2f);
         doneTitle = "EVOLVED";
         doneSub = null;
@@ -227,8 +229,12 @@ public class GM : MonoBehaviour
         totalDeaths += deaths;
         totalOrbs += orbs;
         totalOrbsMax += level.orbs;
-        mode = Mode.Won;
-        menuT = 0;
+        if (levelIndex + 1 < Levels.All.Length) yield return Advance(0f);
+        else
+        {
+            mode = Mode.Won;
+            menuT = 0;
+        }
     }
 
     IEnumerator RespawnCo()
@@ -363,6 +369,8 @@ public class GM : MonoBehaviour
         switch (id)
         {
             case "dash": return Mathf.Clamp01(ball.dashCd / Ball.DashCd);
+            case "slam": return Mathf.Clamp01(ball.slamCd / Ball.SlamCd);
+            case "hover": return Mathf.Clamp01(ball.hoverCd / Ball.HoverCd);
             case "teleport": return Mathf.Clamp01(ball.teleCd / Ball.TeleCd);
             case "parry": return Mathf.Clamp01(ball.parryCd / Ball.ParryCd);
             case "camo": return Mathf.Clamp01(ball.camoCd / Ball.CamoCd);
@@ -474,7 +482,7 @@ public class GM : MonoBehaviour
         Text(new Rect(0, H * .12f, W, 100 * u), "SKYROLL", hero, ink, (int)(92 * u));
         Text(new Rect(0, H * .12f + 96 * u, W, 30 * u), "roll  ·  jump  ·  fly", body, new Color(ink.r, ink.g, ink.b, .5f), (int)(20 * u));
         float bob = Mathf.Sin(uiT * 2.5f) * 6 * u;
-        Icon(new Rect(W / 2 - 45 * u, H * .36f + bob, 90 * u, 90 * u), "idle");
+        Icon(new Rect(W / 2 - 40 * u, H * .305f + bob, 80 * u, 80 * u), "idle");
         var mp = MouseGui;
         for (int i = 0; i < Levels.All.Length; i++)
         {
@@ -484,10 +492,10 @@ public class GM : MonoBehaviour
             if (on) cr = new Rect(cr.x - 3 * u, cr.y - 5 * u, cr.width + 6 * u, cr.height + 6 * u);
             Pill(cr, on ? ink : new Color(1, 1, 1, .9f));
             var tc = on ? Color.white : ink;
-            Text(new Rect(cr.x, cr.y + 26 * u, cr.width, 40 * u), (i + 1).ToString(), hero, tc, (int)(32 * u));
-            Text(new Rect(cr.x, cr.y + 68 * u, cr.width, 26 * u), d.name, h1, new Color(tc.r, tc.g, tc.b, .85f), (int)(13 * u));
+            Text(new Rect(cr.x, cr.y + 20 * u, cr.width, 40 * u), (i + 1).ToString(), hero, tc, (int)(30 * u));
+            Text(new Rect(cr.x, cr.y + 62 * u, cr.width, 26 * u), d.name, h1, new Color(tc.r, tc.g, tc.b, .85f), (int)(13 * u));
         }
-        Text(new Rect(0, H * .6f + 140 * u, W, 30 * u), Controls.Touch ? "tap a level" : "click a level  ·  1-5", body, new Color(ink.r, ink.g, ink.b, .45f), (int)(16 * u));
+        Text(new Rect(0, H - 52 * u, W, 30 * u), Controls.Touch ? "tap a level" : "click a level  ·  1-9, 0", body, new Color(ink.r, ink.g, ink.b, .45f), (int)(16 * u));
     }
 
     void DrawMusic(float u, Color ink)

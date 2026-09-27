@@ -12,13 +12,14 @@ public class Boss : MonoBehaviour
     public Rigidbody2D rb;
     public Vector2 LastVel { get; private set; }
     public Vector2 arenaMin, arenaMax;
+    public int tier;
 
     CircleCollider2D col;
     SpriteRenderer body, glow;
     Transform spinT;
-    float spin, think = 2f, hurtT, dashT, growT, tellT, flashT, jumpCd;
+    float quakeT, spin, think = 2f, hurtT, dashT, growT, tellT, flashT, jumpCd;
     string flash = "idle", pending;
-    bool grounded;
+    bool grounded, diving;
     readonly Collider2D[] hits = new Collider2D[8];
     ContactFilter2D filter;
 
@@ -82,14 +83,29 @@ public class Boss : MonoBehaviour
     {
         float d = Vector2.Distance(p.rb.position, rb.position);
         float r = Random.value;
-        if (hearts == 1 && r < .25f) pending = "blink";
+        if (tier > 0)
+        {
+            if (hearts == 1 && r < .2f) pending = "blink";
+            else if (d > 7f) pending = r < .4f ? "homing" : r < .75f ? "shoot" : "blink";
+            else pending = r < .3f ? "dash" : r < .55f ? "quake" : r < .8f ? "burst" : "grow";
+        }
+        else if (hearts == 1 && r < .25f) pending = "blink";
         else if (d > 7f) pending = r < .55f ? "shoot" : "blink";
         else pending = r < .45f ? "dash" : r < .7f ? "grow" : "shoot";
         if (pending == "grow" && growT > 0) pending = "dash";
-        tellT = pending == "dash" ? .55f : .4f;
-        Flash(pending == "dash" ? "spin" : pending == "shoot" ? "parry" : pending == "grow" ? "grow" : "teleport", tellT + .1f);
-        Fx.Ring(rb.position, Gfx.Coral, 1.3f);
-        think = Random.Range(1.8f, 2.8f) - (MaxHearts - hearts) * .25f;
+        tellT = pending == "dash" || pending == "quake" || pending == "burst" ? .6f : .45f;
+        string tell;
+        switch (pending)
+        {
+            case "dash": case "burst": tell = "spin"; break;
+            case "shoot": case "homing": tell = "parry"; break;
+            case "grow": tell = "grow"; break;
+            case "quake": tell = "bounce"; break;
+            default: tell = "teleport"; break;
+        }
+        Flash(tell, tellT + .1f);
+        Fx.Ring(rb.position, tier > 0 ? new Color(.8f, .4f, 1f) : (Color)Gfx.Coral, 1.3f);
+        think = Random.Range(1.8f, 2.8f) - (MaxHearts - hearts) * .25f - tier * .2f;
     }
 
     void Act(string what, Ball p)
@@ -115,6 +131,29 @@ public class Boss : MonoBehaviour
                     Bullet.Spawn(rb.position + d * (col.radius + .45f), d * 7f);
                 }
                 Sfx.Play("parry", .7f);
+                break;
+            case "homing":
+                for (int i = -1; i <= 1; i += 2)
+                    Bullet.Spawn(rb.position + new Vector2(i * (col.radius + .45f), .3f), new Vector2(i * 3f, 3f), true);
+                Sfx.Play("parry", .7f);
+                break;
+            case "burst":
+                float a0 = Random.value * Mathf.PI;
+                for (int i = 0; i < 8; i++)
+                {
+                    float a = a0 + i * Mathf.PI / 4f;
+                    var d = new Vector2(Mathf.Cos(a), Mathf.Sin(a));
+                    Bullet.Spawn(rb.position + d * (col.radius + .45f), d * 5f);
+                }
+                Fx.Ring(rb.position, Gfx.Coral, 2.2f);
+                Sfx.Play("parry", .8f);
+                break;
+            case "quake":
+                quakeT = 2f;
+                diving = false;
+                rb.velocity = new Vector2(to.x * 3f, 16f);
+                Flash("bounce", .5f);
+                Sfx.Play("jump", .8f);
                 break;
             case "grow":
                 SetSize(true);
@@ -150,7 +189,12 @@ public class Boss : MonoBehaviour
         float fdt = Time.fixedDeltaTime;
         grounded = Physics2D.OverlapCircle(rb.position + Vector2.down * col.radius * .55f, col.radius * .6f, filter, hits) > 1;
         var p = Player;
-        if (dashT > 0)
+        if (quakeT > 0)
+        {
+            quakeT -= fdt;
+            if (!diving && rb.velocity.y < 1f) { diving = true; rb.velocity = new Vector2(0, -22f); Flash("spin", .6f); }
+        }
+        else if (dashT > 0)
         {
             dashT -= fdt;
             if (dashT <= 0) rb.gravityScale = G;
@@ -178,6 +222,18 @@ public class Boss : MonoBehaviour
     void OnCollisionEnter2D(Collision2D c)
     {
         var p = c.collider.GetComponent<Ball>();
+        if (p == null && diving && !dead)
+        {
+            diving = false;
+            quakeT = 0;
+            float fy = rb.position.y - col.radius + .35f;
+            Bullet.Spawn(new Vector2(rb.position.x - col.radius - .5f, fy), new Vector2(-8f, 0));
+            Bullet.Spawn(new Vector2(rb.position.x + col.radius + .5f, fy), new Vector2(8f, 0));
+            Fx.AddShake(.45f);
+            Fx.Ring(rb.position, Gfx.Coral, 3f);
+            Sfx.Play("land", 1f);
+            return;
+        }
         if (p == null || dead || p.dead) return;
         Vector2 toP = (p.rb.position - rb.position).normalized;
         float mine = Vector2.Dot(LastVel, toP) * rb.mass;
@@ -198,6 +254,8 @@ public class Boss : MonoBehaviour
         hearts--;
         hurtT = 1.4f;
         tellT = 0;
+        quakeT = 0;
+        diving = false;
         dashT = 0;
         rb.gravityScale = G;
         Vector2 away = (rb.position - from).normalized;
@@ -236,7 +294,7 @@ public class Boss : MonoBehaviour
         if (hurtT > 0 && Mathf.Repeat(Time.time * 12f, 1f) < .5f) c.a = .45f;
         body.color = c;
         float tell = tellT > 0 ? .35f + Mathf.Sin(Time.time * 30f) * .2f : .25f;
-        glow.color = new Color(1f, .3f, .35f, tell);
+        glow.color = tier > 0 ? new Color(.85f, .3f, 1f, tell + .1f) : new Color(1f, .3f, .35f, tell);
         glow.transform.localScale = Vector3.one * (2.8f * col.radius / R);
     }
 }

@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public enum TileKind { Solid, Rail, Shard, Spinner, Gate, Orb, Check, Goal, Pad, Glass, Crystal, Door, Ice, Tube }
+public enum TileKind { Solid, Rail, Shard, Spinner, Gate, Orb, Check, Goal, Pad, Glass, Crystal, Door, Ice, Tube, Tramp, GravZone, Loop }
 
 public class Tile : MonoBehaviour
 {
@@ -9,6 +9,7 @@ public class Tile : MonoBehaviour
     public SpriteRenderer art;
     public Tile linked;
     public int dir = 1;
+    public float loopR;
     public SpriteRenderer glow;
     public bool push;
     public float gateOn = 1.4f, gateOff = 1.3f, gateShift;

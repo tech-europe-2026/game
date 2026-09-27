@@ -6,6 +6,7 @@ public class Ball : MonoBehaviour
     public const int MaxHearts = 4;
     public const float DashCd = .9f, TeleCd = 1.2f, ParryCd = .8f, CamoCd = 5f, FlipCd = .35f;
     public const float CamoTime = 2.6f, ParryTime = .38f, ClimbMax = 3f;
+    public const float SlamCd = .5f, HoverCd = 2.2f, HoverTime = 1f;
     const float G = 3f;
 
     public Rigidbody2D rb;
@@ -23,6 +24,11 @@ public class Ball : MonoBehaviour
     public float gravDir = 1f; // 1 = gravity down, -1 = gravity up
     public bool flipReady = true;
     public float iceT;
+    public float slamCd, hoverCd, hoverT;
+    public bool slamming, looping;
+    float loopTheta, loopSpeed, loopR, loopCd;
+    Vector2 loopC;
+    int loopDir = 1;
     Vector2 iceTan = Vector2.right;
 
     float targetRadius = RNormal, visRadius = RNormal;
@@ -98,10 +104,10 @@ public class Ball : MonoBehaviour
         float dt = Time.deltaTime;
         dashCd -= dt; teleCd -= dt; parryCd -= dt; camoCd -= dt; flipCd -= dt;
         stunT -= dt; flashT -= dt; healT -= dt; hurtInvT -= dt; parryT -= dt; railT -= dt;
-        jumpBuffer -= dt; pushT -= dt;
+        jumpBuffer -= dt; pushT -= dt; slamCd -= dt; hoverCd -= dt; loopCd -= dt;
         if (camoT > 0) camoT -= dt;
 
-        if (!controlLocked && stunT <= 0 && iceT <= 0)
+        if (!controlLocked && stunT <= 0 && iceT <= 0 && !looping)
         {
             if (Controls.Pressed("jump")) jumpBuffer = .12f;
             if (Controls.Released("jump")
@@ -118,6 +124,8 @@ public class Ball : MonoBehaviour
             if (GM.Has("parry") && Controls.Pressed("parry") && parryCd <= 0) Parry();
             if (GM.Has("camo") && Controls.Pressed("camo") && camoCd <= 0) Camouflage();
             if (GM.Has("reverse") && Controls.Pressed("reverse") && flipCd <= 0) Flip();
+            if (GM.Has("slam") && Controls.Pressed("slam") && slamCd <= 0) Slam();
+            if (GM.Has("hover") && Controls.Pressed("hover") && hoverCd <= 0) Hover();
         }
         UpdateVisual();
     }
@@ -132,6 +140,7 @@ public class Ball : MonoBehaviour
     {
         if (dead || evolving) return;
         float fdt = Time.fixedDeltaTime;
+        if (looping) { LoopStep(fdt); return; }
         float r = col.radius;
         int n = Physics2D.OverlapCircle(rb.position - Up * (r * .55f), r * .6f, solidFilter, hits);
         grounded = false;
@@ -148,7 +157,14 @@ public class Ball : MonoBehaviour
 
         UpdateClimb(inp, fdt);
 
-        if (dashT > 0)
+        if (hoverT > 0)
+        {
+            hoverT -= fdt;
+            rb.velocity = new Vector2(Mathf.MoveTowards(rb.velocity.x, inp.x * 5f, 30f * fdt), Mathf.MoveTowards(rb.velocity.y, 0, 25f * fdt));
+            if (Random.value < .4f) Fx.Burst(rb.position, new Color(.75f, .93f, 1f), 1, 2f, .12f, 0f, .4f);
+            if (hoverT <= 0) rb.gravityScale = G * gravDir;
+        }
+        else if (dashT > 0)
         {
             dashT -= fdt;
             if (dashT <= 0) rb.gravityScale = G * gravDir;
@@ -173,6 +189,11 @@ public class Ball : MonoBehaviour
             rb.AddTorque(-inp.x * gravDir * 5f * rb.mass * r);
         }
 
+        if (slamming)
+        {
+            if (grounded) slamming = false;
+            else rb.velocity = new Vector2(rb.velocity.x, -22f * gravDir);
+        }
         if (jumpBuffer > 0 && (coyote > 0 || climbing)) Jump();
         lastVel = rb.velocity;
     }
@@ -251,6 +272,8 @@ public class Ball : MonoBehaviour
         Vector2 d = InputDir();
         if (d == Vector2.zero) d = new Vector2(facing, 0);
         d.Normalize();
+        EndHover();
+        slamming = false;
         dashT = .2f;
         dashCd = DashCd;
         rb.gravityScale = 0f;
@@ -363,6 +386,105 @@ public class Ball : MonoBehaviour
         Fx.Burst(rb.position, new Color(1, 1, 1, .7f), 16, 4f, .18f, 0f, .6f);
     }
 
+    void Slam()
+    {
+        if (grounded) { Fx.Burst(rb.position, Color.gray, 5, 2f); return; }
+        slamming = true;
+        slamCd = SlamCd;
+        EndHover();
+        dashT = 0;
+        rb.gravityScale = G * gravDir;
+        rb.velocity = new Vector2(rb.velocity.x * .3f, -22f * gravDir);
+        squash = new Vector2(.7f, 1.35f);
+        Sfx.Play("dash", .7f);
+        Fx.Ring(rb.position, Gfx.Gold, 1.2f);
+    }
+
+    void Hover()
+    {
+        if (grounded) { Fx.Burst(rb.position, Color.gray, 5, 2f); return; }
+        hoverT = HoverTime;
+        hoverCd = HoverCd;
+        slamming = false;
+        dashT = 0;
+        rb.gravityScale = 0f;
+        rb.velocity = new Vector2(rb.velocity.x * .4f, rb.velocity.y * .2f);
+        Sfx.Play("invis", .7f);
+        Fx.Ring(rb.position, Gfx.Cyan, 1.6f);
+        Fx.Burst(rb.position, new Color(.8f, .95f, 1f), 14, 4f, .14f, 0f, .5f);
+    }
+
+    void EndHover()
+    {
+        if (hoverT <= 0) return;
+        hoverT = 0;
+        rb.gravityScale = G * gravDir;
+    }
+
+    void SetGravity(int d)
+    {
+        if (Mathf.Approximately(gravDir, d)) return;
+        gravDir = d;
+        flipReady = true;
+        slamming = false;
+        if (dashT <= 0 && hoverT <= 0 && !climbing) rb.gravityScale = G * gravDir;
+        Flash("reverse", .5f);
+        Sfx.Play("flip");
+        Fx.Ring(rb.position, Gfx.Lilac, 1.8f);
+        squash = new Vector2(1.25f, .8f);
+    }
+
+    void StartLoop(Tile t)
+    {
+        if (looping || loopCd > 0 || gravDir < 0 || rb.velocity.x * t.dir < 3f) return;
+        looping = true;
+        slamming = false;
+        EndHover();
+        dashT = 0;
+        loopDir = t.dir;
+        loopR = t.loopR;
+        loopC = (Vector2)t.transform.position + Vector2.up * loopR;
+        loopTheta = 0;
+        loopSpeed = Mathf.Clamp(rb.velocity.magnitude, 11f, 18f);
+        rb.velocity = Vector2.zero;
+        rb.bodyType = RigidbodyType2D.Kinematic;
+        col.enabled = false;
+        Sfx.Play("rail", .7f);
+        Fx.Ring(rb.position, Gfx.Gold, 1.4f);
+    }
+
+    Vector2 LoopPoint(float th) =>
+        loopC + new Vector2(loopDir * Mathf.Sin(th), -Mathf.Cos(th)) * loopR + new Vector2(loopDir * LevelBuilder.LoopShift * th / (2 * Mathf.PI), 0);
+
+    void LoopStep(float fdt)
+    {
+        loopTheta += loopSpeed / loopR * fdt;
+        if (loopTheta >= 2 * Mathf.PI)
+        {
+            EndLoop();
+            Vector2 p = LoopPoint(2 * Mathf.PI);
+            rb.position = p;
+            transform.position = p;
+            rb.velocity = new Vector2(loopDir * loopSpeed, 0);
+            loopCd = .4f;
+            Fx.Burst(p, Gfx.Gold, 12, 5f, .14f, 0f, .4f);
+        }
+        else
+        {
+            rb.MovePosition(LoopPoint(loopTheta));
+            if (Random.value < .5f) Fx.Burst(rb.position, Gfx.Gold, 1, 3f, .1f, 0f, .25f);
+        }
+        lastVel = new Vector2(loopDir * Mathf.Cos(loopTheta), Mathf.Sin(loopTheta)) * loopSpeed;
+    }
+
+    void EndLoop()
+    {
+        if (!looping) return;
+        looping = false;
+        rb.bodyType = RigidbodyType2D.Dynamic;
+        col.enabled = true;
+    }
+
     void Flip()
     {
         if (!flipReady) { Fx.Burst(rb.position, Color.gray, 5, 2f); return; }
@@ -430,8 +552,11 @@ public class Ball : MonoBehaviour
 
     public void Respawn(Vector2 p)
     {
+        EndLoop();
         dead = false;
         hearts = MaxHearts;
+        slamming = false;
+        hoverT = 0;
         grown = crouching = climbing = false;
         gravDir = 1f;
         flipReady = true;
@@ -494,7 +619,7 @@ public class Ball : MonoBehaviour
                     else Hurt(c.GetContact(0).point);
                     return;
                 case TileKind.Glass:
-                    if (dashT > 0 || (grown && impact > 6f))
+                    if (dashT > 0 || slamming || (grown && impact > 6f))
                     {
                         tile.Break(lastVel);
                         rb.velocity = lastVel * .85f;
@@ -518,6 +643,24 @@ public class Ball : MonoBehaviour
                 case TileKind.Ice:
                     IceContact(tile, normal);
                     break;
+                case TileKind.Tramp:
+                    if (normal.y > .5f)
+                    {
+                        float v = Mathf.Max(Mathf.Abs(lastVel.y) * 1.1f, 15f);
+                        if (Controls.Held("jump")) v = Mathf.Max(v, 19f);
+                        if (slamming) v = 24f;
+                        v = Mathf.Min(v, 24f);
+                        slamming = false;
+                        rb.velocity = new Vector2(lastVel.x, v);
+                        squash = new Vector2(.6f, 1.5f);
+                        Flash("bounce", .4f);
+                        Sfx.Play("bounce");
+                        Fx.Burst(c.GetContact(0).point, Gfx.Coral, 14, 7f, .16f);
+                        Fx.Ring(c.GetContact(0).point, Gfx.Coral, 1.4f);
+                        Fx.AddShake(.12f);
+                        return;
+                    }
+                    break;
                 case TileKind.Tube:
                     if (railT <= 0) Sfx.Play("rail", .3f);
                     railT = .15f;
@@ -531,6 +674,12 @@ public class Ball : MonoBehaviour
                     railT = .15f;
                     break;
             }
+        }
+        if (slamming)
+        {
+            slamming = false;
+            Fx.AddShake(.3f);
+            Fx.Ring(c.GetContact(0).point, Gfx.Gold, 2f);
         }
         if (impact > 7f)
         {
@@ -583,7 +732,7 @@ public class Ball : MonoBehaviour
     void OnTriggerStay2D(Collider2D other)
     {
         var t = other.GetComponent<Tile>();
-        if (t != null && (t.kind == TileKind.Shard || t.kind == TileKind.Gate)) HandleTrigger(other);
+        if (t != null && (t.kind == TileKind.Shard || t.kind == TileKind.Gate || t.kind == TileKind.GravZone)) HandleTrigger(other);
     }
 
     void HandleTrigger(Collider2D other)
@@ -601,6 +750,12 @@ public class Ball : MonoBehaviour
                 if (!t.GateLive) break;
                 if (t.push) Push(other.transform.position.x);
                 else Hurt(new Vector2(other.transform.position.x, rb.position.y));
+                break;
+            case TileKind.GravZone:
+                SetGravity(t.dir);
+                break;
+            case TileKind.Loop:
+                StartLoop(t);
                 break;
             case TileKind.Orb:
                 t.used = true;
@@ -627,7 +782,8 @@ public class Ball : MonoBehaviour
     {
         if (evolving) return "evolve";
         if (stunT > 0 || (hurtInvT > .6f && !dead)) return "stun";
-        if (iceT > 0) return "freeze";
+        if (looping || slamming) return "spin";
+        if (hoverT > 0 || iceT > 0) return "freeze";
         if (Parrying) return "parry";
         if (Camo) return "camouflage";
         if (flashT > 0) return flashState;

@@ -24,8 +24,13 @@ public static class Music
         new[] { new[] { -5, -2, 2, 7 }, new[] { -9, -5, -2, 2 }, new[] { -14, -10, -7, -2 }, new[] { -7, -3, 0, 5 } },     // Em C G D (airy)
         new[] { new[] { -16, -12, -9, -4 }, new[] { -19, -16, -12, -7 }, new[] { -11, -7, -4, 1 }, new[] { -9, -5, -2, 3 } }, // F Dm Bb C
         new[] { new[] { -12, -9, -5, 0 }, new[] { -16, -12, -9, -4 }, new[] { -19, -16, -12, -7 }, new[] { -17, -13, -10, -5 } }, // Am F Dm E
+        new[] { new[] { -14, -10, -7, -2 }, new[] { -9, -5, -2, 3 }, new[] { -12, -9, -5, 0 }, new[] { -16, -12, -9, -4 } }, // G C Am F
+        new[] { new[] { -7, -4, 0, 3 }, new[] { -11, -7, -4, 1 }, new[] { -14, -10, -7, -2 }, new[] { -9, -5, -2, 3 } },   // Bm Bb G C (dreamy)
+        new[] { new[] { -5, -1, 2, 7 }, new[] { -9, -5, -2, 2 }, new[] { -2, 2, 5, 10 }, new[] { -7, -3, 0, 5 } },         // E C A D
+        new[] { new[] { -10, -6, -3, 2 }, new[] { -14, -10, -7, -2 }, new[] { -9, -5, -2, 3 }, new[] { -12, -8, -5, 0 } }, // B7-ish G C A
+        new[] { new[] { -14, -11, -7, -2 }, new[] { -18, -14, -11, -6 }, new[] { -21, -18, -14, -9 }, new[] { -19, -15, -12, -7 } }, // Gm Eb C D
     };
-    static readonly float[] ChordLen = { 3.4f, 3.8f, 4f, 3.2f, 2.6f };
+    static readonly float[] ChordLen = { 3.4f, 3.8f, 4f, 3.2f, 2.6f, 3.6f, 4.2f, 3f, 2.8f, 2.4f };
     static readonly int[] Arp = { 0, 2, 1, 3, 2, 1, 3, 2 };
 
     public static void Init(GameObject host)
@@ -63,7 +68,7 @@ public static class Music
         float cl = ChordLen[level];
         int total = Mathf.CeilToInt(song.Length * cl * Rate);
         var buf = new float[total];
-        bool boss = level == 4;
+        bool boss = level == 4 || level == 9;
         for (int c = 0; c < song.Length; c++)
         {
             int start = Mathf.RoundToInt(c * cl * Rate);
@@ -77,7 +82,7 @@ public static class Music
             float step = cl / steps;
             for (int s = 0; s < steps; s++)
             {
-                int note = ch[Arp[s % Arp.Length]] + (level == 2 ? 24 : 12);
+                int note = ch[Arp[s % Arp.Length]] + (level == 2 || level == 6 ? 24 : 12);
                 Bell(buf, start + Mathf.RoundToInt(s * step * Rate), Hz(note), boss ? .045f : .06f, 1.6f);
             }
         }
