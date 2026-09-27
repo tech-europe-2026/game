@@ -468,7 +468,7 @@ public class LevelBuilder
         Grow(new Vector2(x, y), h);
     }
 
-    public void Blaster(float x, float y, Vector2 dir, float period, float delay = 0f, float sweep = 0f)
+    public Turret Blaster(float x, float y, Vector2 dir, float period, float delay = 0f, float sweep = 0f)
     {
         var go = Go("blaster", new Vector2(x, y));
         var ink = new Color(.09f, .1f, .14f, 1f);
@@ -493,6 +493,7 @@ public class LevelBuilder
         var c = go.AddComponent<CircleCollider2D>();
         c.radius = .6f;
         Grow(new Vector2(x, y), 1.2f);
+        return tu;
     }
 
     public void Kicker(float x0, float y0, float len, float angle)

@@ -826,7 +826,7 @@ public static class Levels
         b.Plat(-6, 1.4f, 3);
         b.Plat(6, 1.4f, 3);
         b.Rail(true, V(-3.6f, 3), V(0, 2), V(3.6f, 3));
-        b.Blaster(-9.5f, 4.5f, V(1, -.6f), 3.2f, 1f, 20);
+        b.Blaster(0, 5.05f, V(0, -1), 3.2f, 1f, 25).glide = 8f;
         b.Label(0, 4.6f, "don't fall into the rift · J shields blue shots|don't fall · SHIELD blue shots");
         b.Rival(6, -2.5f, new Vector2(-10, -3.65f), new Vector2(10, 5.5f), 2, -1.3f, 1.3f);
     }

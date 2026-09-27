@@ -7,15 +7,16 @@ public class Turret : MonoBehaviour
     public SpriteRenderer eye;
     public Transform barrel;
     public bool blue;
-    public float sweep, sweepSpeed = 1.2f;
-    Vector2 baseDir;
+    public float sweep, sweepSpeed = 1.2f, glide, glidePeriod = 9f;
+    Vector2 baseDir, home;
     float t;
 
-    void Start() { t = -delay; baseDir = dir; }
+    void Start() { t = -delay; baseDir = dir; home = transform.position; }
 
     void Update()
     {
         t += Time.deltaTime;
+        if (glide > 0) transform.position = home + Vector2.right * Mathf.Sin(Time.time * 2 * Mathf.PI / glidePeriod) * glide;
         if (barrel != null) barrel.localRotation = Quaternion.Euler(0, 0, Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg);
         if (sweep > 0)
         {
