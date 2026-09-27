@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class GM : MonoBehaviour
 {
-    enum Mode { Title, Playing, LevelDone, Won }
+    enum Mode { Title, Playing, LevelDone, Won, Lost }
 
     public static GM I;
     static readonly HashSet<string> unlocked = new HashSet<string>(), seen = new HashSet<string>();
@@ -201,6 +201,10 @@ public class GM : MonoBehaviour
                 if (Input.GetKeyDown(KeyCode.F9)) SkipAhead();
                 if (Input.GetKeyDown(KeyCode.N)) StartCoroutine(Advance(0f));
                 break;
+            case Mode.Lost:
+                if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.R) || Controls.Pressed("restart") || (click && ReplayRect.Contains(MouseGui))) Replay();
+                else if (Input.GetKeyDown(KeyCode.Escape) || Input.GetKeyDown(KeyCode.L) || (click && QuitRect.Contains(MouseGui))) { doneSub = null; ToMenu(); }
+                break;
             case Mode.Won:
                 if (menuT > 1f && (Input.GetKeyDown(KeyCode.R) || Input.GetKeyDown(KeyCode.Return) || click)) ToMenu();
                 break;
@@ -219,11 +223,37 @@ public class GM : MonoBehaviour
         mode = Mode.LevelDone;
         doneTitle = "RED WINS";
         doneSub = levelIndex == 4 ? "try again · dash into it from the side" : levelIndex == 9 ? "try again · slam it from above, jump the shockwaves" : "try again · shield the blue shots, stay off the edge";
-        yield return new WaitForSeconds(2.2f);
+        yield return new WaitForSeconds(1.2f);
+        mode = Mode.Lost;
+    }
+
+    Rect ModalRect { get { float u = Screen.height / 720f; return new Rect(Screen.width / 2 - 250 * u, Screen.height / 2 - 150 * u, 500 * u, 300 * u); } }
+    Rect ReplayRect { get { float u = Screen.height / 720f; var m = ModalRect; return new Rect(m.x + 40 * u, m.yMax - 100 * u, 200 * u, 64 * u); } }
+    Rect QuitRect { get { float u = Screen.height / 720f; var m = ModalRect; return new Rect(m.xMax - 240 * u, m.yMax - 100 * u, 200 * u, 64 * u); } }
+
+    void Replay()
+    {
         doneTitle = "LEVEL CLEAR";
         doneSub = null;
         LoadLevel(levelIndex);
         mode = Mode.Playing;
+    }
+
+    void DrawLost(float W, float H, float u, Color ink)
+    {
+        Box(new Rect(0, 0, W, H), new Color(ink.r, ink.g, ink.b, .45f));
+        var m = ModalRect;
+        Round(new Rect(m.x, m.y + 10 * u, m.width, m.height), new Color(0, 0, 0, .15f), 30 * u);
+        Round(m, new Color(1, 1, 1, .97f), 30 * u);
+        Text(new Rect(m.x, m.y + 30 * u, m.width, 70 * u), "RED WINS", hero, Gfx.Coral, (int)(52 * u));
+        Text(new Rect(m.x + 30 * u, m.y + 100 * u, m.width - 60 * u, 60 * u), doneSub, body, new Color(ink.r, ink.g, ink.b, .65f), (int)(17 * u));
+        var mp = MouseGui;
+        foreach (var (r, label, main) in new[] { (ReplayRect, "REPLAY", true), (QuitRect, "MENU", false) })
+        {
+            bool hov = !Controls.Touch && r.Contains(mp);
+            Pill(r, main ? (hov ? Gfx.Gold : ink) : new Color(ink.r, ink.g, ink.b, hov ? .22f : .1f));
+            Text(r, label, hero, main ? Color.white : ink, (int)(26 * u));
+        }
     }
 
     public void OnBossDefeated(Vector2 p)
@@ -512,6 +542,7 @@ public class GM : MonoBehaviour
             }
         }
 
+        if (mode == Mode.Lost) { DrawLost(W, H, u, ink); return; }
         if (mode == Mode.LevelDone)
         {
             Text(new Rect(0, H * .3f, W, 80 * u), doneTitle, hero, Color.white, (int)(64 * u));

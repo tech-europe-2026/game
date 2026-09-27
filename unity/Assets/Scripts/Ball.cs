@@ -4,8 +4,8 @@ public class Ball : MonoBehaviour
 {
     public const float RNormal = .5f, RCrouch = .32f, RGrow = .85f;
     public const int MaxHearts = 4;
-    public const float DashCd = .9f, TeleCd = 1.2f, ParryCd = .8f, CamoCd = 5f, FlipCd = .35f;
-    public const float CamoTime = 2.6f, ParryTime = .38f, ClimbMax = 3f;
+    public const float DashCd = .9f, TeleCd = 1.2f, ParryCd = 2.8f, CamoCd = 5f, FlipCd = .35f;
+    public const float CamoTime = 2.6f, ParryTime = 2f, ClimbMax = 3f;
     public const float SlamCd = .5f, HoverCd = 2.2f, HoverTime = 1f, PhaseCd = 2f, PhaseTime = 1.1f;
     public float phaseCd, phaseT;
     const float G = 3f;

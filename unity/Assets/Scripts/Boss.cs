@@ -152,11 +152,7 @@ public class Boss : MonoBehaviour
                 Sfx.Play("parry", .8f);
                 break;
             case "rain":
-                for (int i = 0; i < 7; i++)
-                {
-                    float rx = Mathf.Lerp(arenaMin.x + 1, arenaMax.x - 1, (i + Random.value * .6f) / 7f);
-                    Bullet.Spawn(new Vector2(rx, arenaMax.y - .3f), new Vector2(0, -6.5f - Random.value * 2f));
-                }
+                Bullet.Spawn(new Vector2(Random.Range(arenaMin.x + 1, arenaMax.x - 1), arenaMax.y - .3f), new Vector2(0, -7f));
                 Fx.AddShake(.2f);
                 Sfx.Play("parry", .9f);
                 break;
