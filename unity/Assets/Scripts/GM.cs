@@ -28,7 +28,7 @@ public class GM : MonoBehaviour
     float bannerT, uiT, menuT;
     int sel = -1;
     bool picking;
-    string doneTitle = "LEVEL CLEAR", doneSub;
+    string doneTitle = "LEVEL PASSED", doneSub;
 
     public struct Ability
     {
@@ -90,6 +90,8 @@ public class GM : MonoBehaviour
     void LoadLevel(int idx)
     {
         levelIndex = idx;
+        doneTitle = "LEVEL PASSED";
+        doneSub = null;
         if (level != null) Destroy(level.root.gameObject);
         if (ball != null) Destroy(ball.gameObject);
         signs.Clear();
@@ -260,7 +262,7 @@ public class GM : MonoBehaviour
     {
         mode = Mode.LevelDone;
         doneTitle = "RED WINS";
-        doneSub = levelIndex == 4 ? "try again · dash into it from the side" : levelIndex == 9 ? "try again · slam it from above, jump the shockwaves" : "try again · shield the blue shots, stay off the edge";
+        doneSub = levelIndex == 4 ? "try again · dash into it from the side" : levelIndex == 9 ? "try again · slam it from above, jump the shockwaves" : levelIndex == 19 ? "try again · keep away from the spikes, strike when they drop" : "try again · shield the blue shots, stay off the edge";
         yield return new WaitForSeconds(1.2f);
         mode = Mode.Lost;
     }
@@ -271,7 +273,7 @@ public class GM : MonoBehaviour
 
     void Replay()
     {
-        doneTitle = "LEVEL CLEAR";
+        doneTitle = "LEVEL PASSED";
         doneSub = null;
         LoadLevel(levelIndex);
         mode = Mode.Playing;
@@ -308,7 +310,7 @@ public class GM : MonoBehaviour
         doneSub = "the red ball is beaten";
         Sfx.Play("evolve");
         yield return new WaitForSeconds(2.4f);
-        doneTitle = "LEVEL CLEAR";
+        doneTitle = "LEVEL PASSED";
         doneSub = null;
         totalTime += levelTime;
         totalDeaths += deaths;
