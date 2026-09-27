@@ -196,13 +196,27 @@ public class LevelBuilder
         foreach (var wall in new[] { lo, hi })
         {
             var run = new List<Vector2>();
+            float cr = R - .04f;
+            bool In(Vector2 q) { foreach (var o in cuts) if (Inside(o, q, cr)) return true; return false; }
+            Vector2 Edge(Vector2 a, Vector2 c)
+            {
+                bool ia = In(a);
+                for (int k = 0; k < 14; k++) { var m = (a + c) / 2; if (In(m) == ia) a = m; else c = m; }
+                return (a + c) / 2;
+            }
+            bool wasOpen = false;
             for (int i = 0; i <= n; i++)
             {
-                bool open = i == n;
+                bool open = i == n || In(wall[i]);
                 if (!open)
-                    foreach (var o in cuts)
-                        if (Inside(o, wall[i], R + .02f)) { open = true; break; }
-                if (!open) { run.Add(wall[i]); continue; }
+                {
+                    if (wasOpen && i > 0) run.Add(Edge(wall[i - 1], wall[i]));
+                    run.Add(wall[i]);
+                    wasOpen = false;
+                    continue;
+                }
+                if (i < n && !wasOpen && i > 0) run.Add(Edge(wall[i - 1], wall[i]));
+                wasOpen = true;
                 if (run.Count >= 2)
                 {
                     var w = new GameObject("wall");
@@ -435,6 +449,22 @@ public class LevelBuilder
         var c = go.AddComponent<BoxCollider2D>();
         c.isTrigger = true;
         c.size = new Vector2(.3f, h);
+    }
+
+    public void Fog(Vector2 min, Vector2 max, Vector2 revealMin, Vector2 revealMax)
+    {
+        var go = Go("fog", (min + max) / 2);
+        var f = go.AddComponent<FogBank>();
+        f.revealMin = revealMin;
+        f.revealMax = revealMax;
+        var size = max - min;
+        f.parts.Add(Gfx.Slab(go.transform, Vector2.zero, size, new Color(.96f, .97f, 1f, 1f), 30));
+        for (float px = -size.x / 2; px <= size.x / 2 + .01f; px += 1.6f)
+            foreach (float py in new[] { size.y / 2, -size.y / 2 })
+            {
+                var c = Gfx.Quad(go.transform, new Vector2(px, py), Vector2.one * (2.2f + Mathf.Abs(Mathf.Sin(px * 1.7f)) * 1.2f), new Color(.96f, .97f, 1f, 1f), 30, Gfx.Circle);
+                f.parts.Add(c);
+            }
     }
 
     public void Cover(float x, float y, float w, float h, string text)
