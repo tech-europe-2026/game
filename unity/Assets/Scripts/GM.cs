@@ -26,7 +26,8 @@ public class GM : MonoBehaviour
     int deaths, totalDeaths, totalOrbs, totalOrbsMax;
     string newStates;
     float bannerT, uiT, menuT;
-    int sel;
+    int sel = -1;
+    bool picking;
     string doneTitle = "EVOLVED", doneSub;
 
     public struct Ability
@@ -133,6 +134,8 @@ public class GM : MonoBehaviour
     {
         LoadLevel(0);
         mode = Mode.Title;
+        picking = true;
+        sel = -1;
         ball.controlLocked = true;
         menuT = 0;
     }
@@ -143,9 +146,12 @@ public class GM : MonoBehaviour
     {
         float W = Screen.width, H = Screen.height, u = H / 720f;
         int n = 5, row = i / n, col = i % n;
-        float cw = Mathf.Min(190 * u, (W - 60 * u) / n - 14 * u), gap = 12 * u, total = n * cw + (n - 1) * gap;
-        return new Rect((W - total) / 2 + col * (cw + gap), H * .43f + row * 100 * u, cw, 90 * u);
+        float gap = 16 * u, cw = Mathf.Min(200 * u, (W - 80 * u - (n - 1) * gap) / n), ch = 150 * u, total = n * cw + (n - 1) * gap;
+        return new Rect((W - total) / 2 + col * (cw + gap), 170 * u + row * (ch + gap), cw, ch);
     }
+
+    Rect PlayRect { get { float u = Screen.height / 720f; return new Rect(Screen.width / 2 - 130 * u, Screen.height * .74f, 260 * u, 76 * u); } }
+    Rect BackRect { get { float u = Screen.height / 720f; return new Rect(40 * u, 44 * u, 110 * u, 44 * u); } }
 
     Rect MusicRect { get { float u = Screen.height / 720f; return new Rect(Screen.width - 160 * u, 98 * u, 76 * u, 40 * u); } }
     Rect MenuRect { get { float u = Screen.height / 720f; return new Rect(Screen.width - 244 * u, 98 * u, 76 * u, 40 * u); } }
@@ -164,14 +170,23 @@ public class GM : MonoBehaviour
         {
             case Mode.Title:
                 if (Controls.Portrait || menuT < .3f) break;
+                if (!picking)
+                {
+                    if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.Space) || (click && PlayRect.Contains(MouseGui))) { picking = true; sel = -1; menuT = 0; }
+                    break;
+                }
+                if (Input.GetKeyDown(KeyCode.Escape) || Input.GetKeyDown(KeyCode.Backspace) || (click && BackRect.Contains(MouseGui))) { picking = false; menuT = 0; break; }
                 for (int i = 0; i < Levels.All.Length; i++)
                 {
                     if (Input.GetKeyDown(i < 9 ? KeyCode.Alpha1 + i : KeyCode.Alpha0) || Input.GetKeyDown(i < 9 ? KeyCode.Keypad1 + i : KeyCode.Keypad0)) { StartLevel(i); return; }
                     if (click && CardRect(i).Contains(MouseGui)) { StartLevel(i); return; }
                 }
-                if (Input.GetKeyDown(KeyCode.RightArrow) || Input.GetKeyDown(KeyCode.DownArrow)) sel = (sel + 1) % Levels.All.Length;
-                if (Input.GetKeyDown(KeyCode.LeftArrow) || Input.GetKeyDown(KeyCode.UpArrow)) sel = (sel + Levels.All.Length - 1) % Levels.All.Length;
-                if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.Space)) StartLevel(sel);
+                int nl = Levels.All.Length;
+                if (Input.GetKeyDown(KeyCode.RightArrow)) sel = sel < 0 ? 0 : (sel + 1) % nl;
+                if (Input.GetKeyDown(KeyCode.LeftArrow)) sel = sel < 0 ? 0 : (sel + nl - 1) % nl;
+                if (Input.GetKeyDown(KeyCode.DownArrow)) sel = sel < 0 ? 0 : Mathf.Min(nl - 1, sel + 5);
+                if (Input.GetKeyDown(KeyCode.UpArrow)) sel = sel < 0 ? 0 : Mathf.Max(0, sel - 5);
+                if (sel >= 0 && (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.Space))) StartLevel(sel);
                 break;
             case Mode.Playing:
                 levelTime += Time.deltaTime;
@@ -485,33 +500,94 @@ public class GM : MonoBehaviour
         ("reverse", "REVERSE"), ("spin", "SLAM"), ("freeze", "HOVER"), ("heal", "HEAL"), ("evolve", "EVOLVE"),
     };
 
+    static void Round(Rect r, Color c, float rad)
+    {
+        var old = GUI.color;
+        GUI.color = c;
+        GUI.DrawTexture(r, white, ScaleMode.StretchToFill, true, 0, c, 0, rad);
+        GUI.color = old;
+    }
+
     void DrawTitle(float W, float H, float u, Color ink)
     {
-        Box(new Rect(0, 0, W, H), new Color(1, 1, 1, .72f));
-        Text(new Rect(0, H * .12f, W, 100 * u), "SKYROLL", hero, ink, (int)(92 * u));
-        Text(new Rect(0, H * .12f + 96 * u, W, 30 * u), "roll  ·  jump  ·  fly", body, new Color(ink.r, ink.g, ink.b, .5f), (int)(20 * u));
-        float bob = Mathf.Sin(uiT * 2.5f) * 6 * u;
+        if (picking) { DrawLevels(W, H, u, ink); return; }
+        Box(new Rect(0, 0, W, H), new Color(1, 1, 1, .35f));
+        var soft = new Color(ink.r, ink.g, ink.b, .5f);
+        Text(new Rect(0, H * .08f, W, 110 * u), "SKYROLL", hero, ink, (int)(104 * u));
+        Text(new Rect(0, H * .08f + 104 * u, W, 30 * u), "ROLL  ·  JUMP  ·  EVOLVE", h1, soft, (int)(17 * u));
+
+        var c = new Vector2(W / 2, H * .47f + Mathf.Sin(uiT * 2.2f) * 7 * u);
+        float pulse = 1f + Mathf.Sin(uiT * 3f) * .03f;
+        for (int i = 3; i >= 1; i--)
+        {
+            float rr = (78 + i * 26) * u * pulse;
+            Pill(new Rect(c.x - rr, c.y - rr, rr * 2, rr * 2), new Color(1, 1, 1, .12f + (3 - i) * .06f));
+        }
         int n = TitleForms.Length, cur = (int)(uiT / 3f) % n, prev = (cur + n - 1) % n;
         float k = uiT < 3f ? 1f : Mathf.SmoothStep(0, 1, Mathf.Clamp01((uiT % 3f) / .6f));
-        float pop = 1f + (1f - k) * .15f;
-        var ir = new Rect(W / 2 - 40 * u * pop, H * .305f + bob - 40 * u * (pop - 1), 80 * u * pop, 80 * u * pop);
+        float sz = 150 * u * (1f + (1f - k) * .12f);
+        var ir = new Rect(c.x - sz / 2, c.y - sz / 2, sz, sz);
         if (k < 1f) Icon(ir, TitleForms[prev].sprite, 1f - k);
         Icon(ir, TitleForms[cur].sprite, k);
-        if (k < 1f) Text(new Rect(0, H * .305f + 82 * u, W, 24 * u), TitleForms[prev].label, h1, new Color(ink.r, ink.g, ink.b, .55f * (1f - k)), (int)(15 * u));
-        Text(new Rect(0, H * .305f + 82 * u, W, 24 * u), TitleForms[cur].label, h1, new Color(ink.r, ink.g, ink.b, .55f * k), (int)(15 * u));
+
+        var tag = new Rect(W / 2 - 90 * u, H * .47f + 118 * u, 180 * u, 38 * u);
+        Pill(tag, new Color(ink.r, ink.g, ink.b, .9f));
+        if (k < 1f) Text(tag, TitleForms[prev].label, h1, new Color(1, 1, 1, 1f - k), (int)(17 * u));
+        Text(tag, TitleForms[cur].label, h1, new Color(1, 1, 1, k), (int)(17 * u));
+        for (int i = 0; i < n; i++)
+        {
+            float dx = (i - (n - 1) / 2f) * 14 * u, d = i == cur ? 8 * u : 5 * u;
+            Pill(new Rect(W / 2 + dx - d / 2, tag.yMax + 14 * u - d / 2, d, d), new Color(ink.r, ink.g, ink.b, i == cur ? .8f : .25f));
+        }
+
+        var pr = PlayRect;
+        bool hov = !Controls.Touch && pr.Contains(MouseGui);
+        float grow = (hov ? 6 : 0) * u + Mathf.Sin(uiT * 4f) * 2 * u;
+        pr = new Rect(pr.x - grow, pr.y - grow / 2, pr.width + grow * 2, pr.height + grow);
+        Pill(new Rect(pr.x, pr.y + 6 * u, pr.width, pr.height), new Color(0, 0, 0, .12f));
+        Pill(pr, hov ? Gfx.Gold : ink);
+        Text(pr, "PLAY", hero, Color.white, (int)(34 * u));
+        Text(new Rect(0, H - 44 * u, W, 26 * u), Controls.Touch ? "tap play" : "press ENTER", body, new Color(ink.r, ink.g, ink.b, .4f), (int)(15 * u));
+    }
+
+    void DrawLevels(float W, float H, float u, Color ink)
+    {
+        Box(new Rect(0, 0, W, H), new Color(1, 1, 1, .45f));
+        var br = BackRect;
+        Pill(br, new Color(1, 1, 1, .8f));
+        Text(br, "‹  BACK", h1, ink, (int)(15 * u));
+        Text(new Rect(0, 56 * u, W, 60 * u), "CHOOSE A LEVEL", hero, ink, (int)(40 * u));
+        Text(new Rect(0, 112 * u, W, 26 * u), Levels.All.Length + " worlds in the sky", body, new Color(ink.r, ink.g, ink.b, .5f), (int)(16 * u));
         var mp = MouseGui;
         for (int i = 0; i < Levels.All.Length; i++)
         {
             var d = Levels.All[i];
             var cr = CardRect(i);
             bool on = i == sel || (!Controls.Touch && cr.Contains(mp));
-            if (on) cr = new Rect(cr.x - 3 * u, cr.y - 5 * u, cr.width + 6 * u, cr.height + 6 * u);
-            Pill(cr, on ? ink : new Color(1, 1, 1, .9f));
-            var tc = on ? Color.white : ink;
-            Text(new Rect(cr.x, cr.y + 12 * u, cr.width, 36 * u), (i + 1).ToString(), hero, tc, (int)(26 * u));
-            Text(new Rect(cr.x, cr.y + 48 * u, cr.width, 26 * u), d.name, h1, new Color(tc.r, tc.g, tc.b, .85f), (int)(13 * u));
+            float appear = Mathf.Clamp01((menuT - i * .025f) / .25f);
+            cr.y += (1f - appear) * 20 * u - (on ? 6 * u : 0);
+            float rad = 22 * u;
+            Round(new Rect(cr.x, cr.y + 8 * u, cr.width, cr.height), new Color(0, 0, 0, (on ? .16f : .07f) * appear), rad);
+            Round(cr, new Color(1, 1, 1, .92f * appear), rad);
+            var art = new Rect(cr.x + 8 * u, cr.y + 8 * u, cr.width - 16 * u, cr.height * .52f);
+            Round(art, new Color(d.top.r, d.top.g, d.top.b, appear), rad - 8 * u);
+            Round(new Rect(art.x, art.y + art.height * .45f, art.width, art.height * .55f), new Color(d.mid.r, d.mid.g, d.mid.b, appear), rad - 8 * u);
+            Round(new Rect(art.x, art.y + art.height * .78f, art.width, art.height * .22f), new Color(d.bottom.r, d.bottom.g, d.bottom.b, appear), rad - 8 * u);
+            float bs = art.height * .62f;
+            Icon(new Rect(art.center.x - bs / 2, art.center.y - bs / 2 + Mathf.Sin(uiT * 3 + i) * (on ? 3 : 0) * u, bs, bs), d.boss ? "stun" : TitleForms[i % TitleForms.Length].sprite, appear);
+            if (d.boss)
+            {
+                var bt = new Rect(art.xMax - 58 * u, art.y + 8 * u, 50 * u, 20 * u);
+                Pill(bt, new Color(1f, .3f, .35f, appear));
+                Text(bt, "BOSS", h1, new Color(1, 1, 1, appear), (int)(11 * u));
+            }
+            Text(new Rect(cr.x + 14 * u, art.yMax + 8 * u, 40 * u, 24 * u), (i + 1).ToString("00"), hero, new Color(Gfx.Gold.r, Gfx.Gold.g, Gfx.Gold.b, appear), (int)(18 * u));
+            h1.alignment = TextAnchor.MiddleLeft;
+            Text(new Rect(cr.x + 52 * u, art.yMax + 8 * u, cr.width - 58 * u, 24 * u), d.name, h1, new Color(ink.r, ink.g, ink.b, appear), (int)(13 * u));
+            h1.alignment = TextAnchor.MiddleCenter;
+            Round(new Rect(cr.x + 14 * u, cr.yMax - 16 * u, (on ? cr.width - 28 * u : 26 * u), 4 * u), new Color(ink.r, ink.g, ink.b, (on ? .8f : .2f) * appear), 2 * u);
         }
-        Text(new Rect(0, H - 52 * u, W, 30 * u), Controls.Touch ? "tap a level" : "click a level  ·  1-9, 0", body, new Color(ink.r, ink.g, ink.b, .45f), (int)(16 * u));
+        Text(new Rect(0, H - 40 * u, W, 26 * u), Controls.Touch ? "tap a level" : "click a level  ·  arrows + ENTER  ·  ESC back", body, new Color(ink.r, ink.g, ink.b, .4f), (int)(15 * u));
     }
 
     void DrawMusic(float u, Color ink)

@@ -443,17 +443,24 @@ public class LevelBuilder
     public void Blaster(float x, float y, Vector2 dir, float period, float delay = 0f, float sweep = 0f)
     {
         var go = Go("blaster", new Vector2(x, y));
-        Gfx.Quad(go.transform, Vector2.zero, Vector2.one * 2.2f, new Color(.3f, .5f, 1f, .3f), 3, Gfx.Glow);
-        Gfx.Quad(go.transform, Vector2.zero, Vector2.one * 1.2f, new Color32(70, 110, 255, 255), 4, Gfx.Circle);
-        Gfx.Quad(go.transform, Vector2.zero, Vector2.one * .8f, Gfx.Plat, 5, Gfx.Circle);
+        var ink = new Color(.07f, .07f, .1f, 1f);
+        Gfx.Quad(go.transform, Vector2.zero, Vector2.one * 2f, new Color(0, 0, 0, .18f), 3, Gfx.Glow);
+        var barrel = new GameObject("barrel").transform;
+        barrel.SetParent(go.transform, false);
+        Gfx.Quad(barrel, new Vector2(.5f, 0), new Vector2(1f, .46f), ink, 4, Gfx.Rounded);
+        Gfx.Quad(barrel, new Vector2(.92f, 0), new Vector2(.16f, .5f), new Color(.2f, .2f, .26f, 1f), 5, Gfx.Rounded);
+        Gfx.Quad(go.transform, Vector2.zero, Vector2.one * 1.2f, ink, 6, Gfx.Circle);
+        Gfx.Quad(go.transform, Vector2.zero, Vector2.one * 1.24f, new Color(1, 1, 1, .22f), 7, Gfx.Ring);
+        Gfx.Quad(go.transform, new Vector2(-.18f, .2f), new Vector2(.34f, .2f), new Color(1, 1, 1, .16f), 7, Gfx.Circle);
         var tu = go.AddComponent<Turret>();
+        tu.barrel = barrel;
         tu.dir = dir.normalized;
         tu.period = period;
         tu.delay = delay;
         tu.blue = true;
         tu.sweep = sweep;
         tu.speed = 8f;
-        tu.eye = Gfx.Quad(go.transform, dir.normalized * .18f, Vector2.one * .4f, new Color32(70, 110, 255, 255), 6, Gfx.Circle);
+        tu.eye = Gfx.Quad(go.transform, Vector2.zero, Vector2.one * .4f, new Color32(70, 140, 255, 255), 8, Gfx.Circle);
         var c = go.AddComponent<CircleCollider2D>();
         c.radius = .6f;
         Grow(new Vector2(x, y), 1.2f);
