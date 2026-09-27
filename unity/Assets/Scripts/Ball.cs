@@ -18,6 +18,7 @@ public class Ball : MonoBehaviour
 
     public int hearts = MaxHearts;
     public static Rect squeezeZone;
+    static bool AtMouth(Vector2 p) => squeezeZone.width > 0 && p.x > squeezeZone.xMin && p.x < squeezeZone.xMax && p.y >= squeezeZone.yMax && p.y < squeezeZone.yMax + 1.4f;
     float squeezeSpeed, squeezeY;
     public bool grown, crouching, dead, controlLocked, climbing, onRail, evolving;
     public float dashCd, teleCd, parryCd, camoCd, flipCd;
@@ -119,7 +120,7 @@ public class Ball : MonoBehaviour
                 rb.velocity = new Vector2(rb.velocity.x, rb.velocity.y * .55f);
 
             bool squeeze = squeezeZone.Contains(rb.position);
-            bool wantCrouch = squeeze || (GM.Has("crouch") && Controls.Crouch && !grown && !climbing);
+            bool wantCrouch = squeeze || ((GM.Has("crouch") || AtMouth(rb.position)) && Controls.Crouch && !grown && !climbing);
             if (wantCrouch && !crouching) { crouching = true; SetRadius(RCrouch); Sfx.Play("shrink", .4f); }
             else if (!wantCrouch && crouching && RoomFor(RNormal)) { crouching = false; SetRadius(RNormal); }
 
@@ -152,6 +153,7 @@ public class Ball : MonoBehaviour
         grounded = false;
         for (int i = 0; i < n; i++)
             if (hits[i] != col && hits[i].attachedRigidbody != rb) { grounded = true; break; }
+        if (!grounded && AtMouth(rb.position) && Mathf.Abs(rb.velocity.y) < 1f) grounded = true;
         coyote = grounded ? .1f : coyote - fdt;
         if (grounded && !climbing) climbStamina = Mathf.MoveTowards(climbStamina, ClimbMax, fdt * 2f);
         onRail = railT > 0;

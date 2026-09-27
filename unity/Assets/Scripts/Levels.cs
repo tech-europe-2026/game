@@ -922,6 +922,45 @@ public static class Levels
         EndWall(b, 234.5f, -15.4f);
     }
 
+    // shaft of stacked glass floors; the exit tunnel sits under floor exitK, anything deeper is the pit
+    static Vector2 GlassShaft(LevelBuilder b, float edge, float Y, int n, int exitK)
+    {
+        float cx = edge + 3.1f, ty = Y - exitK * 3.2f, tx = cx + 3.8f, deep = Y - n * 3.2f - 8;
+        b.Label(cx, Y + 3.5f, "break " + exitK + " floors · one more drops you into the pit");
+        for (int k = 0; k < n; k++) b.Glass(cx, Y - k * 3.2f + .1f, 6.2f, .5f, true);
+        b.Plat(cx - 3.45f, (Y + deep) / 2, .7f, Y - deep);
+        float u0 = Y - (exitK - 1) * 3.2f + .55f, u1 = Y + 3.65f;
+        b.Plat(cx + 3.45f, (u0 + u1) / 2, .7f, u1 - u0);
+        b.Plat(cx + 3.45f, (ty + .15f + deep) / 2, .7f, ty + .15f - deep);
+        b.Plat(tx + 5, ty, 10);
+        b.Plat(tx + 5, ty + 4.2f, 10);
+        b.Check(tx + 3, ty + 1.4f);
+        return V(tx + 10, ty);
+    }
+
+    // two walls with green springs alternating right, left, right... climb to the top exit
+    static Vector2 ZigWall(LevelBuilder b, float edge, float bs, int n, bool hard)
+    {
+        float zx = edge + 4, top = bs + n * 2.8f;
+        b.Plat(zx, bs, 7.9f);
+        float l0 = bs + 2.3f, l1 = top + 4.3f, r1 = top - .5f;
+        b.Plat(zx - 3.6f, (l0 + l1) / 2, .7f, l1 - l0);
+        b.Plat(zx + 3.6f, (bs + .3f + r1) / 2, .7f, r1 - bs - .3f);
+        b.Label(zx, top + 4.5f, "zig-zag springs · climb the wall");
+        for (int i = 0; i < n; i++)
+        {
+            bool left = i % 2 == 0;
+            float lx = zx + (left ? -2.3f : 2.3f), yy = bs + i * 2.8f;
+            if (i > 0) b.Plat(lx, yy, 1.8f);
+            b.Pad(lx, yy + .55f, left ? -20 : 20, 17);
+        }
+        b.Orbs(zx - 1, bs + 4, zx + 1, top - 2, 3);
+        if (hard) b.Blaster(zx, top + 3.4f, V(0, -1), 1.8f, 0, 35);
+        b.Plat(zx + 8.6f, top, 10);
+        b.Check(zx + 6, top + 1.4f);
+        return V(zx + 13.6f, top);
+    }
+
     static void GlassStorm(LevelBuilder b)
     {
         b.Start(0, 1);
@@ -937,35 +976,30 @@ public static class Levels
         b.Check(p1 - 2, ly + .5f);
         b.Glass(p1 + 2.5f, ly + 1.45f, .8f, 3.6f);
 
-        float Y = ly - .9f, cx = p1 + 7.1f;
-        b.Label(cx, Y + 3.5f, "break TWO floors · a third drops you into the pit");
-        for (int k = 0; k < 3; k++) b.Glass(cx, Y - k * 3.2f + .1f, 6.2f, .5f, true);
-        b.Plat(cx - 3.45f, Y - 9, .7f, 18);
-        b.Plat(cx + 3.45f, Y + .5f, .7f, 6.3f);
-        b.Plat(cx + 3.45f, Y - 13.5f, .7f, 14.5f);
-        float ty = Y - 6.4f, tx = cx + 3.8f;
-        b.Plat(tx + 5, ty, 10);
-        b.Plat(tx + 5, ty + 4.2f, 10, .7f);
-        b.Check(tx + 3, ty + 1.4f);
+        var e = GlassShaft(b, p1 + 4, ly - .9f, 3, 2);
+        var z = ZigWall(b, e.x, e.y, 5, false);
 
-        float zx = tx + 14, bs = ty;
-        b.Plat(zx, bs, 7.9f);
-        b.Plat(zx - 3.6f, bs + 10.3f, .7f, 16);
-        b.Plat(zx + 3.6f, bs + 6.9f, .7f, 13.2f);
-        b.Label(zx, bs + 18.5f, "zig-zag springs · climb the wall");
-        for (int i = 0; i < 5; i++)
-        {
-            bool left = i % 2 == 0;
-            float lx = zx + (left ? -2.3f : 2.3f), yy = bs + i * 2.8f;
-            if (i > 0) b.Plat(lx, yy, 1.8f);
-            b.Pad(lx, yy + .55f, left ? -20 : 20, 17);
-        }
-        b.Orbs(zx - 1, bs + 4, zx + 1, bs + 12, 3);
-        float top = bs + 14;
-        b.Plat(zx + 3.6f + 5, top, 10);
-        b.Check(zx + 6, top + 1.4f);
-        b.Glass(zx + 11, top + 2.35f, .8f, 4f);
-        FinaleLoop(b, zx + 13.9f, top, 2.6f, 2f, 2, 1.4f);
+        b.Plat(z.x + 11, z.y, 22);
+        b.Label(z.x + 11, z.y + 5.5f, "spinning blades · dash the glass between them");
+        b.Spinner(z.x + 5, z.y + 2.3f, 3.4f, 130);
+        b.Glass(z.x + 11, z.y + 2.35f, .8f, 4f);
+        b.Spinner(z.x + 17, z.y + 2.3f, 3.4f, -150);
+        b.Orbs(z.x + 7, z.y + 1.3f, z.x + 15, z.y + 1.3f, 3);
+
+        float mx = z.x + 22;
+        b.Label(mx + 11, z.y + 6, "moving islands over the pit");
+        b.Mover(mx + 4, z.y, 3, 0, 2.5f, 3f);
+        b.Mover(mx + 10.5f, z.y + 1, 3, 0, -2.5f, 3f, .5f);
+        b.Mover(mx + 17, z.y, 3, 2, 0, 2.6f);
+        b.Blaster(mx + 11, z.y + 7, V(-.3f, -1), 1.4f, 0, 30);
+        b.Plat(mx + 26, z.y, 8);
+        b.Check(mx + 24, z.y + 1.4f);
+
+        var e2 = GlassShaft(b, mx + 30, z.y, 4, 3);
+        b.Blaster(mx + 33.1f, z.y + 6, V(0, -1), 2f, .6f, 20);
+        var z2 = ZigWall(b, e2.x, e2.y, 7, true);
+        var k = SpeedKick(b, z2.x + .3f, z2.y, false);
+        FinaleLoop(b, k.x + .3f, k.y, 2.6f, 2f, 2, 1.4f);
     }
 
     static void FlipStorm(LevelBuilder b)
@@ -1005,8 +1039,8 @@ public static class Levels
         float[][] raw =
         {
             new float[] { 1, 0, 1, 3, 1.5f, 8, 1, 14, 2, 20, 2, 26, 2, 29.5f },
-            new float[] { 4, 0, 4, 3, 8, 9, 5, 13, 1.5f, 17 },
-            new float[] { 7, 0, 7, 3, 5, 7, 9, 15, 7, 21, 7, 29.5f },
+            new float[] { 4, 0, 4, 3, 3, 8, 4, 13, 7.7f, 19 },
+            new float[] { 7, 0, 7, 3, 6, 7, 9, 15, 7, 21, 7, 29.5f },
             new float[] { 10, 0, 10, 3, 12, 8, 9.5f, 12, 12.8f, 16.5f },
             new float[] { 13, 0, 13, 3, 13, 10, 13, 17, 12, 22, 12, 29.5f },
         };
@@ -1028,12 +1062,15 @@ public static class Levels
         for (int k = 0; k < 4; k++) b.Plat(x0 + 2.5f + 3 * k, yc, 2);
         b.Plat(x0 + 14, yc, 1);
         b.Plat(x0 + 14.8f, yc + 2, .7f, 4.6f);
-        b.Mover(x0 + 4.5f, bot - 9.5f, 2.4f, 3.5f, 0, 4f);
-        b.Cover(x0 + 7, (top + bot) / 2, 14.6f, top - bot + 3, "five ways in · three ways out · lanes merge|five ways in · three ways out · lanes merge");
-        b.Plat(x0 + 18.25f, bot - 7, 13.5f);
-        b.Check(x0 + 19, bot - 5.6f);
+        b.Mover(x0 + 3.5f, bot - 9.5f, 2.4f, 2.5f, 0, 4f);
+        b.Mover(x0 + 11, bot - 9.5f, 2.4f, 1.5f, 0, 3f);
+        b.Plat(x0 + 7, bot - 5, 3);
+        b.Pad(x0 + 7.4f, bot - 4.45f, -45, 15);
+        b.Cover(x0 + 7, (top + bot) / 2, 14.6f, top - bot + 3, "five ways in · three ways out · lanes merge · S / ↓ squeezes in|five ways in · three ways out · lanes merge");
+        b.Plat(x0 + 20.5f, bot - 7, 13);
+        b.Check(x0 + 21, bot - 5.6f);
         Ball.squeezeZone = Rect.MinMaxRect(x0 - .6f, bot - 1.6f, x0 + 14.6f, top - .4f);
-        b.Fog(V(x0 - 1, bot - 12), V(x0 + 25.5f, top - 3), V(x0 - .6f, bot - 16), V(x0 + 26, top + .2f));
-        return V(x0 + 25, bot - 7);
+        b.Fog(V(x0 - 1, bot - 12), V(x0 + 28, top - 3), V(x0 - .6f, bot - 16), V(x0 + 28.5f, top + .2f));
+        return V(x0 + 27, bot - 7);
     }
 }
