@@ -11,7 +11,8 @@ public class Tile : MonoBehaviour
     public int dir = 1;
     public float loopR, loopRy, loopShift;
     public int loopTurns = 1;
-    public bool extreme, freeze, stopSlam;
+    public bool extreme, freeze, stopSlam, heal;
+    public GameObject cross;
     public SpriteRenderer glow;
     public bool push;
     public float gateOn = 1.4f, gateOff = 1.3f, gateShift;

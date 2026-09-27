@@ -204,7 +204,9 @@ public class Ball : MonoBehaviour
             if (squeezeZone.Contains(rb.position))
             {
                 float sp = rb.velocity.magnitude;
-                if (squeezeSpeed > 0 && inp.x == 0 && sp > .5f)
+                float up = rb.velocity.y * gravDir;
+                if (inp.x == 0 && up > 1.5f) rb.velocity = new Vector2(rb.velocity.x, rb.velocity.y * .8f);
+                else if (squeezeSpeed > 0 && inp.x == 0 && sp > .5f && up < 0)
                 {
                     float e = squeezeSpeed * squeezeSpeed + 2f * Physics2D.gravity.magnitude * G * (squeezeY - rb.position.y) * gravDir;
                     float want = Mathf.Sqrt(Mathf.Max(0f, e)) * .995f;
@@ -879,7 +881,8 @@ public class Ball : MonoBehaviour
                 break;
             case TileKind.Check:
                 t.used = true;
-                Heal();
+                if (t.heal) Heal();
+                else { Sfx.Play("coin", .4f); Fx.Ring(t.transform.position, Color.white, 1.4f); }
                 GM.I.checkpoint = t.transform.position;
                 Destroy(t.gameObject);
                 break;

@@ -8,6 +8,34 @@ public class LevelBuilder
     public Vector2 start;
     public Vector2 min = new Vector2(float.MaxValue, float.MaxValue), max = new Vector2(float.MinValue, float.MinValue);
     public int orbs;
+    readonly List<Tile> checks = new List<Tile>();
+
+    // only one or two checkpoints near the middle of a level heal; the rest just save progress
+    public void FinalizeHeals()
+    {
+        if (checks.Count == 0) return;
+        float span = max.x - min.x;
+        var pick = new HashSet<Tile>();
+        foreach (float f in checks.Count > 3 ? new[] { .42f, .62f } : new[] { .5f })
+        {
+            Tile best = null;
+            float bd = float.MaxValue;
+            foreach (var t in checks)
+            {
+                float d = Mathf.Abs(t.transform.position.x - (min.x + span * f));
+                if (d < bd && !pick.Contains(t)) { bd = d; best = t; }
+            }
+            if (best != null) pick.Add(best);
+        }
+        foreach (var t in checks)
+        {
+            t.heal = pick.Contains(t);
+            if (t.heal) continue;
+            Object.Destroy(t.cross);
+            t.art.color = new Color(1f, 1f, 1f, .85f);
+            t.glow.color = new Color(1f, 1f, 1f, .25f);
+        }
+    }
 
     public const float LoopShift = 1.4f;
     static PhysicsMaterial2D trampMat, platMat, railMat, padMat, boxMat, iceMat;
@@ -354,11 +382,15 @@ public class LevelBuilder
     public void Check(float x, float y)
     {
         var go = Go("check", new Vector2(x, y));
-        Gfx.Quad(go.transform, Vector2.zero, Vector2.one * 2f, new Color(.3f, 1f, .75f, .35f), 8, Gfx.Glow);
+        var glow = Gfx.Quad(go.transform, Vector2.zero, Vector2.one * 2f, new Color(.3f, 1f, .75f, .35f), 8, Gfx.Glow);
         var t = AddTile(go, TileKind.Check);
+        t.glow = glow;
         t.art = Gfx.Quad(go.transform, Vector2.zero, Vector2.one * .9f, Gfx.Mint, 9, Gfx.Ring);
-        Gfx.Quad(go.transform, Vector2.zero, new Vector2(.42f, .12f), Gfx.Mint, 10);
-        Gfx.Quad(go.transform, Vector2.zero, new Vector2(.12f, .42f), Gfx.Mint, 10);
+        t.cross = new GameObject("cross");
+        t.cross.transform.SetParent(go.transform, false);
+        Gfx.Quad(t.cross.transform, Vector2.zero, new Vector2(.42f, .12f), Gfx.Mint, 10);
+        Gfx.Quad(t.cross.transform, Vector2.zero, new Vector2(.12f, .42f), Gfx.Mint, 10);
+        checks.Add(t);
         var c = go.AddComponent<CircleCollider2D>();
         c.isTrigger = true;
         c.radius = .6f;

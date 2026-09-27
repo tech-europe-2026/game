@@ -97,6 +97,7 @@ public class GM : MonoBehaviour
         Ball.squeezeZone = default;
         level = new LevelBuilder();
         def.build(level);
+        level.FinalizeHeals();
         checkpoint = level.start;
         ball = Ball.Create(level.start);
         camFollow.fixedView = Levels.All[idx].boss;

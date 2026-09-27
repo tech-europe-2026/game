@@ -34,10 +34,11 @@ public static class Levels
         new Level { name = "GHOST LINE", unlock = "jump,phase,dash,reverse", build = GhostLine, top = C(110, 70, 190), mid = C(190, 150, 240), bottom = C(240, 220, 255) },
         new Level { name = "SKYFALL", unlock = "jump,hover,slam,parry", build = Skyfall, top = C(40, 130, 200), mid = C(140, 200, 240), bottom = C(255, 225, 200) },
         new Level { name = "CRIMSON RIFT", unlock = "jump,dash,slam,parry", boss = true, pit = true, camMin = V(-11, -4.7f), camMax = V(11, 6.3f), build = CrimsonRift, top = C(30, 15, 40), mid = C(110, 40, 80), bottom = C(255, 110, 90) },
-        new Level { name = "SKY HIGHWAY", unlock = "jump,dash,slam,hover", build = SkyHighway, top = C(24, 36, 90), mid = C(96, 90, 200), bottom = C(255, 160, 130) },
+        new Level { name = "SKY HIGHWAY", unlock = "jump,dash,slam,climb", build = SkyHighway, top = C(24, 36, 90), mid = C(96, 90, 200), bottom = C(255, 160, 130) },
         new Level { name = "FROSTLINE", unlock = "jump,dash,hover,slam", build = Frostline, top = C(40, 90, 150), mid = C(140, 210, 240), bottom = C(230, 250, 255) },
         new Level { name = "GLASS STORM", unlock = "jump,dash,slam,hover", build = GlassStorm, top = C(60, 30, 110), mid = C(200, 120, 220), bottom = C(255, 210, 170) },
-        new Level { name = "FLIP STORM", unlock = "jump,reverse,dash,hover", build = FlipStorm, top = C(20, 20, 60), mid = C(120, 60, 180), bottom = C(255, 140, 190) },
+        new Level { name = "FLIP STORM", unlock = "jump,reverse,dash,climb", build = FlipStorm, top = C(20, 20, 60), mid = C(120, 60, 180), bottom = C(255, 140, 190) },
+        new Level { name = "RED CROWN", unlock = "jump,dash,slam,hover", boss = true, pit = true, camMin = V(-11, -4.7f), camMax = V(11, 6.3f), build = RedCrown, top = C(20, 10, 30), mid = C(90, 30, 90), bottom = C(255, 90, 120) },
     };
 
     // intro run that only a self-made gravity flip gets past: floor spikes, then (hard) ceiling spikes
@@ -854,7 +855,32 @@ public static class Levels
         b.Blaster(hx + 36, hyy - 4, V(-1, -.5f), 1.3f, .5f, 30);
         b.Plat(hx + 50, hyy - 8, 4);
         b.Check(hx + 50, hyy - 6.6f);
-        SpeedKick(b, hx + 52.3f, hyy - 8, true);
+        ClimbBlock(b, hx + 52, hyy - 8, 6, 7);
+        b.Plat(hx + 64, hyy - 1, 12);
+        b.Shards(hx + 63, hyy - .65f, 3);
+        ClimbBlock(b, hx + 70, hyy - 1, 5, 6);
+        SpeedKick(b, hx + 75.3f, hyy + 5, true);
+    }
+
+    // RED CROWN: last boss on moving islands and green springs; it grows spikes for 3 s now and then
+    static void RedCrown(LevelBuilder b)
+    {
+        b.Start(-7, -2.5f);
+        b.Plat(-7, -4, 7);
+        b.Plat(7, -4, 7);
+        b.Plat(-10.4f, .6f, .8f, 10);
+        b.Plat(10.4f, .6f, .8f, 10);
+        b.Plat(0, 6, 21.6f, .6f);
+        b.Mover(-1.6f, -4f, 2.4f, 3.2f, 0, 5f);
+        b.Mover(-6.2f, -.8f, 2.2f, 0, 2.6f, 4f);
+        b.Mover(6.2f, 1.8f, 2.2f, 0, -2.6f, 4f);
+        b.Mover(-3.2f, 3.4f, 2.4f, 6.4f, 0, 6f, .25f);
+        b.Pad(-9.4f, -3.45f, -20, 17);
+        b.Pad(9.4f, -3.45f, 20, 17);
+        b.Pad(-4.3f, -3.45f, 0, 15);
+        b.Pad(4.3f, -3.45f, 0, 15);
+        b.Label(0, 4.6f, "spikes out = stay away · strike when they drop|spikes out = stay away");
+        b.Rival(7, -2.5f, new Vector2(-10, -3.65f), new Vector2(10, 5.5f), 3, -3.5f, 3.5f);
     }
 
     // CRIMSON RIFT: final boss over a bottomless rift; blue push shots, bullet rain.
@@ -1002,34 +1028,50 @@ public static class Levels
         FinaleLoop(b, k.x + .3f, k.y, 2.6f, 2f, 2, 1.4f);
     }
 
+    // a wall too tall to jump: hold CLIMB against its face; the top is a flat platform at py + h
+    static void ClimbBlock(LevelBuilder b, float x, float py, float w, float h)
+    {
+        b.Plat(x + w / 2, py + h / 2, w, h + .7f);
+        b.Label(x - 2, py + h * .6f, "hold C on the wall to climb|hold CLIMB on the wall");
+        b.Orbs(x - .4f, py + 2, x - .4f, py + h - 1, 2);
+    }
+
     static void FlipStorm(LevelBuilder b)
     {
         b.Start(0, 1);
         b.Plat(26, 0, 56);
         b.Plat(38, 5, 68);
         b.Label(2, 3, "E flips gravity · floor, ceiling, floor, ceiling...|REVERSE again and again");
-        for (int k = 0; k < 5; k++) b.Shards(11 + k * 8, k % 2 == 0 ? .35f : 4.65f, 6, k % 2 == 0 ? 0 : 180);
-        b.Orbs(18, 1.2f, 38, 1.2f, 3);
-        b.Check(50, 1.4f);
-        b.Label(60, 9, "no floor · ride the ceiling · drop before it ends");
-        b.Orbs(58, 4, 66, 4, 3);
+        for (int k = 0; k < 7; k++) b.Shards(10 + k * 6, k % 2 == 0 ? .35f : 4.65f, 5, k % 2 == 0 ? 0 : 180);
+        b.Orbs(16, 2.5f, 46, 2.5f, 4);
+        b.Check(51, 1.4f);
+        b.Label(62, 9, "no floor · the ceiling has spikes · flip down, flip straight back up");
+        b.Shards(61.5f, 4.65f, 4, 180);
+        b.Orbs(58, 3, 66, 3, 3);
         b.Plat(81, 0, 22);
-        b.Check(76, 1.4f);
-        b.Label(96, 9, "zipper · every surface ends · keep flipping");
-        b.Plat(95, 5, 10);
-        b.Plat(103, 0, 10);
-        b.Plat(111, 5, 10);
-        b.Plat(119, 0, 10);
-        b.Plat(127, 5, 10);
-        b.Orbs(96, 1.2f, 126, 1.2f, 5);
+        b.Spinner(84, 2.5f, 2.2f, 170);
+        b.Check(75, 1.4f);
+        b.Label(98, 9, "zipper · every surface ends · keep flipping");
+        for (int k = 0; k < 6; k++) b.Plat(96 + k * 7, k % 2 == 0 ? 5 : 0, 7.4f);
+        b.Shards(99, 4.65f, 2, 180);
+        b.Shards(106, .35f, 2);
+        b.Shards(113, 4.65f, 2, 180);
+        b.Shards(120, .35f, 2);
+        b.Blaster(141, 2.5f, V(-1, 0), 1.7f, 0, 0);
+        b.Orbs(96, 2.5f, 130, 2.5f, 5);
         b.Plat(136.5f, 0, 13);
-        b.Check(134, 1.4f);
-        var r = Maze5(b, 146, .35f);
-        b.Plat(r.x + 9, r.y, 18);
-        b.Plat(r.x + 9, r.y + 5, 14);
-        b.Shards(r.x + 8, r.y + .35f, 6);
-        b.Label(r.x + 6, r.y + 8, "one last flip");
-        EndWall(b, r.x + 16, r.y);
+        b.Check(133, 1.4f);
+        ClimbBlock(b, 143, 0, 7, 8);
+        b.Plat(146.5f, 13, 7);
+        b.Shards(146.5f, 12.65f, 5, 180);
+        var r = Maze5(b, 154, .35f);
+        b.Plat(r.x + 11, r.y, 22);
+        b.Plat(r.x + 11, r.y + 5, 18);
+        b.Shards(r.x + 6, r.y + .35f, 5);
+        b.Shards(r.x + 12, r.y + 4.65f, 5, 180);
+        b.Shards(r.x + 17, r.y + .35f, 4);
+        b.Label(r.x + 6, r.y + 8, "flip, flip, flip");
+        EndWall(b, r.x + 20, r.y);
     }
 
     // five hidden entries, lanes merge into three exits; only the right exit lands safely
@@ -1038,11 +1080,11 @@ public static class Levels
         float bot = top - 28, R = .45f;
         float[][] raw =
         {
-            new float[] { 1, 0, 1, 3, 1.5f, 8, 1, 14, 2, 20, 2, 26, 2, 29.5f },
-            new float[] { 4, 0, 4, 3, 3, 8, 4, 13, 7.7f, 19 },
-            new float[] { 7, 0, 7, 3, 6, 7, 9, 15, 7, 21, 7, 29.5f },
-            new float[] { 10, 0, 10, 3, 12, 8, 9.5f, 12, 12.8f, 16.5f },
-            new float[] { 13, 0, 13, 3, 13, 10, 13, 17, 12, 22, 12, 29.5f },
+            new float[] { 1, 0, 1, 3, 1, 6, 4, 11, 4, 15, 2, 20, 2, 29.5f },
+            new float[] { 4, 0, 4, 3, 4, 6, 1, 11, 1, 15, 2, 20 },
+            new float[] { 7, 0, 7, 3, 7, 7, 9.5f, 12, 7, 18, 9, 23, 7, 29.5f },
+            new float[] { 10, 0, 10, 3, 10, 7, 7.3f, 12, 7, 18 },
+            new float[] { 13, 0, 13, 3, 13, 8, 11.5f, 13, 13, 19, 8, 24.5f, 12, 29.5f },
         };
         var paths = new Vector2[5][];
         for (int t = 0; t < 5; t++)

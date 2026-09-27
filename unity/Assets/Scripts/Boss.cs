@@ -20,6 +20,9 @@ public class Boss : MonoBehaviour
     CircleCollider2D col;
     SpriteRenderer body, glow;
     Transform spinT;
+    float spikeT, spikeCd = 5f;
+    GameObject spikes;
+    public bool Spiky => spikeT > 0;
     float quakeT, spin, think = 2f, hurtT, dashT, growT, tellT, flashT, jumpCd;
     string flash = "idle", pending;
     bool grounded, diving;
@@ -52,6 +55,16 @@ public class Boss : MonoBehaviour
         body = spinT.gameObject.AddComponent<SpriteRenderer>();
         body.sortingOrder = 20;
         glow = Gfx.Quad(transform, Vector2.zero, Vector2.one * 2.8f, new Color(1f, .3f, .35f, .3f), 19, Gfx.Glow);
+        spikes = new GameObject("spikes");
+        spikes.transform.SetParent(transform, false);
+        for (int i = 0; i < 12; i++)
+        {
+            float a = i * 30f;
+            var d = (Vector2)(Quaternion.Euler(0, 0, a) * Vector2.right);
+            var s = Gfx.Quad(spikes.transform, d * (R + .16f), new Vector2(.34f, .42f), new Color(.25f, .05f, .12f), 21, Gfx.Tri);
+            s.transform.localRotation = Quaternion.Euler(0, 0, a - 90f);
+        }
+        spikes.SetActive(false);
     }
 
     Ball Player => GM.I != null ? GM.I.Player : null;
@@ -60,7 +73,12 @@ public class Boss : MonoBehaviour
     {
         if (dead) return;
         float dt = Time.deltaTime;
-        hurtT -= dt; flashT -= dt; jumpCd -= dt;
+        hurtT -= dt; flashT -= dt; jumpCd -= dt; spikeCd -= dt;
+        if (spikeT > 0)
+        {
+            spikeT -= dt;
+            if (spikeT <= 0) { spikes.SetActive(false); think = 1.4f; Fx.Ring(rb.position, Color.white, 1.4f); }
+        }
         var p = Player;
         if (p == null || p.dead || !GM.I.Fighting) { Visual(); return; }
 
@@ -69,7 +87,7 @@ public class Boss : MonoBehaviour
             tellT -= dt;
             if (tellT <= 0) Act(pending, p);
         }
-        else
+        else if (spikeT <= 0)
         {
             think -= dt;
             if (think <= 0) Choose(p);
@@ -86,7 +104,8 @@ public class Boss : MonoBehaviour
     {
         float d = Vector2.Distance(p.rb.position, rb.position);
         float r = Random.value;
-        if (tier > 1)
+        if (tier > 2 && spikeCd <= 0 && r < .35f) pending = "spikes";
+        else if (tier > 1)
         {
             if (hearts == 1 && r < .15f) pending = "blink";
             else if (d > 7f) pending = r < .3f ? "push" : r < .55f ? "rain" : r < .8f ? "homing" : "shoot";
@@ -102,13 +121,14 @@ public class Boss : MonoBehaviour
         else if (d > 7f) pending = r < .55f ? "shoot" : "blink";
         else pending = r < .45f ? "dash" : r < .7f ? "grow" : "shoot";
         if (pending == "grow" && growT > 0) pending = "dash";
-        tellT = pending == "dash" || pending == "quake" || pending == "burst" ? .6f : .45f;
+        tellT = pending == "spikes" ? .9f : pending == "dash" || pending == "quake" || pending == "burst" ? .6f : .45f;
         string tell;
         switch (pending)
         {
             case "dash": case "burst": tell = "spin"; break;
             case "shoot": case "homing": case "push": tell = "parry"; break;
             case "rain": tell = "evolve"; break;
+            case "spikes": tell = "stun"; break;
             case "grow": tell = "grow"; break;
             case "quake": tell = "bounce"; break;
             default: tell = "teleport"; break;
@@ -171,6 +191,14 @@ public class Boss : MonoBehaviour
                 }
                 Fx.Ring(rb.position, Gfx.Coral, 2.2f);
                 Sfx.Play("parry", .8f);
+                break;
+            case "spikes":
+                spikeT = 3f;
+                spikeCd = 8f;
+                spikes.SetActive(true);
+                Fx.Burst(rb.position, new Color(.4f, .05f, .15f), 18, 6f, .15f, 0f, .4f);
+                Fx.AddShake(.25f);
+                Sfx.Play("grow");
                 break;
             case "quake":
                 quakeT = 2f;
@@ -242,10 +270,10 @@ public class Boss : MonoBehaviour
             if (HasPit && grounded && OverPit(rb.position.x + dir * 1.3f) && !OverPit(rb.position.x))
             {
                 bool across = (p.rb.position.x - (pitL + pitR) / 2) * (rb.position.x - (pitL + pitR) / 2) < 0;
-                if (across && jumpCd <= 0) { rb.velocity = new Vector2(dir * 8.5f, 12.5f); jumpCd = .9f; Flash("bounce", .3f); }
+                if (across && jumpCd <= 0) { rb.velocity = new Vector2(dir * (tier > 2 ? 10.5f : 8.5f), 12.5f); jumpCd = .9f; Flash("bounce", .3f); }
                 else { dir = 0; rb.velocity = new Vector2(rb.velocity.x * .8f, rb.velocity.y); }
             }
-            float max = growT > 0 ? 5.5f : 7f;
+            float max = spikeT > 0 ? 4.5f : growT > 0 ? 5.5f : 7f;
             if (dir != 0 && (Mathf.Abs(rb.velocity.x) < max || Mathf.Sign(rb.velocity.x) != dir))
                 rb.AddForce(new Vector2(dir * 30f * rb.mass, 0));
             bool wantJump = (p.rb.position.y > rb.position.y + 1.5f && Mathf.Abs(dx) < 5f) || Random.value < .004f;
@@ -276,6 +304,12 @@ public class Boss : MonoBehaviour
         }
         if (p == null || dead || p.dead) return;
         Vector2 toP = (p.rb.position - rb.position).normalized;
+        if (spikeT > 0)
+        {
+            p.Hurt(rb.position);
+            p.rb.velocity = toP * 9f + Vector2.up * 4f;
+            return;
+        }
         float mine = Vector2.Dot(LastVel, toP) * rb.mass;
         float theirs = Vector2.Dot(p.LastVel, -toP) * p.rb.mass;
         if (theirs > 5f && theirs > mine + 1f) Hurt(p.rb.position);
@@ -336,5 +370,7 @@ public class Boss : MonoBehaviour
         float tell = tellT > 0 ? .35f + Mathf.Sin(Time.time * 30f) * .2f : .25f;
         glow.color = tier > 0 ? new Color(.85f, .3f, 1f, tell + .1f) : new Color(1f, .3f, .35f, tell);
         glow.transform.localScale = Vector3.one * (2.8f * col.radius / R);
+        spikes.transform.localScale = Vector3.one * (col.radius / R);
+        if (spikeT > 0) glow.color = new Color(1f, .15f, .3f, .45f + Mathf.Sin(Time.time * 20f) * .1f);
     }
 }
