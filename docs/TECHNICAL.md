@@ -84,8 +84,8 @@ The ball is a single dynamic `Rigidbody2D` with a `CircleCollider2D`. Movement u
 | Parameter | Value |
 |---|---|
 | World gravity | `-9.81`, ball `gravityScale = 3` (a snappier arcade arc) |
-| Radius | 0.50 normal · 0.32 crouched · 0.85 grown |
-| Max rolling speed | 10 (7 crouched, 7.5 grown, 16 on rails) |
+| Radius | 0.50 normal · 0.32 squeezed · 0.85 grown |
+| Max rolling speed | 10 (7 squeezed, 7.5 grown, 16 on rails) |
 | Coyote time / jump buffer | 0.10 s / 0.12 s |
 | Dash cooldown | 0.9 s (gravity switched off for the length of the dash) |
 | Hearts | 3, with 1.1 s of invulnerability after a hit |
@@ -131,7 +131,7 @@ b.Goal(206, 4.5f);                        // level exit
 
 | # | Level | Abilities | Theme and main mechanics | Length (world units) |
 |---|---|---|---|---|
-| 1 | FIRST FLIGHT | jump, crouch, dash | morning blue: glass, squeeze block, S-tube, roller-coaster, ice slope, blue lasers | about 210 |
+| 1 | FIRST FLIGHT | jump, squeeze, dash | morning blue: glass, squeeze block, S-tube, roller-coaster, ice slope, blue lasers | about 210 |
 | 2 | UPSIDE | jump, reverse, climb | lilac dusk: gravity flips, ceiling runs, wall climbs, rail-to-rail jumps | about 181 |
 | 3 | HEAVY WEATHER | jump, grow | icy mint: crates, seesaws, ice slide, U-tube, coaster | about 197 |
 | 4 | PULSE | jump, dash | sunset peach: pulsing red and blue lasers, S-tubes, rails | about 150 |

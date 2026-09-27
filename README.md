@@ -23,7 +23,7 @@ A minimal physics game in **Unity 2022.3 (WebGL)**. You roll a glossy ball acros
 - **Mobile:** fixed ◀ ▶ pads, a JUMP button and buttons for the level's abilities. A rotate screen appears in portrait.
 
 ## Controls
-`←/→` roll · `Space` jump · `S` crouch · `D` dash · `F` slam · `Q` hover · `E` reverse gravity · `G` grow · `R` restart · `L` level menu · `M` music
+`←/→` roll · `Space` jump · `S` squeeze · `D` dash · `F` slam · `Q` hover · `E` reverse gravity · `G` grow · `R` restart · `L` level menu · `M` music
 
 ## Run locally
 ```bash

@@ -187,7 +187,7 @@ public static class Levels
 
         b.Plat(56, 0, 8);
         b.Plat(58, 2.9f, 4, 1.1f);
-        b.Label(53.5f, 2.6f, "hold S to shrink|hold CROUCH to shrink");
+        b.Label(53.5f, 2.6f, "hold S to shrink|hold SQUEEZE to shrink");
         b.Orb(58, .75f);
         b.Plat(66, 0, 8);
 
@@ -280,7 +280,7 @@ public static class Levels
 
         b.Plat(128, 6, 8);
         b.Plat(129, 9, 5, 3.7f);
-        b.Label(124, 8.5f, "hold S to squeeze|hold CROUCH to squeeze");
+        b.Label(124, 8.5f, "hold S to squeeze|hold SQUEEZE to squeeze");
         b.Orbs(127.5f, 6.8f, 130.5f, 6.8f, 3);
         b.Label(137, 9, "flip over the gap");
         b.Plat(137, 11, 12);
@@ -431,7 +431,7 @@ public static class Levels
         b.Check(18, 4.4f);
         b.Plat(28, 3, 8);
         b.Plat(28, 5.15f, 6, 2);
-        b.Label(28, 7.6f, "S to squeeze|hold CROUCH to squeeze");
+        b.Label(28, 7.6f, "S to squeeze|hold SQUEEZE to squeeze");
         b.Orbs(26, 3.8f, 30, 3.8f, 3);
         b.Plat(35.5f, 3, 3);
         b.Glass(39, 3, 4, .7f);
@@ -462,7 +462,7 @@ public static class Levels
         b.Plat(147, 6.4f, 10);
         b.Blaster(150, 4.35f, V(-1, -.7f), 1.4f);
         b.Blaster(144.5f, 5.45f, V(-1, -1), 1.7f, .7f);
-        b.Label(143, 8.6f, "blue shots ricochet and knock you back · S to slip under|CROUCH to slip under the blue blaster");
+        b.Label(143, 8.6f, "blue shots ricochet and knock you back · S to slip under|SQUEEZE to slip under the blue blaster");
         b.Check(155, 3.8f);
         SpeedKick(b, 154.3f, 2.4f, true);
     }
@@ -693,7 +693,7 @@ public static class Levels
         b.Plat(x0 + 9.5f, yc, 4f);
         b.Plat(x0 + 13.3f, yc, 1.6f);
         b.Plat(x0 + 14.4f, yc + 2, .7f, 4.6f);
-        b.Cover(x0 + 7, (top + bot) / 2, 14.6f, top - bot + 3, "one lane is safe · S to squeeze · switch lanes at the crossings|one lane is safe · CROUCH to squeeze · switch lanes at the crossings");
+        b.Cover(x0 + 7, (top + bot) / 2, 14.6f, top - bot + 3, "one lane is safe · S to squeeze · switch lanes at the crossings|one lane is safe · SQUEEZE to squeeze · switch lanes at the crossings");
         b.Plat(x0 + 18.25f, bot - 7, 13.5f);
         b.Check(x0 + 19, bot - 5.6f);
         Ball.squeezeZone = Rect.MinMaxRect(x0 - .6f, bot - 1.6f, x0 + 14.6f, top - .4f);
@@ -706,7 +706,7 @@ public static class Levels
     {
         SpringStairs(b, -41, false);
         b.Plat(3, 0, 12);
-        b.Label(4, 3, "springs! S = soft bounce · F = super bounce|CROUCH = soft bounce · SLAM = super bounce");
+        b.Label(4, 3, "springs! S = soft bounce · F = super bounce|SQUEEZE = soft bounce · SLAM = super bounce");
         var e = TrampChain(b, 9.3f, 0, 0);
         b.Plat(e.x + 8, e.y, 16);
         b.Plat(e.x + 8, e.y + 6.8f, 16);

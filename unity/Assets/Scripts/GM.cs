@@ -39,7 +39,7 @@ public class GM : MonoBehaviour
     public static readonly Ability[] Abilities =
     {
         new Ability("jump", "bounce", "SPACE", "JUMP"),
-        new Ability("crouch", "crouch", "S", "CROUCH"),
+        new Ability("crouch", "crouch", "S", "SQUEEZE"),
         new Ability("dash", "dash", "D", "DASH"),
         new Ability("slam", "spin", "F", "SLAM"),
         new Ability("hover", "freeze", "Q", "HOVER"),
@@ -589,7 +589,7 @@ public class GM : MonoBehaviour
 
     static readonly (string sprite, string label)[] TitleForms =
     {
-        ("idle", "ROLL"), ("bounce", "JUMP"), ("dash", "DASH"), ("crouch", "CROUCH"), ("grow", "GROW"),
+        ("idle", "ROLL"), ("bounce", "JUMP"), ("dash", "DASH"), ("crouch", "SQUEEZE"), ("grow", "GROW"),
         ("reverse", "REVERSE"), ("spin", "SLAM"), ("freeze", "HOVER"), ("heal", "HEAL"), ("evolve", "EVOLVE"),
     };
 
