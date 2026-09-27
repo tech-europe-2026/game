@@ -394,7 +394,7 @@ public class GM : MonoBehaviour
     }
 
     // ---------- HUD ----------
-    GUIStyle hero, h1, h2, body, keycap;
+    GUIStyle hero, h1, h2, body, keycap, sign;
     static Texture2D white;
 
     void Styles()
@@ -409,6 +409,7 @@ public class GM : MonoBehaviour
         h2 = new GUIStyle(hero) { font = semi };
         body = new GUIStyle(hero) { font = semi };
         keycap = new GUIStyle(hero);
+        sign = new GUIStyle(body) { wordWrap = false, clipping = TextClipping.Overflow };
     }
 
     static void Text(Rect r, string s, GUIStyle st, Color c, int size)
@@ -519,7 +520,7 @@ public class GM : MonoBehaviour
                 if (sp.x < -200 || sp.x > W + 200) continue;
                 var parts = text.Split('|');
                 string shown = Controls.Touch && parts.Length > 1 ? parts[1] : parts[0];
-                Text(new Rect(sp.x - 300 * u, H - sp.y - 20 * u, 600 * u, 40 * u), shown, body, signInk, (int)(20 * u));
+                Text(new Rect(sp.x - 300 * u, H - sp.y - 20 * u, 600 * u, 40 * u), shown, sign, signInk, (int)(20 * u));
             }
         }
 

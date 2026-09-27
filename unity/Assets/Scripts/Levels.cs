@@ -1051,7 +1051,7 @@ public static class Levels
     // holes in the walls drop you into the void. The goal sits on the top ledge, outside the left wall.
     static void GravShaft(LevelBuilder b, float S, float B)
     {
-        b.Label(S + 3, B + 3, "flip up · flip down onto the ledge · mind the spikes and the holes");
+        b.Label(S + 3, B + 3, "flip up · flip down onto each ledge · mind the holes");
         b.Plat(S + 6.35f, B + 2.5f, .7f, 11);
         b.Plat(S + 6.35f, B + 23.5f, .7f, 25);
         b.Plat(S - .35f, B + 9.8f, .7f, 10.35f);
