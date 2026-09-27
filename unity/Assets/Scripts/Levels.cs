@@ -34,6 +34,7 @@ public static class Levels
         new Level { name = "GHOST LINE", unlock = "jump,phase,dash,reverse", build = GhostLine, top = C(110, 70, 190), mid = C(190, 150, 240), bottom = C(240, 220, 255) },
         new Level { name = "SKYFALL", unlock = "jump,hover,slam,parry", build = Skyfall, top = C(40, 130, 200), mid = C(140, 200, 240), bottom = C(255, 225, 200) },
         new Level { name = "CRIMSON RIFT", unlock = "jump,dash,slam,parry", boss = true, pit = true, camMin = V(-11, -4.7f), camMax = V(11, 6.3f), build = CrimsonRift, top = C(30, 15, 40), mid = C(110, 40, 80), bottom = C(255, 110, 90) },
+        new Level { name = "SKY HIGHWAY", unlock = "jump,dash,slam,hover", build = SkyHighway, top = C(24, 36, 90), mid = C(96, 90, 200), bottom = C(255, 160, 130) },
     };
 
     // intro run that only a self-made gravity flip gets past: floor spikes, then (hard) ceiling spikes
@@ -682,7 +683,7 @@ public static class Levels
             b.TubeX(R, others.ToArray(), paths[t].ToArray());
             b.Label(x0 + lx[t], top + 1.3f, (t + 1).ToString());
         }
-        b.Mover(x0 + 5.5f, bot - 9.5f, 1.6f, 3.5f, 0, 4f);
+        b.Mover(x0 + 5.5f, bot - 9.5f, 2.4f, 3.5f, 0, 4f);
         float yc = top - .35f;
         b.Plat(x0 - 1.25f, yc, 5.5f);
         b.Plat(x0 + 4.5f, yc, 4f);
@@ -802,6 +803,55 @@ public static class Levels
         b.Blaster(t.x + 6, t.y + 4.5f, V(-1, -1), 1.1f, 0, 35);
         b.Blaster(t.x + 9, t.y + 4, V(-1, -.4f), 1.4f, .5f);
         RailRun(b, t.x + 9.3f, t.y, 1);
+    }
+
+    // SKY HIGHWAY: tiny spring islands over pits, dropping rails you must leave on time, long-range trampolines.
+    static void SkyHighway(LevelBuilder b)
+    {
+        b.Start(-2, 1);
+        b.Plat(3, 0, 10);
+        b.Label(3, 3.5f, "no floor ahead · every landing counts");
+        float[] hy = { -2, -1, 0 };
+        for (int i = 0; i < 3; i++)
+        {
+            float px = 11 + i * 12;
+            b.Plat(px, hy[i], 3);
+            b.Pad(px + .6f, hy[i] + .55f, -25, 21);
+            b.Orbs(px + 4, hy[i] + 5, px + 8, hy[i] + 5, 2);
+        }
+        b.Plat(48, 1, 6);
+        b.Check(47, 2.4f);
+
+        b.Label(57, 5, "rails end in the air · jump at the lip");
+        b.Rail(true, V(51.3f, 1.7f), V(56, -1), V(60, -3), V(63.5f, -2.2f));
+        b.Rail(true, V(67.5f, -3.3f), V(73, -5.5f), V(79, -6.2f), V(83, -5.2f));
+        b.Orbs(58, -1, 80, -4.4f, 5);
+        b.Blaster(75, -1, V(-1, -1), 1.6f, 0, 25);
+        b.Plat(89, -7, 6);
+        b.Check(88, -5.6f);
+
+        var t = TrampChain(b, 92.3f, -7, 0);
+        float sx = t.x + 2;
+        for (int i = 0; i < 3; i++)
+        {
+            b.Plat(sx + i * 3.4f, t.y + i * 2.8f, 2.2f);
+            b.Pad(sx + i * 3.4f, t.y + i * 2.8f + .55f, 0, 16);
+        }
+        float hx = sx + 12, hyy = t.y + 8.4f;
+        b.Plat(hx, hyy, 6);
+        b.Check(hx - 1, hyy + 1.4f);
+        b.Shards(hx + 1.5f, hyy + .35f, 2);
+
+        b.Label(hx + 10, hyy + 3, "the lower rail drops into the pit · jump to the upper one");
+        b.Rail(true, V(hx + 3.3f, hyy + .7f), V(hx + 9, hyy - 3.5f), V(hx + 14, hyy - 7), V(hx + 18, hyy - 8.5f));
+        b.Rail(true, V(hx + 13, hyy - 4.4f), V(hx + 20, hyy - 5.4f), V(hx + 27, hyy - 7.6f), V(hx + 31, hyy - 6.8f));
+        b.Orbs(hx + 14, hyy - 3.4f, hx + 26, hyy - 6.4f, 4);
+        b.Plat(hx + 36, hyy - 9, 5);
+        b.Pad(hx + 37, hyy - 8.45f, -25, 21);
+        b.Blaster(hx + 36, hyy - 4, V(-1, -.5f), 1.3f, .5f, 30);
+        b.Plat(hx + 50, hyy - 8, 4);
+        b.Check(hx + 50, hyy - 6.6f);
+        SpeedKick(b, hx + 52.3f, hyy - 8, true);
     }
 
     // CRIMSON RIFT: final boss over a bottomless rift; blue push shots, bullet rain.

@@ -146,7 +146,7 @@ public class GM : MonoBehaviour
     Rect CardRect(int i)
     {
         float W = Screen.width, H = Screen.height, u = H / 720f;
-        int n = 5, row = i / n, col = i % n;
+        int n = Levels.All.Length > 15 ? 8 : 5, row = i / n, col = i % n;
         float gap = 16 * u, cw = Mathf.Min(200 * u, (W - 80 * u - (n - 1) * gap) / n), ch = 150 * u, total = n * cw + (n - 1) * gap;
         return new Rect((W - total) / 2 + col * (cw + gap), 170 * u + row * (ch + gap), cw, ch);
     }
@@ -185,8 +185,8 @@ public class GM : MonoBehaviour
                 int nl = Levels.All.Length;
                 if (Input.GetKeyDown(KeyCode.RightArrow)) sel = sel < 0 ? 0 : (sel + 1) % nl;
                 if (Input.GetKeyDown(KeyCode.LeftArrow)) sel = sel < 0 ? 0 : (sel + nl - 1) % nl;
-                if (Input.GetKeyDown(KeyCode.DownArrow)) sel = sel < 0 ? 0 : Mathf.Min(nl - 1, sel + 5);
-                if (Input.GetKeyDown(KeyCode.UpArrow)) sel = sel < 0 ? 0 : Mathf.Max(0, sel - 5);
+                if (Input.GetKeyDown(KeyCode.DownArrow)) sel = sel < 0 ? 0 : Mathf.Min(nl - 1, sel + (nl > 15 ? 8 : 5));
+                if (Input.GetKeyDown(KeyCode.UpArrow)) sel = sel < 0 ? 0 : Mathf.Max(0, sel - (nl > 15 ? 8 : 5));
                 if (sel >= 0 && (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.Space))) StartLevel(sel);
                 break;
             case Mode.Playing:
