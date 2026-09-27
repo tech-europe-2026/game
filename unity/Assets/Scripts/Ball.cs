@@ -151,8 +151,14 @@ public class Ball : MonoBehaviour
         float r = col.radius;
         int n = Physics2D.OverlapCircle(rb.position - Up * (r * .55f), r * .6f, solidFilter, hits);
         grounded = false;
+        Vector2 carry = Vector2.zero;
         for (int i = 0; i < n; i++)
-            if (hits[i] != col && hits[i].attachedRigidbody != rb) { grounded = true; break; }
+            if (hits[i] != col && hits[i].attachedRigidbody != rb)
+            {
+                grounded = true;
+                var mv = hits[i].GetComponent<Mover>();
+                if (mv != null) { carry = mv.vel; break; }
+            }
         if (!grounded && AtMouth(rb.position) && Mathf.Abs(rb.velocity.y) < 1f) grounded = true;
         coyote = grounded ? .1f : coyote - fdt;
         if (grounded && !climbing) climbStamina = Mathf.MoveTowards(climbStamina, ClimbMax, fdt * 2f);
@@ -195,11 +201,11 @@ public class Ball : MonoBehaviour
             float maxSpeed = grown ? 7.5f : crouching ? 7f : 10f;
             if (onRail) maxSpeed = 16f;
             float accel = grounded ? 40f : 24f;
-            float vx = rb.velocity.x;
+            float vx = rb.velocity.x - carry.x;
             if (inp.x != 0 && (Mathf.Abs(vx) < maxSpeed || Mathf.Sign(vx) != Mathf.Sign(inp.x)))
                 rb.AddForce(new Vector2(inp.x * accel * rb.mass, 0));
             else if (inp.x == 0 && grounded && !onRail && !squeezeZone.Contains(rb.position))
-                rb.velocity = new Vector2(Mathf.MoveTowards(vx, 0, 14f * fdt), rb.velocity.y);
+                rb.velocity = new Vector2(carry.x + Mathf.MoveTowards(vx, 0, (carry.x != 0 ? 30f : 14f) * fdt), rb.velocity.y);
             rb.AddTorque(-inp.x * gravDir * 5f * rb.mass * r);
             if (squeezeZone.Contains(rb.position))
             {

@@ -4,6 +4,7 @@ public class Mover : MonoBehaviour
 {
     public Vector2 a, b;
     public float period = 4f, phase;
+    public Vector2 vel;
     Rigidbody2D rb;
 
     void Awake()
@@ -17,6 +18,8 @@ public class Mover : MonoBehaviour
     void FixedUpdate()
     {
         float k = (1 - Mathf.Cos((Time.fixedTime / period + phase) * Mathf.PI * 2f)) * .5f;
-        rb.MovePosition(Vector2.Lerp(a, b, k));
+        var next = Vector2.Lerp(a, b, k);
+        vel = (next - rb.position) / Time.fixedDeltaTime;
+        rb.MovePosition(next);
     }
 }
