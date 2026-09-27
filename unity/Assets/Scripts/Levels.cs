@@ -35,6 +35,47 @@ public static class Levels
         new Level { name = "CRIMSON RIFT", unlock = "jump,dash,slam,parry", boss = true, pit = true, camMin = V(-11, -4.7f), camMax = V(11, 6.3f), build = CrimsonRift, top = C(30, 15, 40), mid = C(110, 40, 80), bottom = C(255, 110, 90) },
     };
 
+    // intro run that only a self-made gravity flip gets past: floor spikes, then (hard) ceiling spikes
+    static void FlipGauntlet(LevelBuilder b, float x0, bool hard)
+    {
+        b.Start(x0 + 2, 1);
+        b.Plat(x0 + 20.5f, 0, 41);
+        b.Plat(x0 + 20.5f, 5, 35);
+        b.Shards(x0 + 17, .35f, 21);
+        b.Label(x0 + 5, 3, "spikes ahead · E flips you onto the ceiling|spikes ahead · REVERSE onto the ceiling");
+        b.Orbs(x0 + 11, 4, x0 + 23, 4, 4);
+        if (hard)
+        {
+            b.Shards(x0 + 32, 4.65f, 13, 180);
+            b.Label(x0 + 30, 8, "now flip back down");
+            b.Orbs(x0 + 28, 1.2f, x0 + 36, 1.2f, 3);
+        }
+        else b.Label(x0 + 34, 8, "flip back down before the ceiling ends");
+        b.Check(x0 + 39, 1.4f);
+    }
+
+    // three green springs stepping up over the void, then a steep drop into the level
+    static void SpringStairs(LevelBuilder b, float x0, bool hard)
+    {
+        b.Start(x0 + 2, 1);
+        b.Plat(x0 + 4, 0, 8);
+        b.Pad(x0 + 6.5f, .55f, 0, 16);
+        b.Plat(x0 + 9.5f, 2.8f, 2.6f);
+        b.Pad(x0 + 9.5f, 3.35f, 0, 16);
+        b.Plat(x0 + 12.5f, 5.6f, 2.6f);
+        b.Pad(x0 + 12.5f, 6.15f, 0, 16);
+        b.Label(x0 + 4, 3.5f, "bounce up the springs");
+        b.Orbs(x0 + 8, 5.5f, x0 + 14.5f, 11, 3);
+        b.Plat(x0 + 21, 8.65f, 10);
+        if (hard)
+        {
+            b.Blaster(x0 + 16, 13, V(-.4f, -1), 1.5f, 0, 25);
+            b.Shards(x0 + 22, 9, 3);
+        }
+        b.Check(x0 + 18, 10.05f);
+        b.Ramp(x0 + 26, 8.65f, x0 + 38, -.1f);
+    }
+
     // Each finale strings three different rail shapes together; the style picks which three.
     static void RailRun(LevelBuilder b, float x, float py, int style = 0)
     {
@@ -526,7 +567,7 @@ public static class Levels
     // SKY RUSH: fast rails, double loop, gravity tunnel, laser hover.
     static void SkyRush(LevelBuilder b)
     {
-        b.Start(0, 1);
+        FlipGauntlet(b, -44, false);
         b.Plat(3, 0, 12);
         b.Label(4, 3, "full speed ahead");
         b.Rail(true, V(9.3f, .7f), V(14, -2), V(18, -2.8f), V(30, -2.8f), V(34, -2));
@@ -663,7 +704,7 @@ public static class Levels
     // BOUNCE HOUSE: trampoline chains with spike ceilings, blaster crossfire, frost drop.
     static void BounceHouse(LevelBuilder b)
     {
-        b.Start(0, 1);
+        SpringStairs(b, -41, false);
         b.Plat(3, 0, 12);
         b.Label(4, 3, "springs! S = soft bounce · F = super bounce|CROUCH = soft bounce · SLAM = super bounce");
         var e = TrampChain(b, 9.3f, 0, 0);
@@ -686,7 +727,7 @@ public static class Levels
     // BLIND DROP: shield the blue shots, frost over a hover gap, a hidden three-tube maze.
     static void BlindDrop(LevelBuilder b)
     {
-        b.Start(0, 1);
+        SpringStairs(b, -41, true);
         b.Plat(3, 0, 12);
         b.Label(4, 3, "J = shield · reflects shots|SHIELD reflects shots");
         b.Plat(17, 0, 16);
@@ -710,7 +751,7 @@ public static class Levels
     // GHOST LINE: phase through purple walls, flip onto ceilings, mixed loop shapes.
     static void GhostLine(LevelBuilder b)
     {
-        b.Start(0, 1);
+        FlipGauntlet(b, -44, true);
         b.Plat(3, 0, 12);
         b.Plat(15, 0, 14);
         b.PhaseWall(16, 2.35f, .8f, 4);
@@ -742,7 +783,7 @@ public static class Levels
     // SKYFALL: slam-launch, down-firing blasters, mid-air frost, a vertical S tube, spring chain.
     static void Skyfall(LevelBuilder b)
     {
-        b.Start(0, 1);
+        SpringStairs(b, -41, true);
         b.Plat(3, 0, 12);
         b.Label(4, 3, "jump + F on the spring to launch high|SLAM the spring to launch high");
         b.Tramp(11.5f, -1.5f, 2.6f);
@@ -771,12 +812,12 @@ public static class Levels
     static void CrimsonRift(LevelBuilder b)
     {
         b.Start(-6, -2.5f);
-        b.Plat(-6.25f, -4, 7.5f);
-        b.Plat(6.25f, -4, 7.5f);
+        b.Plat(-5.65f, -4, 8.7f);
+        b.Plat(5.65f, -4, 8.7f);
         b.Plat(-10.4f, .6f, .8f, 10);
         b.Plat(10.4f, .6f, .8f, 10);
         b.Plat(0, 6, 21.6f, .6f);
-        b.Mover(0, -2.2f, 2.2f, 3.2f, 0, 5f);
+        b.Mover(0, -2.2f, 2.2f, 2f, 0, 5f);
         b.Tramp(-8.5f, -3.5f, 1.8f);
         b.Tramp(8.5f, -3.5f, 1.8f);
         b.Plat(-6, 1.4f, 3);
@@ -784,6 +825,6 @@ public static class Levels
         b.Rail(true, V(-3.6f, 3), V(0, 2), V(3.6f, 3));
         b.Blaster(-9.5f, 4.5f, V(1, -.6f), 3.2f, 1f, 20);
         b.Label(0, 4.6f, "don't fall into the rift · J shields blue shots|don't fall · SHIELD blue shots");
-        b.Rival(6, -2.5f, new Vector2(-10, -3.65f), new Vector2(10, 5.5f), 2, -2.5f, 2.5f);
+        b.Rival(6, -2.5f, new Vector2(-10, -3.65f), new Vector2(10, 5.5f), 2, -1.3f, 1.3f);
     }
 }
