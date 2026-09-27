@@ -692,6 +692,7 @@ public static class Levels
         b.Cover(x0 + 7, (top + bot) / 2, 14.6f, top - bot + 3, "one lane is safe · S to squeeze · switch lanes at the crossings|one lane is safe · CROUCH to squeeze · switch lanes at the crossings");
         b.Plat(x0 + 18.25f, bot - 7, 13.5f);
         b.Check(x0 + 19, bot - 5.6f);
+        Ball.squeezeZone = Rect.MinMaxRect(x0 - .6f, bot - 1.6f, x0 + 14.6f, top - .4f);
         b.Fog(V(x0 - 1, bot - 12), V(x0 + 25.5f, top - 3), V(x0 - .6f, bot - 16), V(x0 + 26, top + .2f));
         return V(x0 + 25, bot - 7);
     }

@@ -94,6 +94,7 @@ public class GM : MonoBehaviour
         if (ball != null) Destroy(ball.gameObject);
         signs.Clear();
         var def = Levels.All[idx];
+        Ball.squeezeZone = default;
         level = new LevelBuilder();
         def.build(level);
         checkpoint = level.start;

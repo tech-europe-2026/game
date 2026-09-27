@@ -17,6 +17,7 @@ public class Ball : MonoBehaviour
     TrailRenderer trail;
 
     public int hearts = MaxHearts;
+    public static Rect squeezeZone;
     public bool grown, crouching, dead, controlLocked, climbing, onRail, evolving;
     public float dashCd, teleCd, parryCd, camoCd, flipCd;
     public float camoT, parryT, stunT, dashT, flashT, healT, hurtInvT;
@@ -116,19 +117,20 @@ public class Ball : MonoBehaviour
                 && rb.velocity.y * gravDir < -3f && dashT <= 0 && !climbing)
                 rb.velocity = new Vector2(rb.velocity.x, rb.velocity.y * .55f);
 
-            bool wantCrouch = GM.Has("crouch") && Controls.Crouch && !grown && !climbing;
+            bool squeeze = squeezeZone.Contains(rb.position);
+            bool wantCrouch = squeeze || (GM.Has("crouch") && Controls.Crouch && !grown && !climbing);
             if (wantCrouch && !crouching) { crouching = true; SetRadius(RCrouch); Sfx.Play("shrink", .4f); }
             else if (!wantCrouch && crouching && RoomFor(RNormal)) { crouching = false; SetRadius(RNormal); }
 
-            if (GM.Has("dash") && Controls.Pressed("dash") && dashCd <= 0) Dash();
-            if (GM.Has("grow") && Controls.Pressed("grow")) ToggleGrow();
-            if (GM.Has("teleport") && Controls.Pressed("teleport") && teleCd <= 0) Teleport();
-            if (GM.Has("parry") && Controls.Pressed("parry") && parryCd <= 0) Parry();
-            if (GM.Has("camo") && Controls.Pressed("camo") && camoCd <= 0) Camouflage();
-            if (GM.Has("reverse") && Controls.Pressed("reverse") && flipCd <= 0) Flip();
-            if (GM.Has("slam") && Controls.Pressed("slam") && slamCd <= 0) Slam();
-            if (GM.Has("hover") && Controls.Pressed("hover") && hoverCd <= 0) Hover();
-            if (GM.Has("phase") && Controls.Pressed("phase") && phaseCd <= 0) { phaseT = PhaseTime; phaseCd = PhaseCd; SetPhase(true); }
+            if (!squeeze && GM.Has("dash") && Controls.Pressed("dash") && dashCd <= 0) Dash();
+            if (!squeeze && GM.Has("grow") && Controls.Pressed("grow")) ToggleGrow();
+            if (!squeeze && GM.Has("teleport") && Controls.Pressed("teleport") && teleCd <= 0) Teleport();
+            if (!squeeze && GM.Has("parry") && Controls.Pressed("parry") && parryCd <= 0) Parry();
+            if (!squeeze && GM.Has("camo") && Controls.Pressed("camo") && camoCd <= 0) Camouflage();
+            if (!squeeze && GM.Has("reverse") && Controls.Pressed("reverse") && flipCd <= 0) Flip();
+            if (!squeeze && GM.Has("slam") && Controls.Pressed("slam") && slamCd <= 0) Slam();
+            if (!squeeze && GM.Has("hover") && Controls.Pressed("hover") && hoverCd <= 0) Hover();
+            if (!squeeze && GM.Has("phase") && Controls.Pressed("phase") && phaseCd <= 0) { phaseT = PhaseTime; phaseCd = PhaseCd; SetPhase(true); }
         }
         UpdateVisual();
     }
