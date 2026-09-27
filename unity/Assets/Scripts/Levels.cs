@@ -83,7 +83,7 @@ public static class Levels
     }
 
     // Each finale strings three different rail shapes together; the style picks which three.
-    static void RailRun(LevelBuilder b, float x, float py, int style = 0)
+    static void RailRun(LevelBuilder b, float x, float py, int style = 0, bool ice = false)
     {
         float y = py + .7f;
         Vector2 P(float dx, float dy) => V(x + dx, y + dy);
@@ -103,6 +103,7 @@ public static class Levels
             default: // three straight rails stepping down
                 b.Rail(true, P(-.2f, -.4f), P(7.2f, -.9f));
                 b.Rail(true, P(10.7f, -1.9f), P(17.2f, -2.6f));
+                if (ice) b.IceRail(P(12.5f, -2.094f), P(15.5f, -2.417f));
                 b.Rail(true, P(20.7f, -3.4f), P(29.2f, -4f));
                 break;
         }
@@ -751,7 +752,7 @@ public static class Levels
         b.Plat(m.x + 17, m.y - 2, 8);
         b.Blaster(m.x + 17, m.y + 3.5f, V(-1, -1), 1.2f, 0, 40);
         b.Check(m.x + 15, m.y - .6f);
-        RailRun(b, m.x + 21.3f, m.y - 2, 3);
+        RailRun(b, m.x + 21.3f, m.y - 2, 3, true);
     }
 
     // GHOST LINE: phase through purple walls, flip onto ceilings, mixed loop shapes.
@@ -779,6 +780,7 @@ public static class Levels
         b.Coaster(V(67.1f, .3f), V(71, -1.8f), V(95, -1.8f), V(98, -1));
         b.Loop(76, -1.8f, 1.6f, 1, 2.6f, 1, 1.2f);
         b.Loop(85, -1.8f, 2.6f, 1, 1.5f, 1, 2f);
+        b.IceRail(V(90.5f, -1.8f), V(93.5f, -1.8f));
         b.Plat(102, -1.5f, 8);
         b.Check(101, -.1f);
         b.Tube(V(105.9f, -.37f), V(109, -.4f), V(111, 1.5f), V(113, -.4f), V(116, -2.4f), V(119.2f, -2.37f));
@@ -1003,6 +1005,7 @@ public static class Levels
         float xe = xl + LevelBuilder.LoopShiftFor(LevelBuilder.LoopWidth(2.4f), 1.2f) + 6;
         b.Coaster(V(8.1f, y - .4f), V(12, ly), V(xe, ly), V(xe + 3, ly + .8f));
         b.Loop(xl, ly, 2.4f);
+        b.IceRail(V(xe - 4.5f, ly), V(xe - 1.5f, ly));
         b.Orbs(10, 0, 14, ly + .6f, 3);
         float p1 = xe + 8;
         b.Plat(p1, ly - .9f, 8);
@@ -1044,6 +1047,28 @@ public static class Levels
         b.Orbs(x - .4f, py + 2, x - .4f, py + h - 1, 2);
     }
 
+    // a tall white shaft climbed by flipping: rise past the next ledge, flip back down onto it before the spikes above;
+    // holes in the walls drop you into the void. The goal sits on the top ledge, outside the left wall.
+    static void GravShaft(LevelBuilder b, float S, float B)
+    {
+        b.Label(S + 3, B + 3, "flip up · flip down onto the ledge · mind the spikes and the holes");
+        b.Plat(S + 6.35f, B + 2.5f, .7f, 11);
+        b.Plat(S + 6.35f, B + 23.5f, .7f, 25);
+        b.Plat(S - .35f, B + 9.8f, .7f, 10.35f);
+        b.Plat(S - .35f, B + 22.8f, .7f, 9.7f);
+        b.Plat(S + 4.1f, B + 7, 3.8f);
+        b.Plat(S + 1.9f, B + 14, 3.8f);
+        b.Shards(S + 1.9f, B + 13.65f, 5, 180);
+        b.Plat(S + 4.1f, B + 21, 3.8f);
+        b.Shards(S + 4.1f, B + 20.65f, 5, 180);
+        b.Plat(S - 1.1f, B + 28, 9.8f);
+        b.Shards(S + 1.9f, B + 27.65f, 5, 180);
+        b.Plat(S + 3, B + 35, 6.7f);
+        b.Shards(S + 4.6f, B + 34.65f, 4, 180);
+        b.Orbs(S + 1, B + 4, S + 5, B + 25, 4);
+        b.Goal(S - 4, B + 29.5f);
+    }
+
     static void FlipStorm(LevelBuilder b)
     {
         b.Start(0, 1);
@@ -1074,13 +1099,14 @@ public static class Levels
         b.Plat(146.5f, 13, 7);
         b.Shards(146.5f, 12.65f, 5, 180);
         var r = Maze5(b, 154, .35f);
-        b.Plat(r.x + 11, r.y, 22);
-        b.Plat(r.x + 11, r.y + 5, 18);
+        b.Plat(r.x + 12.5f, r.y, 25);
+        b.Plat(r.x + 11.65f, r.y + 5, 19.3f);
         b.Shards(r.x + 6, r.y + .35f, 5);
         b.Shards(r.x + 12, r.y + 4.65f, 5, 180);
-        b.Shards(r.x + 17, r.y + .35f, 4);
+        b.Shards(r.x + 16, r.y + .35f, 4);
+        b.Shards(r.x + 19, r.y + 4.65f, 2, 180);
         b.Label(r.x + 6, r.y + 8, "flip, flip, flip");
-        EndWall(b, r.x + 20, r.y);
+        GravShaft(b, r.x + 22, r.y);
     }
 
     // five hidden entries, lanes merge into three exits; only the right exit lands safely
